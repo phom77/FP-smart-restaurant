@@ -18,6 +18,7 @@ Dành cho việc đăng ký, đăng nhập và lấy thông tin User.
 | POST | `/auth/refresh-token` | Logged In | Làm mới Token | `{ refreshToken }` |
 | GET | `/auth/me` | Logged In | Lấy thông tin User hiện tại | None |
 | POST | `/auth/logout` | Logged In | Đăng xuất | None |
+| POST | `/auth/verify-email` | Public | Xác thực Email | `{ token }` |
 
 ---
 
@@ -78,6 +79,7 @@ Quy trình: **Khách → Waiter duyệt → Kitchen nấu**.
 | GET | `/waiter/orders` | Waiter | Danh sách đơn cần duyệt | `?status=pending` |
 | PATCH | `/waiter/orders/:id` | Waiter | Duyệt/Hủy đơn | `{ status }` |
 | PATCH | `/waiter/orders/:id/pay` | Waiter | Xác nhận thanh toán | `{ status: 'completed' }` |
+| GET | `/users/order-history` | Logged In | Lịch sử đơn hàng của khách | None |
 
 ---
 
@@ -124,6 +126,40 @@ Bếp chỉ quan tâm món ăn.
 ### Order Status
 - `pending` → `processing` → `completed`
 
+
 ### Item Status
 - `pending` → `preparing` → `ready` → `served`
+
+---
+
+## 8. 🚀 Advanced Features (Phase 3)
+Các tính năng nâng cao: Thanh toán, Đánh giá, Tìm kiếm, Thống kê.
+
+### 8.1. 💳 Payment Integration
+| Method | Endpoint | Quyền | Mô tả | Body |
+|------|---------|-------|------|------|
+| POST | `/payment/create-intent` | Public | Tạo phiên thanh toán (Stripe/ZaloPay) | `{ order_id, method }` |
+| POST | `/payment/webhook` | Public | Webhook nhận kết quả từ Gateway | JSON from Gateway |
+
+### 8.2. ⭐ Reviews
+| Method | Endpoint | Quyền | Mô tả | Body |
+|------|---------|-------|------|------|
+| POST | `/reviews` | Logged In | Đánh giá món ăn (đã mua) | `{ item_id, rating, comment }` |
+| GET | `/menu-items/:id/reviews` | Public | Lấy danh sách đánh giá | None |
+
+### 8.3. 🔍 Search & Recommendations
+| Method | Endpoint | Quyền | Mô tả | Body |
+|------|---------|-------|------|------|
+| GET | `/search` | Public | Tìm kiếm nâng cao (Fuzzy search) | `?q=burger` |
+| GET | `/menu-items/:id/recommendations` | Public | Gợi ý món liên quan | None |
+
+### 8.4. 📊 Analytics (Admin)
+| Method | Endpoint | Quyền | Mô tả | Body |
+|------|---------|-------|------|------|
+| GET | `/analytics/revenue` | Admin | Báo cáo doanh thu | `?from=...&to=...` |
+| GET | `/analytics/top-products` | Admin | Top món bán chạy | None |
+| GET | `/analytics/peak-hours` | Admin | Thống kê giờ cao điểm | None |
+| GET | `/analytics/export` | Admin | Xuất báo cáo Excel | None |
+
+
 
