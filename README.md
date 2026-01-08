@@ -47,7 +47,7 @@ Tạo file `.env` ở thư mục backend (Copy từ file mẫu nếu có, hoặc
 
 ```bash
 # Trong file backend/.env
-PORT=5000
+PORT=5001
 DATABASE_URL="postgres://..."  # Lấy link này từ Supabase Dashboard
 ```
 
@@ -63,7 +63,7 @@ make dev
 Sau khi thấy thông báo "Server running..." và "Local: [http://localhost:5173](http://localhost:5173)", hãy mở trình duyệt:
 
 * **Frontend:** [http://localhost:5173](http://localhost:5173)
-* **Backend:** [http://localhost:5000](http://localhost:5000)
+* **Backend:** [http://localhost:5001](http://localhost:5001)
 
 ---
 

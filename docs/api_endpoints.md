@@ -1,6 +1,6 @@
 # 📡 SMART RESTAURANT – API ENDPOINTS SPECIFICATION
 
-**Base URL:** `http://localhost:5000/api`
+**Base URL:** `http://localhost:5001/api`
 
 ## Quy ước chung
 - `:id` là tham số động (UUID).
