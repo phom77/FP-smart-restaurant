@@ -143,3 +143,106 @@ exports.getMenuItemReviews = async (req, res) => {
         });
     }
 };
+
+// --- ADMIN OPERATIONS ---
+
+// POST /api/admin/menu-items
+exports.createMenuItem = async (req, res) => {
+    try {
+        const { name, description, price, category_id, image_url, is_available } = req.body;
+
+        // Basic validation
+        if (!name || !price) {
+            return res.status(400).json({ success: false, error: 'Name and price are required' });
+        }
+
+        // Check for duplicates
+        const { data: existing } = await supabase
+            .from('menu_items')
+            .select('id')
+            .ilike('name', name)
+            .single();
+
+        if (existing) {
+            return res.status(400).json({ success: false, error: 'Menu item with this name already exists' });
+        }
+
+        const { data, error } = await supabase
+            .from('menu_items')
+            .insert([
+                { name, description, price, category_id, image_url, is_available }
+            ])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.status(201).json({
+            success: true,
+            data: data,
+            message: 'Menu item created successfully'
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// PUT /api/admin/menu-items/:id
+exports.updateMenuItem = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+
+        // Check for duplicates if name is being updated
+        if (updates.name) {
+            const { data: existing } = await supabase
+                .from('menu_items')
+                .select('id')
+                .ilike('name', updates.name)
+                .neq('id', id)
+                .single();
+
+            if (existing) {
+                return res.status(400).json({ success: false, error: 'Menu item with this name already exists' });
+            }
+        }
+
+        const { data, error } = await supabase
+            .from('menu_items')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.status(200).json({
+            success: true,
+            data: data,
+            message: 'Menu item updated successfully'
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// DELETE /api/admin/menu-items/:id
+exports.deleteMenuItem = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const { error } = await supabase
+            .from('menu_items')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        res.status(200).json({
+            success: true,
+            message: 'Menu item deleted successfully'
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
