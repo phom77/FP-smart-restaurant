@@ -5,7 +5,7 @@
 
 ---
 
-## 👤 THÀNH VIÊN 1 (LEADER): Payment Ecosystem & CI/CD
+## 👤 THÀNH VIÊN 1 : Payment Ecosystem & CI/CD
 *Trách nhiệm: Xử lý giao dịch tài chính (quan trọng nhất) và quy trình Deploy tự động.*
 
 ### 🛠 Backend (Node.js - Security & DevOps)
@@ -18,7 +18,7 @@
 2.  **CI/CD Pipeline (Github Actions):**
     *   Tạo file `.github/workflows/deploy.yml`.
     *   Cấu hình: Mỗi khi push code vào nhánh `main` -> Tự động chạy test -> Tự động build Docker -> Tự động deploy lên Render/Vercel.
-    *   *Đây là kiến thức DevOps rất giá trị cho Leader.*
+    *   *Đây là kiến thức DevOps rất giá trị.*
 
 ### 💻 Frontend (React)
 1.  **Payment UI:**
@@ -110,7 +110,7 @@ CREATE INDEX idx_reviews_item ON reviews(menu_item_id);
 
 ## 📝 DANH SÁCH API CẦN VIẾT (Checklist)
 
-### Leader (Payment)
+### Member 1 (Payment)
 *   `POST /api/payment/create-intent` (Tạo giao dịch)
 *   `POST /api/payment/webhook` (Nhận kết quả từ Stripe - Public URL)
 
@@ -130,5 +130,5 @@ CREATE INDEX idx_reviews_item ON reviews(menu_item_id);
 
 ### 💡 Lời khuyên triển khai:
 1.  **Redis:** Nếu máy thành viên nào yếu không chạy được Redis Docker, Member 3 phải viết code có chế độ "Fallback" (Nếu không kết nối được Redis thì cứ gọi DB bình thường) để không làm chặn công việc của người khác.
-2.  **Webhook:** Leader cần dùng **Ngrok** để test webhook dưới máy local.
+2.  **Webhook:**  cần dùng **Ngrok** để test webhook dưới máy local.
 3.  **Data giả:** Để test Analytics, Member 3 cần viết một script (seeder) để tạo ra khoảng 100 đơn hàng giả trong DB với ngày tháng khác nhau thì vẽ biểu đồ mới đẹp được.

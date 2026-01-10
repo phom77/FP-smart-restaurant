@@ -16,7 +16,7 @@
 
 ---
 
-## 👤 THÀNH VIÊN 1 (LEADER)
+## 👤 THÀNH VIÊN 1 
 ### 🎯 Real-time Core & Kitchen Display System (KDS)
 
 **Vai trò:** Xây dựng *"hệ thần kinh"* của hệ thống – Socket & luồng xử lý phức tạp nhất ở Bếp.
@@ -95,7 +95,7 @@
 - Lỗi 1 bước → **Rollback toàn bộ**
 
 **Socket:**
-- Sau khi tạo đơn thành công → gọi hàm Leader
+- Sau khi transaction commit thành công → Emit event `new_order` tới room `Kitchen` và `Admin`.
 - Emit event: **"Có đơn mới"**
 
 **Cart Calculation:**
@@ -172,7 +172,7 @@
 
 | Thành viên | Backend (Node.js) | Frontend (React) |
 |-----------|------------------|------------------|
-| **Leader** | Socket.IO, KDS Logic (Gom nhóm), Item State Machine | Socket Context, Màn hình KDS |
+| **Mem 1** | Socket.IO, KDS Logic (Gom nhóm), Item State Machine | Socket Context, Màn hình KDS |
 | **Mem 2** | Transaction tạo đơn, Validate giá & tồn kho, Menu Detail API | Chọn món, Giỏ hàng, Tracking |
 | **Mem 3** | Trạng thái Đơn & Bàn (Automation), API Doanh thu | Waiter Dashboard, Table Map, In hóa đơn |
 
