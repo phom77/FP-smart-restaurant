@@ -12,9 +12,10 @@ function App() {
     // Xóa thẻ <BrowserRouter> bao quanh, chỉ giữ lại <Routes>
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={<MenuPage />} />
+      <Route path="/" element={<LoginPage />} />
       <Route path="/menu" element={<MenuPage />} />
       <Route path="/login" element={<LoginPage />} />
+
 
       {/* Admin Routes */}
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
