@@ -100,6 +100,17 @@ export default function MenuPage() {
                             </button>
                         )}
 
+                        {/* My Orders Button */}
+                        {user && (
+                            <button
+                                onClick={() => navigate('/my-orders')}
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
+                            >
+                                <span>📋</span>
+                                <span>Đơn của tôi</span>
+                            </button>
+                        )}
+
                         {/* Cart Icon */}
                         <div className="relative">
                             <button
