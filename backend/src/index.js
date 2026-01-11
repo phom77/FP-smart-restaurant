@@ -17,7 +17,10 @@ const path = require('path');
 
 initSocket(server);
 
-app.use(cors());
+app.use(cors({
+  origin: true, // Cho phép mọi origin phản hồi lại
+  credentials: true // Cho phép gửi cookie/token nếu cần
+}));
 app.use(express.json());
 
 // Serve static files from uploads directory

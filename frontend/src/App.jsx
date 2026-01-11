@@ -12,6 +12,7 @@ import RevenuePage from './pages/admin/RevenuePage'; // Import RevenuePage
 import WaiterLayout from './layouts/WaiterLayout'; // Import WaiterLayout
 import OrderListPage from './pages/waiter/OrderListPage'; // Import OrderListPage
 import TableMapPage from './pages/waiter/TableMapPage'; // Import TableMapPage
+import KitchenDisplayPage from './pages/kitchen/KitchenDisplayPage';
 import './App.css';
 
 function App() {
@@ -43,6 +44,11 @@ function App() {
           <Route path="orders" element={<OrderListPage />} />
           <Route path="map" element={<TableMapPage />} />
         </Route>
+      </Route>
+
+      {/* --- KITCHEN ROUTES (Bếp & Admin) --- */}
+      <Route element={<ProtectedRoute allowedRoles={['kitchen', 'admin']} />}>
+        <Route path="/kitchen" element={<KitchenDisplayPage />} />
       </Route>
 
     </Routes>

@@ -4,12 +4,23 @@ const orderController = require('../controllers/orderController');
 const { verifyToken } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 
-// Public route (Customer table order)
 router.post('/', orderController.createOrder);
-router.get('/:id', orderController.getOrder);
 
-// Protected routes (Waiter/Admin)
-router.get('/', verifyToken, authorizeRoles('admin', 'waiter'), orderController.getOrders);
-router.put('/:id/status', verifyToken, authorizeRoles('admin', 'waiter'), orderController.updateOrderStatus);
+router.get('/', 
+  verifyToken, 
+  authorizeRoles('waiter', 'admin'), 
+  orderController.getOrders
+);
+
+router.get('/:id', orderController.getOrder); 
+
+router.put('/:id/status', 
+  verifyToken, 
+  authorizeRoles('waiter', 'admin'), 
+  orderController.updateOrderStatus
+);
+
+router.post('/:id/items', orderController.addItemsToOrder); 
+router.post('/:id/checkout', orderController.checkoutOrder); 
 
 module.exports = router;

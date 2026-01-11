@@ -1,4 +1,5 @@
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 
 let io;
 
@@ -11,6 +12,25 @@ const initSocket = (httpServer) => {
       ],
       methods: ["GET", "POST", "PUT", "DELETE"],
       credentials: true
+    }
+  });
+
+  io.use((socket, next) => {
+    // Lấy token từ client gửi lên (thường nằm trong auth object)
+    const token = socket.handshake.auth.token;
+
+    if (!token) {
+      return next(new Error("Authentication error: Token not found"));
+    }
+
+    try {
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // Lưu thông tin user vào socket để dùng sau này nếu cần
+      socket.user = decoded; 
+      next();
+    } catch (err) {
+      return next(new Error("Authentication error: Invalid token"));
     }
   });
 

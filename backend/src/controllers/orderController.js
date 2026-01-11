@@ -87,6 +87,16 @@ exports.updateOrderStatus = async (req, res) => {
 
     if (updateError) throw updateError;
 
+    if (status === 'processing') {
+      const { error: itemError } = await supabase
+        .from('order_items')
+        .update({ status: 'preparing' }) // Chuyển sang đang nấu
+        .eq('order_id', id)
+        .eq('status', 'pending'); // Chỉ chuyển những món đang chờ
+
+      if (itemError) throw itemError;
+    }
+
     // C. Automate Table Status (Best effort)
     if (updatedOrder.table_id) {
       let newTableStatus = null;
@@ -126,9 +136,11 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
-    // If switching to processing, maybe notify Kitchen as well
     if (status === 'processing') {
-      io.to('kitchen').emit('order_processing', { order_id: id });
+      io.to('kitchen').emit('new_order', { 
+        message: 'Có món mới được duyệt',
+        order_id: id 
+      });
     }
 
     res.status(200).json({
@@ -151,6 +163,26 @@ exports.createOrder = async (req, res) => {
   }
 
   try {
+    // --- 🟢 FIX 1: KIỂM TRA TRẠNG THÁI BÀN ---
+    // Trước khi làm gì cả, phải xem bàn này có đang ăn dở không
+    const { data: tableData, error: tableError } = await supabase
+      .from('tables')
+      .select('status, table_number')
+      .eq('id', table_id)
+      .single();
+    
+    if (tableError) throw tableError;
+
+    // Nếu bàn đang có khách -> Chặn lại
+    if (tableData.status === 'occupied') {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Bàn ${tableData.table_number} đang có khách. Vui lòng dùng chức năng "Gọi thêm món" hoặc nhờ nhân viên hỗ trợ.` 
+      });
+    }
+    // -----------------------------------------
+
+    // 1. Lấy giá từ DB (Logic cũ - Giữ nguyên)
     const menuItemIds = items.map(item => item.menu_item_id);
     let modifierIds = [];
     items.forEach(item => {
@@ -164,7 +196,7 @@ exports.createOrder = async (req, res) => {
 
     if (menuError) throw menuError;
 
-    // Validation: Check if items are available
+    // Validation: Check món hết hàng
     const unavailableItems = dbMenuItems.filter(item => !item.is_available);
     if (unavailableItems.length > 0) {
       return res.status(400).json({
@@ -183,6 +215,7 @@ exports.createOrder = async (req, res) => {
     const menuMap = new Map(dbMenuItems.map(i => [i.id, i]));
     const modMap = new Map(dbModifiers.map(m => [m.id, m]));
 
+    // 2. Tính tiền (Logic cũ - Giữ nguyên)
     let totalAmount = 0;
     const orderItemsData = [];
 
@@ -222,6 +255,7 @@ exports.createOrder = async (req, res) => {
       });
     }
 
+    // 3. Insert Order (Logic cũ - Giữ nguyên)
     const { data: newOrder, error: orderInsertError } = await supabase
       .from('orders')
       .insert([{
@@ -236,6 +270,7 @@ exports.createOrder = async (req, res) => {
 
     if (orderInsertError) throw orderInsertError;
 
+    // 4. Insert Items (Logic cũ - Giữ nguyên)
     for (const itemData of orderItemsData) {
       const { data: newOrderItem, error: itemInsertError } = await supabase
         .from('order_items')
@@ -246,7 +281,7 @@ exports.createOrder = async (req, res) => {
           unit_price: itemData.unit_price,
           total_price: itemData.total_price,
           notes: itemData.notes,
-          status: 'pending'
+          status: 'pending' // Mặc định là pending, Bếp chưa thấy
         }])
         .select()
         .single();
@@ -269,15 +304,28 @@ exports.createOrder = async (req, res) => {
       }
     }
 
+    // --- 🟢 FIX 2: CẬP NHẬT TRẠNG THÁI BÀN ---
+    // Chuyển bàn sang 'occupied' ngay lập tức
+    await supabase
+      .from('tables')
+      .update({ status: 'occupied' })
+      .eq('id', table_id);
+    // -----------------------------------------
+
+    // 5. Bắn Socket
     const io = getIO();
 
-    io.to('kitchen').to('waiter').emit('new_order', {
+    // --- 🟢 FIX 3: CHỈ BẮN CHO WAITER (BỎ KITCHEN) ---
+    // Bếp không cần biết lúc này. Chỉ Waiter cần biết để duyệt.
+    io.to('waiter').emit('new_order', {
       order_id: newOrder.id,
       table_id: table_id,
       items: orderItemsData,
-      created_at: newOrder.created_at
+      created_at: newOrder.created_at,
+      message: `Bàn ${tableData.table_number} vừa đặt món mới`
     });
 
+    // Báo cho Khách hàng (để chuyển trang Tracking)
     io.to(`table_${table_id}`).emit('order_status_update', {
       status: 'pending',
       order_id: newOrder.id
@@ -343,4 +391,16 @@ exports.getOrder = async (req, res) => {
       error: err.message
     });
   }
+};
+
+exports.addItemsToOrder = async (req, res) => {
+    // Logic gọi thêm món (tương tự createOrder nhưng update vào order cũ)
+    // Tạm thời trả về success để không lỗi route
+    res.status(200).json({ success: true, message: "Tính năng gọi thêm món đang phát triển" });
+};
+
+// POST /api/orders/:id/checkout - Thanh toán
+exports.checkoutOrder = async (req, res) => {
+    // Logic thanh toán
+    res.status(200).json({ success: true, message: "Tính năng thanh toán đang phát triển" });
 };
