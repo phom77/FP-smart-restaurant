@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { io } from 'socket.io-client';
+import { useSocket } from '../../contexts/SocketContext'; 
 import OrderCard from '../../components/waiter/OrderCard';
 import OrderDetailModal from '../../components/waiter/OrderDetailModal';
 
@@ -9,7 +9,9 @@ const OrderListPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedOrder, setSelectedOrder] = useState(null);
-    const [statusFilter, setStatusFilter] = useState('pending'); // pending, processing, completed, cancelled, all
+    const [statusFilter, setStatusFilter] = useState('pending');
+    
+    const socket = useSocket(); // <--- SỬ DỤNG HOOK NÀY
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -17,45 +19,90 @@ const OrderListPage = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     });
 
-    // ... existing code ...
-
     const fetchOrders = async () => {
         try {
-            setLoading(true);
+            // Không set loading = true ở đây để tránh nháy màn hình khi update realtime
             let url = `${API_URL}/api/orders`;
             if (statusFilter !== 'all') {
                 url += `?status=${statusFilter}`;
             }
             const res = await axios.get(url, getAuthHeader());
-            // Sort by updated_at desc (newest first)
             const sorted = res.data.data.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
             setOrders(sorted);
-            setLoading(false);
+            setLoading(false); // Chỉ tắt loading lần đầu
         } catch (err) {
             console.error(err);
-            setError('Failed to fetch orders');
-            setLoading(false);
+            // Không setError ở đây để tránh hiện lỗi đỏ lòm khi mạng lag xíu
         }
     };
 
+    // Effect 1: Fetch ban đầu và khi đổi filter
     useEffect(() => {
+        setLoading(true);
         fetchOrders();
+    }, [statusFilter]);
 
-        const newSocket = io(API_URL);
-        newSocket.on('connect', () => {
-            newSocket.emit('join_room', 'waiter');
-        });
+    // 3. Effect Socket (QUAN TRỌNG: Dependency Array Rỗng [])
+    useEffect(() => {
+        if (!socket) return;
 
-        newSocket.on('new_order', () => fetchOrders());
-        newSocket.on('order_status_updated', () => fetchOrders());
+        // Join room 1 lần duy nhất
+        socket.emit('join_room', 'waiter');
 
-        return () => newSocket.close();
-    }, [statusFilter]); // Refetch when filter changes
+        const handleUpdate = () => {
+            console.log("🔔 Có update từ Socket");
+            // Gọi fetchOrders bên trong này sẽ dùng closure, 
+            // nhưng vì fetchOrders phụ thuộc statusFilter (state), 
+            // nên ta cần cẩn thận. 
+            // Cách tốt nhất: Gọi lại API bất kể filter là gì, hoặc reload nhẹ.
+            
+            // Ở đây ta gọi hàm fetchOrders() đã định nghĩa ở trên.
+            // Lưu ý: Hàm fetchOrders ở đây sẽ lấy giá trị statusFilter tại thời điểm render.
+            // Để fix triệt để, ta nên dùng useRef cho statusFilter hoặc bỏ qua filter khi socket báo tin.
+            
+            // Cách đơn giản nhất cho đồ án:
+            window.dispatchEvent(new Event('order_updated')); // Trigger custom event hoặc gọi trực tiếp
+        };
+
+        socket.on('new_order', handleUpdate);
+        socket.on('order_status_updated', handleUpdate);
+        socket.on('item_status_update', handleUpdate);
+
+        return () => {
+            socket.off('new_order', handleUpdate);
+            socket.off('order_status_updated', handleUpdate);
+            socket.off('item_status_update', handleUpdate);
+        };
+    }, [socket]); // Chỉ chạy lại khi socket object thay đổi (lúc init)
+
+    // 4. Effect phụ để lắng nghe update (Hack nhẹ để refresh đúng state)
+    useEffect(() => {
+        if (!socket) return;
+
+        socket.emit('join_room', 'waiter');
+
+        // Hàm refresh dữ liệu
+        const refreshOrders = () => {
+            console.log("🔔 Có thay đổi, đang tải lại danh sách...");
+            fetchOrders();
+        };
+
+        // Lắng nghe ĐỦ 3 sự kiện này
+        socket.on('new_order', refreshOrders);          // 1. Có đơn mới
+        socket.on('order_status_updated', refreshOrders); // 2. Đơn đổi trạng thái (Accept/Reject)
+        socket.on('item_status_update', refreshOrders);   // 3. QUAN TRỌNG: Bếp nấu xong 1 món -> Refresh ngay
+
+        return () => {
+            socket.off('new_order', refreshOrders);
+            socket.off('order_status_updated', refreshOrders);
+            socket.off('item_status_update', refreshOrders);
+        };
+    }, [socket, statusFilter]); // Thêm statusFilter để fetch đúng tab hiện tại
 
     const handleAccept = async (orderId) => {
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'processing' }, getAuthHeader());
-            fetchOrders();
+            // Không cần fetchOrders() ở đây vì Socket sẽ bắn sự kiện 'order_status_updated' về và tự trigger fetch
         } catch (err) {
             alert("Failed to accept: " + (err.response?.data?.message || err.message));
         }
@@ -65,17 +112,15 @@ const OrderListPage = () => {
         if (!window.confirm("Reject this order?")) return;
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'cancelled' }, getAuthHeader());
-            fetchOrders();
         } catch (err) {
             alert("Failed to reject: " + (err.response?.data?.message || err.message));
         }
     };
 
     const handleComplete = async (orderId) => {
-        if (!window.confirm("Mark this order as completed and table as available?")) return;
+        if (!window.confirm("Mark this order as completed?")) return;
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'completed' }, getAuthHeader());
-            fetchOrders();
         } catch (err) {
             alert("Failed to complete: " + (err.response?.data?.message || err.message));
         }
@@ -95,7 +140,6 @@ const OrderListPage = () => {
                     <p className="text-gray-500 mt-1">Track and manage customer orders</p>
                 </div>
 
-                {/* Filter Dropdown */}
                 <div className="relative w-full md:w-auto">
                     <select
                         value={statusFilter}
@@ -108,46 +152,38 @@ const OrderListPage = () => {
                         <option value="cancelled">Cancelled</option>
                         <option value="all">All Orders</option>
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
-                    </div>
                 </div>
             </div>
 
             {error && <div className="text-red-500 mb-4">{error}</div>}
 
-            {
-                orders.length === 0 ? (
-                    <div className="text-center py-20 text-gray-400">
-                        No orders found in "{statusFilter}"
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {orders.map(order => (
-                            <div key={order.id} className="h-full">
-                                <OrderCard
-                                    order={order}
-                                    onAccept={handleAccept}
-                                    onReject={handleReject}
-                                    onComplete={handleComplete}
-                                    onViewDetails={() => setSelectedOrder(order)}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                )
-            }
+            {orders.length === 0 ? (
+                <div className="text-center py-20 text-gray-400">
+                    No orders found in "{statusFilter}"
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {orders.map(order => (
+                        <div key={order.id} className="h-full">
+                            <OrderCard
+                                order={order}
+                                onAccept={handleAccept}
+                                onReject={handleReject}
+                                onComplete={handleComplete}
+                                onViewDetails={() => setSelectedOrder(order)}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
 
-            {/* Detail Modal */}
-            {
-                selectedOrder && (
-                    <OrderDetailModal
-                        order={selectedOrder}
-                        onClose={() => setSelectedOrder(null)}
-                    />
-                )
-            }
-        </div >
+            {selectedOrder && (
+                <OrderDetailModal
+                    order={selectedOrder}
+                    onClose={() => setSelectedOrder(null)}
+                />
+            )}
+        </div>
     );
 };
 

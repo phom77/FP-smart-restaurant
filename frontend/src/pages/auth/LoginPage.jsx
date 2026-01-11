@@ -23,11 +23,12 @@ export default function LoginPage() {
             if (res.data.success) {
                 // Lưu token và user vào Context
                 login(res.data.user, res.data.token);
-
+                const role = res.data.user.role;
                 // Điều hướng dựa trên Role
-                if (res.data.user.role === 'admin') navigate('/admin/dashboard');
-                else if (res.data.user.role === 'waiter') navigate('/waiter/orders');
-                else navigate('/menu'); // Customer về trang menu
+                if (role === 'admin') navigate('/admin/dashboard');
+                else if (role === 'waiter') navigate('/waiter/orders');
+                else if (role === 'kitchen') navigate('/kitchen'); 
+                else navigate('/menu'); 
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Đăng nhập thất bại');

@@ -11,7 +11,7 @@ export default function OrderTrackingPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    // Fetch order details
+    // 1. Fetch order details
     useEffect(() => {
         const fetchOrder = async () => {
             try {
@@ -32,30 +32,34 @@ export default function OrderTrackingPage() {
         }
     }, [orderId]);
 
-    // Listen for real-time order updates
+    // 2. Socket Logic
     useEffect(() => {
-        if (!socket || !orderId) return;
+        if (!socket || !order) return;
+
+        // Join room bàn ăn
+        if (order.table_id) {
+            socket.emit('join_room', `table_${order.table_id}`);
+        }
 
         const handleOrderUpdate = (data) => {
             if (data.order_id === orderId) {
-                setOrder(prev => ({
-                    ...prev,
-                    status: data.status
-                }));
+                setOrder(prev => prev ? ({ ...prev, status: data.status }) : null);
             }
         };
 
         const handleItemUpdate = (data) => {
-            if (data.order_id === orderId) {
-                setOrder(prev => ({
+            // Cập nhật trạng thái từng món (nếu cần)
+            setOrder(prev => {
+                if (!prev) return null;
+                return {
                     ...prev,
-                    order_items: prev.order_items.map(item =>
-                        item.id === data.item_id
+                    order_items: prev.order_items?.map(item =>
+                        item.id === data.itemId 
                             ? { ...item, status: data.status }
                             : item
-                    )
-                }));
-            }
+                    ) || []
+                };
+            });
         };
 
         socket.on('order_status_update', handleOrderUpdate);
@@ -65,45 +69,47 @@ export default function OrderTrackingPage() {
             socket.off('order_status_update', handleOrderUpdate);
             socket.off('item_status_update', handleItemUpdate);
         };
-    }, [socket, orderId]);
+    }, [socket, order?.table_id, orderId]);
 
-    // Status timeline configuration
+    // 3. Cấu hình Timeline (3 Bước chuẩn Backend)
     const statusSteps = [
-        { key: 'pending', label: 'Đã nhận', icon: '📝', color: 'blue' },
-        { key: 'preparing', label: 'Đang chuẩn bị', icon: '👨‍🍳', color: 'yellow' },
-        { key: 'ready', label: 'Sẵn sàng', icon: '✅', color: 'green' },
-        { key: 'completed', label: 'Hoàn thành', icon: '🎉', color: 'purple' }
+        { key: 'pending', label: 'Chờ xác nhận', icon: '📝', color: 'blue' },
+        { key: 'processing', label: 'Đang phục vụ', icon: '👨‍🍳', color: 'yellow' },
+        { key: 'completed', label: 'Hoàn thành', icon: '🎉', color: 'green' }
     ];
 
+    // Helper map status
     const getStatusIndex = (status) => {
-        return statusSteps.findIndex(step => step.key === status);
+        switch (status) {
+            case 'pending': return 0;
+            case 'processing': return 1;
+            case 'completed': return 2;
+            case 'cancelled': return -1; // Trạng thái hủy
+            default: return 0;
+        }
     };
 
     const currentStatusIndex = order ? getStatusIndex(order.status) : 0;
+    const isCancelled = order?.status === 'cancelled';
+
+    // --- RENDER ---
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
-                    <p className="mt-4 text-lg text-gray-600 font-medium">Đang tải...</p>
-                </div>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
             </div>
         );
     }
 
     if (error || !order) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
-                <div className="text-center bg-white rounded-2xl shadow-lg p-12 max-w-md w-full">
-                    <div className="text-6xl mb-4">❌</div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Lỗi</h2>
-                    <p className="text-gray-600 mb-6">{error || 'Không tìm thấy đơn hàng'}</p>
-                    <button
-                        onClick={() => navigate('/menu')}
-                        className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-green-600 transition-all shadow-md hover:shadow-lg"
-                    >
-                        Về trang chủ
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+                <div className="text-center bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
+                    <div className="text-4xl mb-4">😕</div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">Không tìm thấy đơn hàng</h2>
+                    <button onClick={() => navigate('/menu')} className="mt-4 px-6 py-2 bg-emerald-500 text-white rounded-lg">
+                        Về thực đơn
                     </button>
                 </div>
             </div>
@@ -111,154 +117,136 @@ export default function OrderTrackingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="min-h-screen bg-gray-50 pb-20">
+            <div className="max-w-3xl mx-auto px-4 py-6">
                 {/* Header */}
-                <header className="mb-6 bg-white rounded-2xl shadow-lg p-6">
+                <header className="mb-6 bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                                Đơn hàng #{order.id.slice(0, 8)}
+                            <h1 className="text-2xl font-bold text-gray-800">
+                                Đơn #{order.id?.slice(0, 8)}
                             </h1>
-                            <p className="text-gray-600 mt-1">
-                                Bàn {order.table?.table_number} • {new Date(order.created_at).toLocaleString('vi-VN')}
+                            <p className="text-gray-500 mt-1">
+                                Bàn {order.table?.table_number || 'N/A'} • {new Date(order.created_at).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}
                             </p>
                         </div>
                         <button
                             onClick={() => navigate('/menu')}
-                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"
+                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all"
                         >
-                            Về menu
+                            Thêm món
                         </button>
                     </div>
                 </header>
 
                 {/* Status Timeline */}
-                <div className="mb-6 bg-white rounded-2xl shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-gray-800 mb-6">Trạng thái đơn hàng</h2>
-                    <div className="relative">
-                        {/* Progress Line */}
-                        <div className="absolute top-6 left-0 right-0 h-1 bg-gray-200">
-                            <div
-                                className="h-full bg-gradient-to-r from-emerald-500 to-green-500 transition-all duration-500"
-                                style={{ width: `${(currentStatusIndex / (statusSteps.length - 1)) * 100}%` }}
-                            ></div>
+                <div className="mb-6 bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                    {isCancelled ? (
+                        <div className="text-center py-4">
+                            <div className="text-5xl mb-2">🚫</div>
+                            <h2 className="text-xl font-bold text-red-600">Đơn hàng đã bị hủy</h2>
+                            <p className="text-gray-500">Vui lòng liên hệ nhân viên để được hỗ trợ.</p>
                         </div>
+                    ) : (
+                        <>
+                            <h2 className="text-lg font-bold text-gray-800 mb-6">Trạng thái</h2>
+                            <div className="relative mx-4">
+                                {/* Progress Line */}
+                                <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full">
+                                    <div
+                                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                        style={{ width: `${(currentStatusIndex / (statusSteps.length - 1)) * 100}%` }}
+                                    ></div>
+                                </div>
 
-                        {/* Status Steps */}
-                        <div className="relative flex justify-between">
-                            {statusSteps.map((step, index) => {
-                                const isActive = index <= currentStatusIndex;
-                                const isCurrent = index === currentStatusIndex;
+                                {/* Steps */}
+                                <div className="relative flex justify-between">
+                                    {statusSteps.map((step, index) => {
+                                        const isActive = index <= currentStatusIndex;
+                                        const isCurrent = index === currentStatusIndex;
 
-                                return (
-                                    <div key={step.key} className="flex flex-col items-center">
-                                        <div
-                                            className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl transition-all duration-300 ${isActive
-                                                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 scale-110 shadow-lg'
-                                                    : 'bg-gray-200'
-                                                } ${isCurrent ? 'animate-pulse' : ''}`}
-                                        >
-                                            {step.icon}
-                                        </div>
-                                        <p className={`mt-2 text-sm font-semibold ${isActive ? 'text-emerald-600' : 'text-gray-500'}`}>
-                                            {step.label}
-                                        </p>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+                                        return (
+                                            <div key={step.key} className="flex flex-col items-center z-10">
+                                                <div
+                                                    className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all duration-300 border-4 ${
+                                                        isActive
+                                                            ? 'bg-emerald-500 text-white border-emerald-100'
+                                                            : 'bg-white text-gray-300 border-gray-100'
+                                                    } ${isCurrent ? 'scale-110 ring-2 ring-emerald-500 ring-offset-2' : ''}`}
+                                                >
+                                                    {step.icon}
+                                                </div>
+                                                <p className={`mt-2 text-xs font-bold uppercase ${isActive ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                    {step.label}
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Order Items */}
-                <div className="mb-6 bg-white rounded-2xl shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Chi tiết đơn hàng</h2>
-                    <div className="space-y-4">
+                <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                    <h2 className="text-lg font-bold text-gray-800 mb-4">Chi tiết món</h2>
+                    <div className="divide-y divide-gray-100">
                         {order.order_items?.map((item) => {
-                            const modifiersTotal = item.order_item_modifiers?.reduce(
-                                (sum, mod) => sum + (mod.price || 0),
-                                0
-                            ) || 0;
+                            const modifiersTotal = item.order_item_modifiers?.reduce((sum, mod) => sum + (mod.price || 0), 0) || 0;
                             const itemTotal = (item.price + modifiersTotal) * item.quantity;
 
                             return (
-                                <div key={item.id} className="border-b border-gray-200 pb-4 last:border-0">
-                                    <div className="flex justify-between items-start">
+                                <div key={item.id} className="py-4 first:pt-0 last:pb-0">
+                                    <div className="flex justify-between">
                                         <div className="flex-1">
-                                            <h3 className="font-bold text-gray-800">{item.menu_item?.name}</h3>
-                                            <p className="text-sm text-gray-600">Số lượng: {item.quantity}</p>
-
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-gray-800">{item.quantity}x</span>
+                                                <span className="font-medium text-gray-800">{item.menu_item?.name || 'Món không xác định'}</span>
+                                            </div>
+                                            
                                             {/* Modifiers */}
-                                            {item.order_item_modifiers && item.order_item_modifiers.length > 0 && (
-                                                <div className="mt-1">
+                                            {item.order_item_modifiers?.length > 0 && (
+                                                <div className="mt-1 ml-6 space-y-0.5">
                                                     {item.order_item_modifiers.map((mod, idx) => (
-                                                        <p key={idx} className="text-sm text-gray-600">
-                                                            • {mod.modifier_name} (+{mod.price.toLocaleString('vi-VN')}đ)
+                                                        <p key={idx} className="text-sm text-gray-500">
+                                                            + {mod.modifier_name}
                                                         </p>
                                                     ))}
                                                 </div>
                                             )}
-
-                                            {/* Item Status */}
-                                            <div className="mt-2">
-                                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${item.status === 'pending' ? 'bg-blue-100 text-blue-700' :
-                                                        item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
-                                                            item.status === 'ready' ? 'bg-green-100 text-green-700' :
-                                                                'bg-gray-100 text-gray-700'
-                                                    }`}>
-                                                    {item.status === 'pending' ? '⏳ Chờ xử lý' :
-                                                        item.status === 'preparing' ? '👨‍🍳 Đang nấu' :
-                                                            item.status === 'ready' ? '✅ Sẵn sàng' :
-                                                                item.status}
-                                                </span>
-                                            </div>
+                                            
+                                            {/* Notes */}
+                                            {item.notes && (
+                                                <p className="mt-1 ml-6 text-sm text-amber-600 italic">
+                                                    Ghi chú: {item.notes}
+                                                </p>
+                                            )}
                                         </div>
-
                                         <div className="text-right">
-                                            <p className="font-bold text-gray-800">
-                                                {itemTotal.toLocaleString('vi-VN')}đ
-                                            </p>
+                                            <p className="font-bold text-gray-800">{itemTotal.toLocaleString('vi-VN')}đ</p>
+                                            {/* Item Status Badge */}
+                                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                                item.status === 'ready' ? 'bg-green-100 text-green-700' :
+                                                item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
+                                                'bg-gray-100 text-gray-500'
+                                            }`}>
+                                                {item.status === 'pending' ? 'Chờ' : 
+                                                 item.status === 'preparing' ? 'Đang nấu' : 
+                                                 item.status === 'ready' ? 'Xong' : item.status}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
-                </div>
 
-                {/* Order Summary */}
-                <div className="bg-white rounded-2xl shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Tổng cộng</h2>
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-gray-700">
-                            <span>Tạm tính:</span>
-                            <span className="font-semibold">{order.total_amount?.toLocaleString('vi-VN')}đ</span>
-                        </div>
-                        <div className="flex justify-between text-gray-700">
-                            <span>Thuế VAT (10%):</span>
-                            <span className="font-semibold">{(order.total_amount * 0.1).toLocaleString('vi-VN')}đ</span>
-                        </div>
-                        <div className="border-t-2 border-gray-200 pt-2 mt-2">
-                            <div className="flex justify-between text-xl font-bold text-gray-900">
-                                <span>Tổng cộng:</span>
-                                <span className="text-emerald-600">
-                                    {(order.total_amount * 1.1).toLocaleString('vi-VN')}đ
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Payment Status */}
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-700">Trạng thái thanh toán:</span>
-                            <span className={`px-4 py-2 rounded-full text-sm font-semibold ${order.payment_status === 'paid'
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'bg-yellow-100 text-yellow-700'
-                                }`}>
-                                {order.payment_status === 'paid' ? '✅ Đã thanh toán' : '⏳ Chưa thanh toán'}
-                            </span>
+                    {/* Total */}
+                    <div className="mt-6 pt-4 border-t border-gray-100">
+                        <div className="flex justify-between items-center text-xl font-bold text-gray-900">
+                            <span>Tổng tiền</span>
+                            <span className="text-emerald-600">{order.total_amount?.toLocaleString('vi-VN')}đ</span>
                         </div>
                     </div>
                 </div>
