@@ -11,20 +11,20 @@ exports.getKitchenItems = async (req, res) => {
         orders (table_id, tables (table_number)),
         order_item_modifiers (modifier_name)
       `)
-      .in('status', ['preparing']) // Lấy cả pending để bếp biết sắp có gì
+      .in('status', ['pending', 'preparing']) // Lấy cả pending để bếp biết sắp có gì
       .order('created_at', { ascending: true }); // Cũ nhất lên đầu
 
     if (error) throw error;
 
     // 2. LOGIC GOM NHÓM (GROUPING)
     const groupedItems = [];
-    
+
     data.forEach(item => {
       // Tạo một "chữ ký" duy nhất cho món ăn để so sánh
       // Signature = ItemID + Status + Notes + Modifiers (đã sort)
       const modifiersStr = item.order_item_modifiers
         .map(m => m.modifier_name).sort().join(',');
-      
+
       const signature = `${item.menu_items.id}-${item.status}-${item.notes || ''}-${modifiersStr}`;
 
       // Tìm xem nhóm này đã tồn tại chưa
@@ -67,7 +67,7 @@ exports.getKitchenItems = async (req, res) => {
 
 exports.updateItemStatus = async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body; 
+  const { status } = req.body;
 
   try {
     // 1. Update trạng thái món

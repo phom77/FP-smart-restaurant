@@ -404,3 +404,70 @@ exports.checkoutOrder = async (req, res) => {
     // Logic thanh toán
     res.status(200).json({ success: true, message: "Tính năng thanh toán đang phát triển" });
 };
+// GET /api/orders/my-orders - Get all orders for logged-in customer
+exports.getCustomerOrders = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const customerId = req.user?.id;
+
+    if (!customerId) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Vui lòng đăng nhập để xem đơn hàng' 
+      });
+    }
+
+    const offset = (page - 1) * limit;
+
+    let query = supabase
+      .from('orders')
+      .select(`
+        id,
+        table_id,
+        status,
+        total_amount,
+        created_at,
+        table:tables(table_number),
+        items:order_items(id)
+      `, { count: 'exact' })
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+
+    const formattedData = data.map(order => ({
+      id: order.id,
+      table_number: order.table?.table_number || 'N/A',
+      status: order.status,
+      total_amount: order.total_amount,
+      created_at: order.created_at,
+      items_count: order.items?.length || 0
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedData,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    });
+
+  } catch (err) {
+    console.error("Get Customer Orders Error:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi lấy danh sách đơn hàng', 
+      error: err.message 
+    });
+  }
+};
