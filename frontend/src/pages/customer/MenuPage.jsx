@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import MenuCard from '../../components/MenuCard';
 import ItemDetailModal from '../../components/ItemDetailModal';
 import { useCart } from '../../contexts/CartContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function MenuPage() {
+    const navigate = useNavigate();
+    const { user } = useAuth();
     const [categories, setCategories] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('all');
@@ -83,15 +87,30 @@ export default function MenuPage() {
                         </h1>
                         <p className="text-gray-600 mt-1">Khám phá món ăn ngon</p>
                     </div>
-                    <div className="relative">
-                        <button className="relative text-3xl hover:scale-110 transition-transform">
-                            🛒
-                            {getCartCount() > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-2 py-1 rounded-full min-w-6 text-center shadow-lg animate-pulse">
-                                    {getCartCount()}
-                                </span>
-                            )}
-                        </button>
+
+                    <div className="flex items-center gap-4">
+                        {/* Admin Back Button - Only show for admin */}
+                        {user?.role === 'admin' && (
+                            <button
+                                onClick={() => navigate('/admin/dashboard')}
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
+                            >
+                                <span>←</span>
+                                <span>Quay về Admin</span>
+                            </button>
+                        )}
+
+                        {/* Cart Icon */}
+                        <div className="relative">
+                            <button className="relative text-3xl hover:scale-110 transition-transform">
+                                🛒
+                                {getCartCount() > 0 && (
+                                    <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-2 py-1 rounded-full min-w-6 text-center shadow-lg animate-pulse">
+                                        {getCartCount()}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </header>
 
@@ -112,8 +131,8 @@ export default function MenuPage() {
                 <div className="flex gap-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
                     <button
                         className={`px-6 py-3 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-md ${selectedCategory === 'all'
-                                ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg scale-105'
-                                : 'bg-white text-gray-700 hover:shadow-lg hover:scale-105'
+                            ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg scale-105'
+                            : 'bg-white text-gray-700 hover:shadow-lg hover:scale-105'
                             }`}
                         onClick={() => setSelectedCategory('all')}
                     >
@@ -123,8 +142,8 @@ export default function MenuPage() {
                         <button
                             key={cat.id}
                             className={`px-6 py-3 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-md ${selectedCategory === cat.id
-                                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg scale-105'
-                                    : 'bg-white text-gray-700 hover:shadow-lg hover:scale-105'
+                                ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg scale-105'
+                                : 'bg-white text-gray-700 hover:shadow-lg hover:scale-105'
                                 }`}
                             onClick={() => setSelectedCategory(cat.id)}
                         >
