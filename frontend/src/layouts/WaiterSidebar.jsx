@@ -1,8 +1,8 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 
-const AdminSidebar = () => {
+const WaiterSidebar = () => {
     const { logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -32,7 +32,7 @@ const AdminSidebar = () => {
                         </svg>
                     </button>
                     <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                        Admin Panel
+                        Waiter Portal
                     </h1>
                 </div>
                 <button
@@ -61,7 +61,7 @@ const AdminSidebar = () => {
             `}>
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                        Admin Panel
+                        Waiter Portal
                     </h1>
                     {/* Close button for mobile */}
                     <button
@@ -75,23 +75,11 @@ const AdminSidebar = () => {
                 </div>
 
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                    <Link to="/admin/dashboard" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/dashboard' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">📊</span> Dashboard
+                    <Link to="/waiter/orders" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/waiter/orders' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
+                        <span className="mr-3">📋</span> Order List
                     </Link>
-                    <Link to="/admin/categories" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/categories' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">📂</span> Categories
-                    </Link>
-                    <Link to="/admin/menu" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/menu' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">🍔</span> Menu Items
-                    </Link>
-                    <Link to="/admin/revenue" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/revenue' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">💰</span> Revenue
-                    </Link>
-
-                    <div className="my-4 border-t border-gray-100"></div>
-
-                    <Link to="/menu" className="flex items-center px-4 py-3 text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-all font-medium">
-                        <span className="mr-3">👀</span> View Public Menu
+                    <Link to="/waiter/map" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/waiter/map' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
+                        <span className="mr-3">🗺️</span> Table Map
                     </Link>
                 </nav>
 
@@ -108,7 +96,9 @@ const AdminSidebar = () => {
             {/* Main Content */}
             <div className="flex-1 overflow-auto bg-gray-50 w-full pt-16 md:pt-0">
                 <header className="hidden md:block bg-white shadow-sm p-6 mb-6">
-                    <h2 className="text-xl font-bold text-gray-800">Restaurant Operations</h2>
+                    <h2 className="text-xl font-bold text-gray-800">
+                        {location.pathname === '/waiter/orders' ? 'Order Management' : 'Restaurant Floor Map'}
+                    </h2>
                 </header>
                 <main className="p-4 md:p-8 md:pb-8 pb-24">
                     <Outlet />
@@ -118,4 +108,4 @@ const AdminSidebar = () => {
     );
 };
 
-export default AdminSidebar;
+export default WaiterSidebar;

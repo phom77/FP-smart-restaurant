@@ -1,5 +1,147 @@
 const supabase = require('../config/supabaseClient');
 const { getIO } = require('../config/socket');
+const { updateOrderStatusSchema } = require('../utils/validation');
+
+// GET /api/waiter/orders
+exports.getOrders = async (req, res) => {
+  try {
+    const { status, page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = supabase
+      .from('orders')
+      .select(`
+                *,
+                table:tables(id, table_number),
+                customer:users(id, full_name, phone),
+                items:order_items(
+                    id, 
+                    quantity, 
+                    unit_price, 
+                    total_price, 
+                    notes, 
+                    status,
+                    menu_item:menu_items(id, name, image_url),
+                    modifiers:order_item_modifiers(id, modifier_name, price)
+                )
+            `, { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+
+    res.status(200).json({
+      success: true,
+      data: data,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    });
+  } catch (err) {
+    console.error("Get Orders Error:", err);
+    res.status(500).json({ success: false, message: 'Lỗi lấy danh sách đơn hàng', error: err.message });
+  }
+};
+
+// PUT /api/orders/:id/status
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // 1. Validation (Strict Input)
+    const { error: validationError } = updateOrderStatusSchema.validate({ status });
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError.details[0].message });
+    }
+
+    // 2. Manual Logic (No RPC/DB Transaction due to constraints)
+
+    // A. Get current order to check transitions and table_id
+    const { data: currentOrder, error: fetchError } = await supabase
+      .from('orders')
+      .select('status, table_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !currentOrder) {
+      return res.status(404).json({ success: false, message: 'Đơn hàng không tồn tại' });
+    }
+
+    // B. Update Order Status
+    const { data: updatedOrder, error: updateError } = await supabase
+      .from('orders')
+      .update({ status, updated_at: new Date() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    // C. Automate Table Status (Best effort)
+    if (updatedOrder.table_id) {
+      let newTableStatus = null;
+
+      // Pending -> Processing => Occupied
+      if (status === 'processing' && currentOrder.status === 'pending') {
+        newTableStatus = 'occupied';
+      }
+      // Processing -> Completed => Available (or Dirty)
+      else if (status === 'completed' && currentOrder.status === 'processing') {
+        newTableStatus = 'available'; // Simplified as per request
+      }
+
+      if (newTableStatus) {
+        await supabase
+          .from('tables')
+          .update({ status: newTableStatus })
+          .eq('id', updatedOrder.table_id);
+      }
+    }
+
+    // 3. Socket Emit (Real-time updates)
+    const io = getIO();
+
+    // Notify Waiter Dashboard
+    io.to('waiter').emit('order_status_updated', {
+      order_id: id,
+      status: status,
+      updated_at: new Date()
+    });
+
+    // Notify specific Table (Customer view)
+    if (updatedOrder.table_id) {
+      io.to(`table_${updatedOrder.table_id}`).emit('order_status_update', {
+        status: status,
+        order_id: id
+      });
+    }
+
+    // If switching to processing, maybe notify Kitchen as well
+    if (status === 'processing') {
+      io.to('kitchen').emit('order_processing', { order_id: id });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Cập nhật trạng thái thành công',
+      data: updatedOrder
+    });
+
+  } catch (err) {
+    console.error("Update Order Status Error:", err);
+    res.status(500).json({ success: false, message: 'Lỗi cập nhật trạng thái', error: err.message });
+  }
+};
 
 exports.createOrder = async (req, res) => {
   const { table_id, items, customer_id, notes } = req.body;
