@@ -1,21 +1,25 @@
-import { Routes, Route, Navigate } from 'react-router-dom'; // Bỏ BrowserRouter ở đây
+import { Routes, Route, Navigate } from 'react-router-dom';
 import MenuPage from './pages/customer/MenuPage';
 import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminSidebar from './pages/admin/AdminSidebar';
 import MenuManagement from './pages/admin/MenuManagement';
 import CategoryManagement from './pages/admin/CategoryManagement';
+import RevenuePage from './pages/admin/RevenuePage'; // Import RevenuePage
+import WaiterLayout from './layouts/WaiterLayout'; // Import WaiterLayout
+import OrderListPage from './pages/waiter/OrderListPage'; // Import OrderListPage
+import TableMapPage from './pages/waiter/TableMapPage'; // Import TableMapPage
 import './App.css';
 
 function App() {
   return (
-    // Xóa thẻ <BrowserRouter> bao quanh, chỉ giữ lại <Routes>
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<LoginPage />} />
       <Route path="/menu" element={<MenuPage />} />
       <Route path="/login" element={<LoginPage />} />
-
+      <Route path="/register" element={<RegisterPage />} />
 
       {/* Admin Routes */}
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
@@ -24,8 +28,19 @@ function App() {
           <Route path="dashboard" element={<div>Dashboard Placeholder</div>} />
           <Route path="menu" element={<MenuManagement />} />
           <Route path="categories" element={<CategoryManagement />} />
+          <Route path="revenue" element={<RevenuePage />} />
         </Route>
       </Route>
+
+      {/* Waiter Routes */}
+      <Route element={<ProtectedRoute allowedRoles={['waiter', 'admin']} />}>
+        <Route path="/waiter" element={<WaiterLayout />}>
+          <Route index element={<Navigate to="orders" replace />} />
+          <Route path="orders" element={<OrderListPage />} />
+          <Route path="map" element={<TableMapPage />} />
+        </Route>
+      </Route>
+
     </Routes>
   );
 }
