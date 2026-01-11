@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const http = require('http'); 
+const http = require('http');
 const { initSocket } = require('./config/socket');
 
 const app = express();
@@ -17,7 +17,10 @@ const path = require('path');
 
 initSocket(server);
 
-app.use(cors());
+app.use(cors({
+  origin: true, // Cho phép mọi origin phản hồi lại
+  credentials: true // Cho phép gửi cookie/token nếu cần
+}));
 app.use(express.json());
 
 // Serve static files from uploads directory
@@ -26,6 +29,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/revenue', require('./routes/revenueRoutes'));
 app.use('/api/tables', tableRoutes);
 app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/categories', categoryRoutes);

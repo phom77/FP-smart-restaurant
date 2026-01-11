@@ -76,9 +76,9 @@ Quy trình: **Khách → Waiter duyệt → Kitchen nấu**.
 | POST | `/orders/:id/items` | Public | Gọi thêm món | `{ items }` |
 | GET | `/orders/:id` | Public | Xem trạng thái đơn | None |
 | POST | `/orders/:id/checkout` | Public | Yêu cầu thanh toán | `{ payment_method }` |
-| GET | `/waiter/orders` | Waiter | Danh sách đơn cần duyệt | `?status=pending` |
-| PATCH | `/waiter/orders/:id` | Waiter | Duyệt/Hủy đơn | `{ status }` |
-| PATCH | `/waiter/orders/:id/pay` | Waiter | Xác nhận thanh toán | `{ status: 'completed' }` |
+| GET | `/orders` | Waiter/Admin | Danh sách đơn cần duyệt | `?status=pending` |
+| PUT | `/orders/:id/status` | Waiter/Admin | Duyệt/Hủy/Cập nhật đơn | `{ status }` |
+| PATCH | `/orders/:id/pay` | Waiter | Xác nhận thanh toán | `{ status: 'completed' }` |
 | GET | `/users/order-history` | Logged In | Lịch sử đơn hàng của khách | None |
 
 ---

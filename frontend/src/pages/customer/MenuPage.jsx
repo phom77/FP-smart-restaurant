@@ -102,7 +102,10 @@ export default function MenuPage() {
 
                         {/* Cart Icon */}
                         <div className="relative">
-                            <button className="relative text-3xl hover:scale-110 transition-transform">
+                            <button
+                                onClick={() => navigate('/cart')}
+                                className="relative text-3xl hover:scale-110 transition-transform cursor-pointer"
+                            >
                                 🛒
                                 {getCartCount() > 0 && (
                                     <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-2 py-1 rounded-full min-w-6 text-center shadow-lg animate-pulse">
