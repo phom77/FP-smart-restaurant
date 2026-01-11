@@ -1,11 +1,21 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http'); 
+const { initSocket } = require('./config/socket');
+
 const app = express();
+const server = http.createServer(app);
 const port = process.env.PORT || 5001;
 const categoryRoutes = require('./routes/categoryRoutes');
 const menuRoutes = require('./routes/menuRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const authRoutes = require('./routes/authRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const kitchenRoutes = require('./routes/kitchenRoutes');
+const tableRoutes = require('./routes/tableRoutes');
 const path = require('path');
+
+initSocket(server);
 
 app.use(cors());
 app.use(express.json());
@@ -14,6 +24,10 @@ app.use(express.json());
 
 
 // Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/tables', tableRoutes);
+app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/admin', adminRoutes);
@@ -22,6 +36,6 @@ app.get('/', (req, res) => {
   res.send('Hello from Smart Restaurant Backend (Running on Docker WSL)!');
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
