@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'; // Bỏ BrowserRouter ở đây
 import MenuPage from './pages/customer/MenuPage';
+import CartPage from './pages/customer/CartPage';
+import OrderTrackingPage from './pages/customer/OrderTrackingPage';
 import LoginPage from './pages/auth/LoginPage';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminSidebar from './pages/admin/AdminSidebar';
@@ -14,6 +16,8 @@ function App() {
       {/* Public Routes */}
       <Route path="/" element={<LoginPage />} />
       <Route path="/menu" element={<MenuPage />} />
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/orders/:orderId" element={<OrderTrackingPage />} />
       <Route path="/login" element={<LoginPage />} />
 
 
