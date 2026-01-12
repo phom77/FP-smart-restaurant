@@ -3,152 +3,158 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const supabaseUrl = process.env.SUPABASE_URL;
-// Dùng SERVICE_KEY để có quyền xóa bất chấp RLS (Row Level Security)
+// Dùng SERVICE_KEY để có quyền xóa bất chấp RLS
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Hàm tiện ích random
+// --- HÀM TIỆN ÍCH ---
 const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+// --- LOGIC KIỂM TRA TRÙNG GIỜ ---
+// Trả về true nếu thời gian 'newTime' bị trùng với lịch cũ của bàn (cách nhau dưới 30p)
+function isTableBusy(tableHistory, newTime) {
+    if (!tableHistory || tableHistory.length === 0) return false;
+    const THIRTY_MINUTES = 30 * 60 * 1000;
+
+    // Kiểm tra từng mốc thời gian đã có
+    return tableHistory.some(existingTime => {
+        const diff = Math.abs(existingTime - newTime.getTime());
+        return diff < THIRTY_MINUTES; // Nếu khoảng cách < 30p nghĩa là đang bận
+    });
+}
 
 async function fixData() {
     console.log('🗑️  BẮT ĐẦU DỌN DẸP DỮ LIỆU RÁC...');
 
-    // ---------------------------------------------------------
     // 1. XÓA SẠCH DỮ LIỆU (Clean Slate)
-    // Phải xóa theo thứ tự: Bảng con xóa trước -> Bảng cha xóa sau
-    // ---------------------------------------------------------
-
-    // Xóa các bảng phụ thuộc cấp 2 (nếu có bảng modifier)
     await supabase.from('order_item_modifiers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-
-    // Xóa bảng thanh toán và đánh giá (vì nó link tới user/order)
     await supabase.from('payments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('reviews').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-    // Xóa chi tiết đơn hàng
     const { error: errItems } = await supabase.from('order_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     if (errItems) console.error('Lỗi xóa items:', errItems.message);
 
-    // Xóa đơn hàng tổng
     const { error: errOrders } = await supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     if (errOrders) console.error('Lỗi xóa orders:', errOrders.message);
 
-    // Reset trạng thái tất cả bàn về 'available'
+    // Reset trạng thái bàn
     await supabase.from('tables').update({ status: 'available' }).neq('id', '00000000-0000-0000-0000-000000000000');
 
     console.log('✨ Đã xóa sạch dữ liệu cũ. Database giờ như mới.');
 
-    // ---------------------------------------------------------
     // 2. CHUẨN BỊ DỮ LIỆU GỐC
-    // ---------------------------------------------------------
     const { data: menuItems } = await supabase.from('menu_items').select('*');
     const { data: tables } = await supabase.from('tables').select('*');
 
     if (!menuItems?.length || !tables?.length) {
-        console.error('❌ Lỗi: Cần có dữ liệu Menu và Bàn trước khi chạy script này.');
+        console.error('❌ Lỗi: Cần có dữ liệu Menu và Bàn.');
         return;
     }
 
-    // ---------------------------------------------------------
-    // 3. TẠO ĐƠN HÀNG ĐANG ĂN (ACTIVE) - SỬA LỖI ENUM TẠI ĐÂY
-    // ---------------------------------------------------------
-    console.log('🔄 Đang tạo dữ liệu Active Order mới...');
+    // 3. TẠO ĐƠN HÀNG ĐANG ĂN (ACTIVE)
+    console.log('🔄 Đang tạo dữ liệu Active Order (Khách đang ngồi)...');
 
-    // Lấy 4 bàn ngẫu nhiên
     const shuffledTables = [...tables].sort(() => 0.5 - Math.random());
     const activeTables = shuffledTables.slice(0, 4);
 
+    // Object lưu lịch sử dùng bàn để tránh trùng lặp ở bước sau
+    const tableUsageMap = {}; // { tableId: [timestamp1, timestamp2] }
+
     for (const table of activeTables) {
-        // Cập nhật trạng thái bàn -> occupied
         await supabase.from('tables').update({ status: 'occupied' }).eq('id', table.id);
 
         const now = new Date();
-        now.setMinutes(now.getMinutes() - getRandomInt(5, 50)); // Khách vào từ 5-50p trước
+        now.setMinutes(now.getMinutes() - getRandomInt(5, 50));
 
-        // TẠO ORDER (Sửa 'serving' thành 'processing')
-        const { data: newOrder, error: insertError } = await supabase
+        // Lưu lại giờ khách này đang ngồi để bước sau không random trúng
+        if (!tableUsageMap[table.id]) tableUsageMap[table.id] = [];
+        tableUsageMap[table.id].push(now.getTime());
+
+        const { data: newOrder } = await supabase
             .from('orders')
             .insert({
                 table_id: table.id,
-                status: 'processing', // <--- SỬA LỖI: Dùng đúng ENUM của DB
+                status: 'processing',
                 total_amount: 0,
                 created_at: now.toISOString(),
             })
-            .select()
-            .single();
-
-        if (insertError) {
-            console.error(`❌ Lỗi tạo Order bàn ${table.table_number}:`, insertError.message);
-            continue;
-        }
+            .select().single();
 
         if (newOrder) await createRandomItems(newOrder.id, menuItems, now, 'preparing');
     }
 
-    // ---------------------------------------------------------
-    // 4. TẠO LỊCH SỬ ĐƠN HÀNG (COMPLETED)
-    // ---------------------------------------------------------
-    console.log('📜 Đang tạo dữ liệu Lịch sử (Giả lập giờ cao điểm)...');
-    const historyCount = 30; // Tăng lên chút cho biểu đồ đẹp
+    // 4. TẠO LỊCH SỬ ĐƠN HÀNG (COMPLETED) - CÓ CHECK TRÙNG GIỜ
+    console.log('📜 Đang tạo dữ liệu Lịch sử (Logic không trùng 30p)...');
+    const historyCount = 30;
+    let createdCount = 0;
 
-    for (let i = 0; i < historyCount; i++) {
-        const randomTable = getRandomItem(tables);
+    // Lặp cho đến khi tạo đủ số lượng (hoặc hết kiên nhẫn sau 100 lần thử)
+    let attempts = 0;
+    while (createdCount < historyCount && attempts < 200) {
+        attempts++;
 
+        // A. Random Ngày & Giờ (Logic Peak Hour cũ)
         const date = new Date();
-        // 1. Random ngày (trong 7 ngày qua)
-        date.setDate(date.getDate() - getRandomInt(0, 7));
-
-        // 2. LOGIC RANDOM GIỜ (Quan trọng để fix lỗi trùng giờ)
+        date.setDate(date.getDate() - getRandomInt(0, 7)); // Trong 7 ngày qua
         const rand = Math.random();
-        if (rand < 0.4) {
-            // 40% khách ăn trưa (11h - 13h)
-            date.setHours(getRandomInt(11, 13));
-        } else if (rand < 0.8) {
-            // 40% khách ăn tối (18h - 20h)
-            date.setHours(getRandomInt(18, 20));
-        } else {
-            // 20% khách ăn giờ linh tinh (8h sáng - 21h tối)
-            date.setHours(getRandomInt(8, 21));
-        }
-
-        // Random phút cho tự nhiên
+        if (rand < 0.4) date.setHours(getRandomInt(11, 13));      // Trưa
+        else if (rand < 0.8) date.setHours(getRandomInt(18, 20)); // Tối
+        else date.setHours(getRandomInt(8, 21));                  // Giờ khác
         date.setMinutes(getRandomInt(0, 59));
-        date.setSeconds(getRandomInt(0, 59));
 
-        // ... (Đoạn dưới giữ nguyên) ...
-        const { data: newOrder } = await supabase
-            .from('orders')
-            .insert({
-                table_id: randomTable.id,
-                status: 'completed',
-                total_amount: 0,
-                created_at: date.toISOString(), // Giờ đã được random
-            })
-            .select()
-            .single();
+        // B. TÌM BÀN TRỐNG VÀO GIỜ ĐÓ
+        // Xáo trộn danh sách bàn để thử ngẫu nhiên
+        const randomTables = [...tables].sort(() => 0.5 - Math.random());
+        let selectedTable = null;
 
-        if (newOrder) {
-            // Gọi hàm tạo món (Status là 'served' vì đơn đã xong)
-            await createRandomItems(newOrder.id, menuItems, date, 'served');
-
-            // TẠO THANH TOÁN LUÔN (Để biểu đồ doanh thu hiện lên)
-            // Giả lập thanh toán sau khi gọi món 30-45 phút
-            const paymentTime = new Date(date.getTime() + getRandomInt(30, 45) * 60000);
-
-            await supabase.from('payments').insert({
-                order_id: newOrder.id,
-                amount: 0, // Sẽ update trigger hoặc tính sau, tạm để 0 script ko lỗi
-                transaction_code: `TRANS_${paymentTime.getTime()}`,
-                gateway: getRandomItem(['Momo', 'ZaloPay', 'Cash']),
-                status: 'completed',
-                created_at: paymentTime.toISOString()
-            });
+        for (const table of randomTables) {
+            // Check xem bàn này giờ đó có bận không?
+            if (!isTableBusy(tableUsageMap[table.id], date)) {
+                selectedTable = table;
+                break; // Tìm thấy bàn trống!
+            }
         }
+
+        // C. NẾU TÌM ĐƯỢC BÀN HỢP LỆ -> TẠO ORDER
+        if (selectedTable) {
+            // Lưu lại giờ vào sổ
+            if (!tableUsageMap[selectedTable.id]) tableUsageMap[selectedTable.id] = [];
+            tableUsageMap[selectedTable.id].push(date.getTime());
+
+            const { data: newOrder } = await supabase
+                .from('orders')
+                .insert({
+                    table_id: selectedTable.id,
+                    status: 'completed',
+                    total_amount: 0,
+                    created_at: date.toISOString(),
+                })
+                .select().single();
+
+            if (newOrder) {
+                await createRandomItems(newOrder.id, menuItems, date, 'served');
+
+                // Tạo Payment
+                const paymentTime = new Date(date.getTime() + getRandomInt(30, 45) * 60000);
+                await supabase.from('payments').insert({
+                    order_id: newOrder.id,
+                    amount: 0,
+                    transaction_code: `TRANS_${paymentTime.getTime()}_${getRandomInt(100, 999)}`,
+                    gateway: getRandomItem(['Momo', 'ZaloPay', 'Cash']),
+                    status: 'completed',
+                    created_at: paymentTime.toISOString()
+                });
+
+                createdCount++;
+            }
+        }
+        // Nếu không tìm được bàn nào trống giờ đó -> Vòng lặp while sẽ chạy lại, random giờ khác
     }
+
+    console.log(`✅ Đã tạo thành công ${createdCount} đơn hàng lịch sử.`);
 }
 
-// Hàm phụ trợ tạo món ăn
 async function createRandomItems(orderId, menuItems, createdAt, itemStatus) {
     const numItems = getRandomInt(2, 5);
     let totalAmount = 0;
@@ -165,7 +171,7 @@ async function createRandomItems(orderId, menuItems, createdAt, itemStatus) {
             quantity: quantity,
             unit_price: item.price,
             total_price: price,
-            status: itemStatus, // 'preparing' hoặc 'served'
+            status: itemStatus,
             created_at: createdAt.toISOString()
         });
         totalAmount += price;
