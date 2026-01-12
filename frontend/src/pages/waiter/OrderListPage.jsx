@@ -12,6 +12,9 @@ const OrderListPage = () => {
     const [error, setError] = useState('');
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [statusFilter, setStatusFilter] = useState('pending');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const ITEMS_PER_PAGE = 8;
 
     const socket = useSocket();
 
@@ -23,23 +26,29 @@ const OrderListPage = () => {
 
     const fetchOrders = async () => {
         try {
-            let url = `${API_URL}/api/orders`;
+            let url = `${API_URL}/api/orders?page=${currentPage}&limit=${ITEMS_PER_PAGE}`;
             if (statusFilter !== 'all') {
-                url += `?status=${statusFilter}`;
+                url += `&status=${statusFilter}`;
             }
             const res = await axios.get(url, getAuthHeader());
-            const sorted = res.data.data.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-            setOrders(sorted);
+            // Backend returns { success, data, pagination: { total, page, limit, totalPages } }
+            setOrders(res.data.data);
+            setTotalPages(res.data.pagination?.totalPages || 1);
             setLoading(false);
         } catch (err) {
             console.error(err);
+            setLoading(false);
         }
     };
 
     useEffect(() => {
+        setCurrentPage(1); // Reset to first page when filter changes
+    }, [statusFilter]);
+
+    useEffect(() => {
         setLoading(true);
         fetchOrders();
-    }, [statusFilter]);
+    }, [statusFilter, currentPage]);
 
     useEffect(() => {
         if (!socket) return;
@@ -59,7 +68,7 @@ const OrderListPage = () => {
             socket.off('order_status_updated', refreshOrders);
             socket.off('item_status_update', refreshOrders);
         };
-    }, [socket, statusFilter]);
+    }, [socket, statusFilter, currentPage]);
 
     const handleAccept = async (orderId) => {
         try {
@@ -94,7 +103,7 @@ const OrderListPage = () => {
     );
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-lg min-h-[80vh]">
+        <div className="bg-white p-6 rounded-2xl shadow-lg min-h-[80vh] flex flex-col">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
                     <h2 className="text-3xl font-extrabold text-gray-800 tracking-tight">{t('waiter.order_list')}</h2>
@@ -121,23 +130,91 @@ const OrderListPage = () => {
 
             {error && <div className="text-red-500 mb-4">{error}</div>}
 
-            {orders.length === 0 ? (
-                <div className="text-center py-20 text-gray-400">
-                    {t('waiter.no_orders', { status: statusFilter === 'all' ? t('waiter.all_orders') : t(`waiter.status.${statusFilter}`) })}
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {orders.map(order => (
-                        <div key={order.id} className="h-full">
-                            <OrderCard
-                                order={order}
-                                onAccept={handleAccept}
-                                onReject={handleReject}
-                                onComplete={handleComplete}
-                                onViewDetails={() => setSelectedOrder(order)}
-                            />
-                        </div>
-                    ))}
+            <div className="flex-1">
+                {orders.length === 0 ? (
+                    <div className="text-center py-20 text-gray-400 font-medium">
+                        {t('waiter.no_orders', { status: statusFilter === 'all' ? t('waiter.all_orders') : t(`waiter.status.${statusFilter}`) })}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {orders.map(order => (
+                            <div key={order.id} className="h-full">
+                                <OrderCard
+                                    order={order}
+                                    onAccept={handleAccept}
+                                    onReject={handleReject}
+                                    onComplete={handleComplete}
+                                    onViewDetails={() => setSelectedOrder(order)}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="mt-12 flex flex-wrap justify-center items-center gap-2 md:gap-4 py-6 border-t border-gray-50 bg-gray-50/30 rounded-b-2xl">
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className={`p-2.5 rounded-xl border transition-all ${currentPage === 1
+                            ? 'text-gray-300 border-gray-100 cursor-not-allowed bg-white'
+                            : 'text-emerald-600 border-emerald-100 bg-white hover:bg-emerald-50 hover:shadow-sm active:scale-95'}`}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                        {(() => {
+                            const pages = [];
+                            const delta = 1; // Number of pages to show around current page
+
+                            for (let i = 1; i <= totalPages; i++) {
+                                if (
+                                    i === 1 || // Always show first
+                                    i === totalPages || // Always show last
+                                    (i >= currentPage - delta && i <= currentPage + delta) // Show window
+                                ) {
+                                    if (pages.length > 0 && i - pages[pages.length - 1] > 1) {
+                                        pages.push('...');
+                                    }
+                                    pages.push(i);
+                                }
+                            }
+
+                            return pages.map((page, idx) => (
+                                page === '...' ? (
+                                    <span key={`dots-${idx}`} className="px-2 text-gray-400 font-bold select-none">...</span>
+                                ) : (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`w-9 h-9 md:w-11 md:h-11 rounded-xl font-bold transition-all flex items-center justify-center text-sm md:text-base ${currentPage === page
+                                                ? 'bg-emerald-500 text-white shadow-lg scale-110'
+                                                : 'bg-white text-gray-600 border border-gray-100 hover:border-emerald-200 hover:text-emerald-600 hover:shadow-sm'
+                                            }`}
+                                    >
+                                        {page}
+                                    </button>
+                                )
+                            ));
+                        })()}
+                    </div>
+
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className={`p-2.5 rounded-xl border transition-all ${currentPage === totalPages
+                            ? 'text-gray-300 border-gray-100 cursor-not-allowed bg-white'
+                            : 'text-emerald-600 border-emerald-100 bg-white hover:bg-emerald-50 hover:shadow-sm active:scale-95'}`}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
                 </div>
             )}
 

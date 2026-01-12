@@ -5,7 +5,9 @@ const { updateOrderStatusSchema } = require('../utils/validation');
 // GET /api/waiter/orders
 exports.getOrders = async (req, res) => {
   try {
-    const { status, page = 1, limit = 10 } = req.query;
+    const status = req.query.status;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
     let query = supabase
