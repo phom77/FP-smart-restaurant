@@ -146,7 +146,18 @@ const RevenuePage = () => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dx={-10} />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#9ca3af', fontSize: 12 }}
+                                        dx={-5}
+                                        width={80}
+                                        tickFormatter={(value) => {
+                                            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                                            if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                                            return value;
+                                        }}
+                                    />
                                     <Tooltip
                                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                         formatter={(val) => [parseInt(val).toLocaleString() + 'đ', t('common.revenue')]}
