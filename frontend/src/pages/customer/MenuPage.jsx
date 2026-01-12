@@ -13,8 +13,10 @@ export default function MenuPage() {
     const [menuItems, setMenuItems] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [sortBy, setSortBy] = useState('name');
     const [loading, setLoading] = useState(true);
+    const [searchLoading, setSearchLoading] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const { getCartCount } = useCart();
 
@@ -31,40 +33,77 @@ export default function MenuPage() {
         fetchCategories();
     }, []);
 
-    // Fetch menu items
+    // Debounce search query (300ms delay)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Fetch menu items with fuzzy search
     useEffect(() => {
         const fetchMenuItems = async () => {
             setLoading(true);
+            setSearchLoading(true);
             try {
-                const params = {
-                    is_available: 'true'
-                };
+                // Use fuzzy search if there's a search query
+                if (debouncedSearch && debouncedSearch.trim().length >= 2) {
+                    const response = await api.get('/api/search', {
+                        params: {
+                            q: debouncedSearch,
+                            limit: 50
+                        }
+                    });
 
-                if (selectedCategory !== 'all') {
-                    params.category_id = selectedCategory;
+                    let results = response.data.data || [];
+
+                    // Apply category filter if selected
+                    if (selectedCategory !== 'all') {
+                        results = results.filter(item => item.category_id === selectedCategory);
+                    }
+
+                    // Apply sorting
+                    if (sortBy === 'price_asc') {
+                        results.sort((a, b) => a.price - b.price);
+                    } else if (sortBy === 'price_desc') {
+                        results.sort((a, b) => b.price - a.price);
+                    } else if (sortBy === 'name') {
+                        results.sort((a, b) => a.name.localeCompare(b.name));
+                    }
+
+                    setMenuItems(results);
+                } else {
+                    // Standard menu fetch without search
+                    const params = {
+                        is_available: 'true'
+                    };
+
+                    if (selectedCategory !== 'all') {
+                        params.category_id = selectedCategory;
+                    }
+
+                    if (sortBy === 'price_asc') {
+                        params.sort_by = 'price_asc';
+                    } else if (sortBy === 'price_desc') {
+                        params.sort_by = 'price_desc';
+                    }
+
+                    const response = await api.get('/api/menu/items', { params });
+                    setMenuItems(response.data.data || []);
                 }
-
-                if (searchQuery) {
-                    params.search = searchQuery;
-                }
-
-                if (sortBy === 'price_asc') {
-                    params.sort_by = 'price_asc';
-                } else if (sortBy === 'price_desc') {
-                    params.sort_by = 'price_desc';
-                }
-
-                const response = await api.get('/api/menu/items', { params });
-                setMenuItems(response.data.data || []);
             } catch (error) {
                 console.error('Error fetching menu items:', error);
+                setMenuItems([]);
             } finally {
                 setLoading(false);
+                setSearchLoading(false);
             }
         };
 
         fetchMenuItems();
-    }, [selectedCategory, searchQuery, sortBy]);
+    }, [selectedCategory, debouncedSearch, sortBy]);
 
     const handleItemClick = async (item) => {
         try {

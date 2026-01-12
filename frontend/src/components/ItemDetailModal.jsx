@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../contexts/CartContext';
+import ReviewSection from './ReviewSection';
+import RecommendedItems from './RecommendedItems';
 
 export default function ItemDetailModal({ item, onClose }) {
     const { addToCart } = useCart();
@@ -135,8 +137,8 @@ export default function ItemDetailModal({ item, onClose }) {
                                         <label
                                             key={modifier.id}
                                             className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${isSelected
-                                                    ? 'border-emerald-500 bg-emerald-50 shadow-md scale-[1.02]'
-                                                    : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
+                                                ? 'border-emerald-500 bg-emerald-50 shadow-md scale-[1.02]'
+                                                : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
                                                 }`}
                                         >
                                             <input
@@ -199,6 +201,25 @@ export default function ItemDetailModal({ item, onClose }) {
                         >
                             🛒 Thêm vào giỏ - {formatPrice(calculateTotal())}
                         </button>
+                    </div>
+
+                    {/* Recommended Items */}
+                    <div className="mt-8 pt-8 border-t border-gray-200">
+                        <RecommendedItems
+                            menuItemId={item.id}
+                            onItemClick={(newItem) => {
+                                console.log('Clicked recommended item:', newItem);
+                            }}
+                        />
+                    </div>
+
+                    {/* Reviews Section */}
+                    <div className="mt-8 pt-8 border-t border-gray-200">
+                        <ReviewSection
+                            menuItemId={item.id}
+                            avgRating={item.avg_rating || 0}
+                            reviewCount={item.review_count || 0}
+                        />
                     </div>
                 </div>
             </div>
