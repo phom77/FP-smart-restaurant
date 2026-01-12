@@ -103,34 +103,77 @@ exports.getPeakHours = async (req, res) => {
 exports.exportToExcel = async (req, res) => {
     try {
         const { range = 'month' } = req.query;
-        // Fetch data (similar to getRevenueStats but for export)
-        // For simplicity, we'll just fetch revenue stats for the given range
-
         let startDate = new Date();
+        const endDate = new Date();
+
         if (range === 'week') startDate.setDate(startDate.getDate() - 7);
         else if (range === 'month') startDate.setDate(startDate.getDate() - 30);
         else if (range === 'year') startDate.setFullYear(startDate.getFullYear() - 1);
         else startDate = new Date(0);
 
-        const { data: revenueData } = await supabase.rpc('get_revenue_analytics', {
-            p_start_date: startDate.toISOString(),
-            p_end_date: new Date().toISOString(),
-            p_type: range === 'year' ? 'monthly' : 'daily'
-        });
+        // Fetch all data in parallel
+        const [revenueRes, topRes, peakRes] = await Promise.all([
+            supabase.rpc('get_revenue_analytics', {
+                p_start_date: startDate.toISOString(),
+                p_end_date: endDate.toISOString(),
+                p_type: range === 'year' ? 'monthly' : 'daily'
+            }),
+            supabase.rpc('get_top_products', {
+                p_start_date: startDate.toISOString(),
+                p_end_date: endDate.toISOString(),
+                p_limit: 20
+            }),
+            supabase.rpc('get_peak_hours', {
+                p_start_date: startDate.toISOString(),
+                p_end_date: endDate.toISOString()
+            })
+        ]);
+
+        if (revenueRes.error) throw revenueRes.error;
+        if (topRes.error) throw topRes.error;
+        if (peakRes.error) throw peakRes.error;
 
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Revenue Report');
 
-        worksheet.columns = [
-            { header: 'Period', key: 'period', width: 20 },
-            { header: 'Orders', key: 'order_count', width: 10 },
+        // 1. Revenue Report Worksheet
+        const revSheet = workbook.addWorksheet('Revenue Report');
+        revSheet.columns = [
+            { header: 'Period', key: 'period', width: 25 },
+            { header: 'Orders', key: 'order_count', width: 15 },
             { header: 'Revenue (VND)', key: 'total_revenue', width: 20 }
         ];
+        revSheet.addRows(revenueRes.data || []);
 
-        worksheet.addRows(revenueData);
+        // 2. Top Products Worksheet
+        const topSheet = workbook.addWorksheet('Top Products');
+        topSheet.columns = [
+            { header: 'Product Name', key: 'name', width: 30 },
+            { header: 'Quantity Sold', key: 'total_quantity', width: 15 },
+            { header: 'Total Revenue (VND)', key: 'total_revenue', width: 20 }
+        ];
+        topSheet.addRows(topRes.data || []);
+
+        // 3. Peak Hours Worksheet
+        const peakSheet = workbook.addWorksheet('Peak Hours');
+        peakSheet.columns = [
+            { header: 'Hour (0-23)', key: 'hour', width: 15 },
+            { header: 'Order Count', key: 'order_count', width: 15 }
+        ];
+        peakSheet.addRows(peakRes.data || []);
+
+        // Styling: Make headers bold and add a light gray background
+        [revSheet, topSheet, peakSheet].forEach(sheet => {
+            sheet.getRow(1).font = { bold: true };
+            sheet.getRow(1).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFE0E0E0' }
+            };
+            sheet.getRow(1).alignment = { horizontal: 'center' };
+        });
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename=revenue_report_${range}.xlsx`);
+        res.setHeader('Content-Disposition', `attachment; filename=analytics_report_${range}.xlsx`);
 
         await workbook.xlsx.write(res);
         res.end();
