@@ -1,6 +1,5 @@
 -- Migration: 04_analytics_rpcs.sql
 
--- 1. Get Top Products
 CREATE OR REPLACE FUNCTION get_top_products(
     p_start_date TIMESTAMP,
     p_end_date TIMESTAMP,
@@ -17,18 +16,18 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT 
-        oi.menu_item_id,
+        mi.id as menu_item_id,
         mi.name::TEXT,
-        SUM(oi.quantity)::BIGINT as total_quantity,
-        SUM(oi.quantity * oi.unit_price)::DECIMAL(10, 2) as total_revenue
-    FROM order_items oi
-    JOIN orders o ON oi.order_id = o.id
-    JOIN menu_items mi ON oi.menu_item_id = mi.id
-    WHERE o.status = 'completed'
+        COALESCE(SUM(oi.quantity), 0)::BIGINT as total_quantity,
+        COALESCE(SUM(oi.quantity * oi.unit_price), 0)::DECIMAL(10, 2) as total_revenue
+    FROM menu_items mi
+    LEFT JOIN order_items oi ON mi.id = oi.menu_item_id
+    LEFT JOIN orders o ON oi.order_id = o.id 
+      AND o.status = 'completed'
       AND o.created_at >= p_start_date
       AND o.created_at <= p_end_date
-    GROUP BY oi.menu_item_id, mi.name
-    ORDER BY total_revenue DESC
+    GROUP BY mi.id, mi.name
+    ORDER BY total_revenue DESC, total_quantity DESC, mi.name ASC
     LIMIT p_limit;
 END;
 $$;
