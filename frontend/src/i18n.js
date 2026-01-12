@@ -29,10 +29,20 @@ i18n
                         top_products: 'Top 10 Products',
                         peak_hours: 'Peak Hours',
                         today: 'Today',
-                        week: 'Last 7 Days',
-                        month: 'Last 30 Days',
-                        year: 'Last 1 Year',
+                        week: 'Last Week',
+                        month: 'Last Month',
+                        year: 'Last Year',
                         all: 'All Time',
+                    },
+                    admin: {
+                        panel: 'Admin Panel',
+                        operations: 'Restaurant Operations',
+                        dashboard: 'Dashboard',
+                        categories: 'Categories',
+                        menu: 'Menu Items',
+                        revenue: 'Revenue',
+                        public_menu: 'View Public Menu',
+                        logout: 'Logout',
                     }
                 }
             },
@@ -53,10 +63,20 @@ i18n
                         top_products: 'Top 10 món bán chạy',
                         peak_hours: 'Giờ cao điểm',
                         today: 'Hôm nay',
-                        week: '7 ngày qua',
-                        month: '30 ngày qua',
-                        year: '1 năm qua',
+                        week: 'Tuần qua',
+                        month: 'Tháng qua',
+                        year: 'Năm qua',
                         all: 'Tất cả',
+                    },
+                    admin: {
+                        panel: 'Bảng quản trị',
+                        operations: 'Hoạt động nhà hàng',
+                        dashboard: 'Bảng điều khiển',
+                        categories: 'Danh mục',
+                        menu: 'Thực đơn',
+                        revenue: 'Doanh thu',
+                        public_menu: 'Xem Menu công khai',
+                        logout: 'Đăng xuất',
                     }
                 }
             }

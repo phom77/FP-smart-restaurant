@@ -65,9 +65,6 @@ const RevenuePage = () => {
         }
     };
 
-    const toggleLanguage = () => {
-        i18n.changeLanguage(i18n.language === 'en' ? 'vi' : 'en');
-    };
 
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -82,13 +79,6 @@ const RevenuePage = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    <button
-                        onClick={toggleLanguage}
-                        className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl font-semibold hover:bg-indigo-100 transition-all border border-indigo-100 flex items-center gap-2"
-                    >
-                        <span className="text-lg">{i18n.language === 'en' ? '🇻🇳' : '🇺🇸'}</span>
-                        {i18n.language === 'en' ? 'Tiếng Việt' : 'English'}
-                    </button>
 
                     <button
                         onClick={handleExport}

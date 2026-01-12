@@ -47,13 +47,14 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT 
-        EXTRACT(HOUR FROM created_at)::INT as hour,
-        COUNT(id) as order_count
-    FROM orders
-    WHERE status = 'completed'
-      AND created_at >= p_start_date
-      AND created_at <= p_end_date
-    GROUP BY hour
-    ORDER BY hour;
+        h.h::INT as hour,
+        COUNT(o.id)::BIGINT as order_count
+    FROM generate_series(0, 23) h
+    LEFT JOIN orders o ON EXTRACT(HOUR FROM o.created_at) = h.h
+      AND o.status = 'completed'
+      AND o.created_at >= p_start_date
+      AND o.created_at <= p_end_date
+    GROUP BY h.h
+    ORDER BY h.h;
 END;
 $$;
