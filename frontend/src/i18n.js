@@ -33,6 +33,9 @@ i18n
                         month: 'Last Month',
                         year: 'Last Year',
                         all: 'All Time',
+                        custom: 'Custom Range',
+                        from: 'From Date',
+                        to: 'To Date',
                     },
                     admin: {
                         panel: 'Admin Panel',
@@ -128,6 +131,9 @@ i18n
                         month: 'Tháng qua',
                         year: 'Năm qua',
                         all: 'Tất cả',
+                        custom: 'Tùy chỉnh',
+                        from: 'Từ ngày',
+                        to: 'Đến ngày',
                     },
                     admin: {
                         panel: 'Bảng quản trị',

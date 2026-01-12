@@ -3,40 +3,52 @@ const ExcelJS = require('exceljs');
 
 exports.getRevenueStats = async (req, res) => {
     try {
-        const { range = 'week' } = req.query;
+        const { range = 'week', from, to } = req.query;
         let startDate, endDate, type;
         const now = new Date();
-        endDate = now;
 
-        switch (range) {
-            case 'today':
-                startDate = new Date(now);
-                startDate.setHours(0, 0, 0, 0);
-                type = 'daily';
-                break;
-            case 'week':
-                startDate = new Date(now);
-                startDate.setDate(now.getDate() - 7);
-                type = 'daily';
-                break;
-            case 'month':
-                startDate = new Date(now);
-                startDate.setDate(now.getDate() - 30);
-                type = 'daily';
-                break;
-            case 'year':
-                startDate = new Date(now);
-                startDate.setFullYear(now.getFullYear() - 1);
-                type = 'monthly';
-                break;
-            case 'all':
-                startDate = new Date(0);
-                type = 'yearly';
-                break;
-            default:
-                startDate = new Date(now);
-                startDate.setDate(now.getDate() - 7);
-                type = 'daily';
+        if (from && to) {
+            startDate = new Date(from);
+            endDate = new Date(to);
+            endDate.setHours(23, 59, 59, 999);
+
+            // Determine type based on duration
+            const diffDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            if (diffDays <= 31) type = 'daily';
+            else if (diffDays <= 366) type = 'monthly';
+            else type = 'yearly';
+        } else {
+            endDate = now;
+            switch (range) {
+                case 'today':
+                    startDate = new Date(now);
+                    startDate.setHours(0, 0, 0, 0);
+                    type = 'daily';
+                    break;
+                case 'week':
+                    startDate = new Date(now);
+                    startDate.setDate(now.getDate() - 7);
+                    type = 'daily';
+                    break;
+                case 'month':
+                    startDate = new Date(now);
+                    startDate.setDate(now.getDate() - 30);
+                    type = 'daily';
+                    break;
+                case 'year':
+                    startDate = new Date(now);
+                    startDate.setFullYear(now.getFullYear() - 1);
+                    type = 'monthly';
+                    break;
+                case 'all':
+                    startDate = new Date(0);
+                    type = 'yearly';
+                    break;
+                default:
+                    startDate = new Date(now);
+                    startDate.setDate(now.getDate() - 7);
+                    type = 'daily';
+            }
         }
 
         const { data, error } = await supabase
@@ -102,14 +114,23 @@ exports.getPeakHours = async (req, res) => {
 
 exports.exportToExcel = async (req, res) => {
     try {
-        const { range = 'month' } = req.query;
-        let startDate = new Date();
-        const endDate = new Date();
+        const { range = 'month', from, to } = req.query;
+        let startDate, endDate;
 
-        if (range === 'week') startDate.setDate(startDate.getDate() - 7);
-        else if (range === 'month') startDate.setDate(startDate.getDate() - 30);
-        else if (range === 'year') startDate.setFullYear(startDate.getFullYear() - 1);
-        else startDate = new Date(0);
+        if (from && to) {
+            startDate = new Date(from);
+            endDate = new Date(to);
+            endDate.setHours(23, 59, 59, 999);
+        } else {
+            startDate = new Date();
+            endDate = new Date();
+
+            if (range === 'week') startDate.setDate(startDate.getDate() - 7);
+            else if (range === 'month') startDate.setDate(startDate.getDate() - 30);
+            else if (range === 'year') startDate.setFullYear(startDate.getFullYear() - 1);
+            else if (range === 'today') startDate.setHours(0, 0, 0, 0);
+            else startDate = new Date(0);
+        }
 
         // Fetch all data in parallel
         const [revenueRes, topRes, peakRes] = await Promise.all([

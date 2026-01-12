@@ -14,7 +14,9 @@ const RevenuePage = () => {
     const [peakHours, setPeakHours] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [range, setRange] = useState('week'); // today, week, month, year, all
+    const [range, setRange] = useState('week'); // today, week, month, year, all, custom
+    const [customStart, setCustomStart] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    const [customEnd, setCustomEnd] = useState(new Date().toISOString().split('T')[0]);
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -26,10 +28,20 @@ const RevenuePage = () => {
         const fetchAllStats = async () => {
             setLoading(true);
             try {
+                let url = `${API_URL}/api/analytics/revenue?range=${range}`;
+                let topUrl = `${API_URL}/api/analytics/top-products?limit=10`;
+                let peakUrl = `${API_URL}/api/analytics/peak-hours`;
+
+                if (range === 'custom') {
+                    url += `&from=${customStart}&to=${customEnd}`;
+                    topUrl += `&start_date=${customStart}&end_date=${customEnd}`;
+                    peakUrl += `?start_date=${customStart}&end_date=${customEnd}`;
+                }
+
                 const [revenueRes, topRes, peakRes] = await Promise.all([
-                    axios.get(`${API_URL}/api/analytics/revenue?range=${range}`, getAuthHeader()),
-                    axios.get(`${API_URL}/api/analytics/top-products?limit=10`, getAuthHeader()),
-                    axios.get(`${API_URL}/api/analytics/peak-hours`, getAuthHeader())
+                    axios.get(url, getAuthHeader()),
+                    axios.get(topUrl, getAuthHeader()),
+                    axios.get(peakUrl, getAuthHeader())
                 ]);
 
                 setStats(revenueRes.data.data);
@@ -44,12 +56,17 @@ const RevenuePage = () => {
         };
 
         fetchAllStats();
-    }, [range, t, API_URL]);
+    }, [range, customStart, customEnd, t, API_URL]);
 
     const handleExport = async () => {
         try {
+            let exportUrl = `${API_URL}/api/analytics/export?range=${range}`;
+            if (range === 'custom') {
+                exportUrl += `&from=${customStart}&to=${customEnd}`;
+            }
+
             const response = await axios({
-                url: `${API_URL}/api/analytics/export?range=${range}`,
+                url: exportUrl,
                 method: 'GET',
                 responseType: 'blob',
                 ...getAuthHeader()
@@ -88,20 +105,47 @@ const RevenuePage = () => {
                         {t('common.export')}
                     </button>
 
-                    <div className="relative">
-                        <select
-                            value={range}
-                            onChange={(e) => setRange(e.target.value)}
-                            className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-4 pr-10 rounded-xl font-bold focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all cursor-pointer"
-                        >
-                            <option value="today">{t('revenue.today')}</option>
-                            <option value="week">{t('revenue.week')}</option>
-                            <option value="month">{t('revenue.month')}</option>
-                            <option value="year">{t('revenue.year')}</option>
-                            <option value="all">{t('revenue.all')}</option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                    <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
+                        {range === 'custom' && (
+                            <div className="flex items-center gap-2 px-2 border-r border-gray-200 mr-2 animate-in fade-in slide-in-from-left-2 transition-all">
+                                <div className="flex items-center gap-1">
+                                    <span className="text-[10px] uppercase font-bold text-gray-400">{t('revenue.from')}</span>
+                                    <input
+                                        type="date"
+                                        value={customStart}
+                                        max={new Date().toISOString().split('T')[0]}
+                                        onChange={(e) => setCustomStart(e.target.value)}
+                                        className="bg-transparent border-none text-sm font-bold text-gray-700 focus:ring-0 p-0 cursor-pointer"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-[10px] uppercase font-bold text-gray-400">{t('revenue.to')}</span>
+                                    <input
+                                        type="date"
+                                        value={customEnd}
+                                        max={new Date().toISOString().split('T')[0]}
+                                        onChange={(e) => setCustomEnd(e.target.value)}
+                                        className="bg-transparent border-none text-sm font-bold text-gray-700 focus:ring-0 p-0 cursor-pointer"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        <div className="relative">
+                            <select
+                                value={range}
+                                onChange={(e) => setRange(e.target.value)}
+                                className="appearance-none bg-transparent text-gray-700 py-1 px-4 pr-10 rounded-lg font-bold focus:outline-none transition-all cursor-pointer min-w-[140px]"
+                            >
+                                <option value="today">{t('revenue.today')}</option>
+                                <option value="week">{t('revenue.week')}</option>
+                                <option value="month">{t('revenue.month')}</option>
+                                <option value="year">{t('revenue.year')}</option>
+                                <option value="all">{t('revenue.all')}</option>
+                                <option value="custom">{t('revenue.custom')}</option>
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
                         </div>
                     </div>
                 </div>
