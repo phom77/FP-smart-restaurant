@@ -26,7 +26,7 @@ i18n
                     revenue: {
                         title: 'Revenue Statistics',
                         chart_title: 'Revenue Over Time',
-                        top_products: 'Top 5 Products',
+                        top_products: 'Top 10 Products',
                         peak_hours: 'Peak Hours',
                         today: 'Today',
                         week: 'Last 7 Days',
@@ -50,7 +50,7 @@ i18n
                     revenue: {
                         title: 'Thống kê doanh thu',
                         chart_title: 'Doanh thu theo thời gian',
-                        top_products: 'Top 5 món bán chạy',
+                        top_products: 'Top 10 món bán chạy',
                         peak_hours: 'Giờ cao điểm',
                         today: 'Hôm nay',
                         week: '7 ngày qua',

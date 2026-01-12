@@ -28,7 +28,7 @@ const RevenuePage = () => {
             try {
                 const [revenueRes, topRes, peakRes] = await Promise.all([
                     axios.get(`${API_URL}/api/analytics/revenue?range=${range}`, getAuthHeader()),
-                    axios.get(`${API_URL}/api/analytics/top-products?limit=5`, getAuthHeader()),
+                    axios.get(`${API_URL}/api/analytics/top-products?limit=10`, getAuthHeader()),
                     axios.get(`${API_URL}/api/analytics/peak-hours`, getAuthHeader())
                 ]);
 
