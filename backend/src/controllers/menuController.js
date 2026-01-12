@@ -1,4 +1,5 @@
 const supabase = require('../config/supabaseClient');
+const { clearCache } = require('../middleware/cacheMiddleware');
 
 // GET /api/menu/items - Get all menu items with filters
 exports.getMenuItems = async (req, res) => {
@@ -177,6 +178,9 @@ exports.createMenuItem = async (req, res) => {
 
         if (error) throw error;
 
+        // Invalidate cache
+        await clearCache('cache:/api/menu*');
+
         res.status(201).json({
             success: true,
             data: data,
@@ -216,6 +220,9 @@ exports.updateMenuItem = async (req, res) => {
 
         if (error) throw error;
 
+        // Invalidate cache
+        await clearCache('cache:/api/menu*');
+
         res.status(200).json({
             success: true,
             data: data,
@@ -237,6 +244,9 @@ exports.deleteMenuItem = async (req, res) => {
             .eq('id', id);
 
         if (error) throw error;
+
+        // Invalidate cache
+        await clearCache('cache:/api/menu*');
 
         res.status(200).json({
             success: true,

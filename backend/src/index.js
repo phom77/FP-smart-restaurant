@@ -33,7 +33,8 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/revenue', require('./routes/revenueRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
+app.use('/api/revenue', require('./routes/revenueRoutes')); // Keep for backward compatibility or remove if preferred
 app.use('/api/tables', tableRoutes);
 app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/categories', categoryRoutes);
