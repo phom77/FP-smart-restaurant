@@ -23,17 +23,22 @@ const TableMapPage = () => {
         fetchTables();
 
         // Socket for real-time table status updates
-        const newSocket = io(API_URL);
-
-        newSocket.on('connect', () => {
-            newSocket.emit('join_room', 'waiter'); // Listen to waiter room or global updates
+        const newSocket = io(API_URL, {
+            auth: {
+                token: localStorage.getItem('token') // Add token for auth if needed by SocketProvider style
+            }
         });
 
-        // Assuming backend might emit this evt, or we infer from order updates
-        // For now, let's just re-fetch on generic update or timer
-        // ideally: newSocket.on('table_updated', fetchTables);
+        newSocket.on('connect', () => {
+            newSocket.emit('join_room', 'waiter'); // Listen to waiter room
+        });
 
-        const interval = setInterval(fetchTables, 10000); // Polling as backup
+        // Listen for events that change table status
+        newSocket.on('new_order', fetchTables);
+        newSocket.on('order_status_updated', fetchTables);
+        newSocket.on('item_status_update', fetchTables);
+
+        const interval = setInterval(fetchTables, 30000); // Polling as backup (less frequent)
 
         return () => {
             newSocket.close();

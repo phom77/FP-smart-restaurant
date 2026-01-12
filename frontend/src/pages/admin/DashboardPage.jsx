@@ -1,1 +1,6 @@
-export default function DashboardPage() { return <h1>Admin Dashboard (Revenue Report)</h1> }
+import { useTranslation } from 'react-i18next';
+
+export default function DashboardPage() {
+    const { t } = useTranslation();
+    return <h1>{t('admin.dashboard_title')}</h1>;
+}
