@@ -1,6 +1,14 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:alpine
+    container_name: smart-restaurant-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
   backend:
     build: ./backend
     container_name: smart-restaurant-backend

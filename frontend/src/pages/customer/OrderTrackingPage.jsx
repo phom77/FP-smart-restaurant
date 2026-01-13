@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSocket } from '../../contexts/SocketContext';
 import api from '../../services/api';
@@ -11,32 +11,31 @@ export default function OrderTrackingPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    // 1. Fetch order details
-    useEffect(() => {
-        const fetchOrder = async () => {
-            try {
-                const response = await api.get(`/api/orders/${orderId}`);
-                if (response.data.success) {
-                    setOrder(response.data.data);
-                }
-            } catch (err) {
-                console.error('Error fetching order:', err);
-                setError('Không thể tải thông tin đơn hàng');
-            } finally {
-                setLoading(false);
+    const fetchOrder = useCallback(async () => {
+        try {
+            const response = await api.get(`/api/orders/${orderId}`);
+            if (response.data.success) {
+                setOrder(response.data.data);
             }
-        };
+        } catch (err) {
+            console.error('Error fetching order:', err);
+            setError('Không thể tải thông tin đơn hàng');
+        } finally {
+            setLoading(false);
+        }
+    }, [orderId]); // Chỉ tạo lại khi orderId thay đổi
 
+    // 1. Fetch ban đầu
+    useEffect(() => {
         if (orderId) {
             fetchOrder();
         }
-    }, [orderId]);
+    }, [orderId, fetchOrder]); // Thêm fetchOrder vào dependency
 
     // 2. Socket Logic
     useEffect(() => {
         if (!socket || !order) return;
 
-        // Join room bàn ăn
         if (order.table_id) {
             socket.emit('join_room', `table_${order.table_id}`);
         }
@@ -48,7 +47,6 @@ export default function OrderTrackingPage() {
         };
 
         const handleItemUpdate = (data) => {
-            // Cập nhật trạng thái từng món (nếu cần)
             setOrder(prev => {
                 if (!prev) return null;
                 return {
@@ -62,14 +60,31 @@ export default function OrderTrackingPage() {
             });
         };
 
+        const handlePaymentUpdate = (data) => {
+            console.log("💰 Payment Update nhận được:", data);
+            
+            const incomingId = data.orderId || data.order_id;
+            
+            if (incomingId === orderId) {
+                // ✅ Giờ fetchOrder đã stable, gọi an toàn
+                fetchOrder();
+            }
+        };
+
         socket.on('order_status_update', handleOrderUpdate);
         socket.on('item_status_update', handleItemUpdate);
+        socket.on('payment_status_update', handlePaymentUpdate);
+        socket.on('payment_success', handlePaymentUpdate);
+        socket.on('order_paid', handlePaymentUpdate); 
 
         return () => {
             socket.off('order_status_update', handleOrderUpdate);
             socket.off('item_status_update', handleItemUpdate);
+            socket.off('payment_status_update', handlePaymentUpdate);
+            socket.off('payment_success', handlePaymentUpdate);
+            socket.off('order_paid', handlePaymentUpdate);
         };
-    }, [socket, order?.table_id, orderId]);
+    }, [socket, order?.table_id, orderId, fetchOrder]);
 
     // 3. Cấu hình Timeline (3 Bước chuẩn Backend)
     const statusSteps = [
@@ -242,11 +257,40 @@ export default function OrderTrackingPage() {
                         })}
                     </div>
 
-                    {/* Total */}
+                    {/* Total & Payment Actions */}
                     <div className="mt-6 pt-4 border-t border-gray-100">
                         <div className="flex justify-between items-center text-xl font-bold text-gray-900">
                             <span>Tổng tiền</span>
                             <span className="text-emerald-600">{order.total_amount?.toLocaleString('vi-VN')}đ</span>
+                        </div>
+
+                        {/* --- KHU VỰC NÚT THANH TOÁN --- */}
+                        <div className="mt-4">
+                            {/* Trường hợp 1: Đã thanh toán xong */}
+                            {order.payment_status === 'paid' || order.payment_status === 'success' ? (
+                                <div className="w-full py-3 bg-green-100 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-green-200 animate-pulse">
+                                    <span className="material-symbols-outlined">check_circle</span>
+                                    Đã thanh toán thành công
+                                </div>
+                            ) : 
+                            /* Trường hợp 2: Đang chờ nhân viên (Tiền mặt) */
+                            order.payment_status === 'waiting_payment' ? (
+                                <div className="w-full py-3 bg-yellow-100 text-yellow-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-yellow-200">
+                                    <span className="material-symbols-outlined">hourglass_top</span>
+                                    Đang chờ nhân viên xác nhận...
+                                </div>
+                            ) : (
+                                /* Trường hợp 3: Chưa thanh toán -> Hiện nút */
+                                order.status !== 'cancelled' && (
+                                    <button
+                                        onClick={() => navigate('/checkout', { state: { order } })}
+                                        className="w-full py-3 bg-gray-900 text-white font-bold rounded-xl shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <span className="material-symbols-outlined">credit_card</span>
+                                        Thanh toán ngay
+                                    </button>
+                                )
+                            )}
                         </div>
                     </div>
                 </div>
