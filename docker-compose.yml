@@ -25,14 +25,6 @@ services:
     networks:
       - app-network
 
-  redis:
-    image: redis:alpine
-    container_name: smart-restaurant-redis
-    ports:
-      - "6379:6379"
-    networks:
-      - app-network
-
   frontend:
     build: ./frontend
     container_name: smart-restaurant-frontend

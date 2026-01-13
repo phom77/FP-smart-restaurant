@@ -26,22 +26,19 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
     const isWaitingPayment = order.payment_status === 'waiting_payment';
 
     return (
-        <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full relative group ${
-            isWaitingPayment ? 'border-orange-400 ring-2 ring-orange-100' : 'border-gray-100'}`}>
+        <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full relative group ${isWaitingPayment ? 'border-orange-400 ring-2 ring-orange-100' : 'border-gray-100'}`}>
             {/* Header */}
             <div
                 onClick={onViewDetails}
-                className={`p-4 flex justify-between items-center border-b cursor-pointer transition-colors ${
-                    isPaid ? 'bg-green-50 border-green-100' : 
-                    isWaitingPayment ? 'bg-orange-50 border-orange-100' : // Màu cam cho chờ thanh toán
-                    'bg-gradient-to-r from-blue-50 to-white border-blue-50'
-                }`}
+                className={`p-4 flex justify-between items-center border-b cursor-pointer transition-colors ${isPaid ? 'bg-green-50 border-green-100' :
+                        isWaitingPayment ? 'bg-orange-50 border-orange-100' : // Màu cam cho chờ thanh toán
+                            'bg-gradient-to-r from-blue-50 to-white border-blue-50'
+                    }`}
             >
                 <div className="flex items-center gap-2">
-                    <div className={`w-1.5 h-8 rounded-full transition-all ${
-                        order.status === 'pending' ? 'bg-yellow-500' : 
-                        isPaid ? 'bg-green-500' : 'bg-blue-500'
-                    }`}></div>
+                    <div className={`w-1.5 h-8 rounded-full transition-all ${order.status === 'pending' ? 'bg-yellow-500' :
+                            isPaid ? 'bg-green-500' : 'bg-blue-500'
+                        }`}></div>
                     <span className="font-extrabold text-lg text-gray-800">
                         {t('waiter.table')} {order.table?.table_number || 'N/A'}
                     </span>
@@ -51,7 +48,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                     {isPaid && <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">PAID</span>}
                     {isWaitingPayment && <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded animate-pulse">BILL?</span>}
                     {/* ------------------------- */}
-                    
+
                     <span className="text-xs font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100 font-bold">
                         #{order.id?.slice(0, 6)}
                     </span>
@@ -87,9 +84,9 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
 
                                 {/* Hiển thị trạng thái từng món nhỏ */}
                                 <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-tighter ${item.status === 'ready' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                        item.status === 'preparing' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                            item.status === 'served' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                'bg-gray-50 text-gray-500 border-gray-100'
+                                    item.status === 'preparing' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                        item.status === 'served' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                            'bg-gray-50 text-gray-500 border-gray-100'
                                     }`}>
                                     {t(`waiter.status.${item.status}`)}
                                 </span>
@@ -127,12 +124,6 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                     )}
 
                     {order.status === 'processing' && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onComplete && onComplete(order.id); }}
-                            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-3 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 w-full flex items-center justify-center gap-2"
-                        >
-                            <span>{t('waiter.mark_completed')}</span>
-                        </button>
                         <>
                             {isPaid ? (
                                 <button
@@ -145,12 +136,11 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                             ) : (
                                 // --- 🟢 NÚT XỬ LÝ KHI CHỜ THANH TOÁN ---
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); onViewDetails(); }} 
-                                    className={`py-2.5 rounded-xl font-bold text-sm w-full flex items-center justify-center gap-2 ${
-                                        isWaitingPayment 
-                                        ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-md animate-bounce-short' 
-                                        : 'bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50'
-                                    }`}
+                                    onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
+                                    className={`py-2.5 rounded-xl font-bold text-sm w-full flex items-center justify-center gap-2 ${isWaitingPayment
+                                            ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-md animate-bounce-short'
+                                            : 'bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50'
+                                        }`}
                                 >
                                     {isWaitingPayment ? (
                                         <>
@@ -166,7 +156,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                         </>
                     )}
                 </div>
-                
+
                 <div className="text-center mt-3">
                     <span className="text-xs text-gray-300 font-medium">{formatDate(order.created_at)}</span>
                 </div>
