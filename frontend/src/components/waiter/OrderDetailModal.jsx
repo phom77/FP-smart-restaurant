@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
 
 const OrderDetailModal = ({ order, onClose }) => {
     const { t } = useTranslation();
@@ -49,6 +50,17 @@ const OrderDetailModal = ({ order, onClose }) => {
         setTimeout(() => {
             document.body.removeChild(iframe);
         }, 1000);
+    };
+
+    const handleConfirmCash = async () => {
+        if (!window.confirm(`Xác nhận đã thu ${parseInt(order.total_amount).toLocaleString()}đ tiền mặt?`)) return;
+        try {
+            await api.post('/api/payment/confirm-cash', { orderId: order.id });
+            onClose(); // Đóng modal
+            // Socket sẽ tự refresh danh sách bên dưới
+        } catch (err) {
+            alert("Lỗi: " + err.message);
+        }
     };
 
     return (
@@ -139,6 +151,29 @@ const OrderDetailModal = ({ order, onClose }) => {
                     >
                         {t('waiter.close')}
                     </button>
+                <div className="p-5 border-t bg-gray-50 flex flex-col gap-3">
+                    
+                    {/* --- 🟢 HIỂN THỊ NÚT XÁC NHẬN NẾU ĐANG CHỜ THANH TOÁN --- */}
+                    {order.payment_status === 'waiting_payment' && (
+                        <button
+                            onClick={handleConfirmCash}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 animate-pulse"
+                        >
+                            <span className="material-symbols-outlined">payments</span>
+                            Xác nhận đã thu tiền mặt
+                        </button>
+                    )}
+                    {/* ------------------------------------------------------- */}
+
+                    <div className="flex gap-3">
+                        <button onClick={handlePrint} className="flex-1 bg-gray-800 text-white py-3 rounded-xl font-bold shadow hover:bg-gray-900 transition-all flex items-center justify-center gap-2">
+                            <span className="material-symbols-outlined">print</span>
+                            Print Invoice
+                        </button>
+                        <button onClick={onClose} className="px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded-xl font-bold hover:bg-gray-50 transition-all">
+                            Close
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

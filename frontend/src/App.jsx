@@ -14,6 +14,8 @@ import WaiterLayout from './layouts/WaiterLayout'; // Import WaiterLayout
 import OrderListPage from './pages/waiter/OrderListPage'; // Import OrderListPage
 import TableMapPage from './pages/waiter/TableMapPage'; // Import TableMapPage
 import KitchenDisplayPage from './pages/kitchen/KitchenDisplayPage';
+import CheckoutPage from './pages/customer/CustomerCheckoutPage'; // <-- Đảm bảo file này tồn tại
+import WaiterBillPage from './pages/waiter/WaiterBillPage';
 import './App.css';
 
 function App() {
@@ -25,6 +27,7 @@ function App() {
       <Route path="/cart" element={<CartPage />} />
       <Route path="/orders/:orderId" element={<OrderTrackingPage />} />
       <Route path="/my-orders" element={<MyOrdersPage />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
@@ -44,6 +47,7 @@ function App() {
         <Route path="/waiter" element={<WaiterLayout />}>
           <Route index element={<Navigate to="orders" replace />} />
           <Route path="orders" element={<OrderListPage />} />
+          <Route path="bill/:orderId" element={<WaiterBillPage />} />
           <Route path="map" element={<TableMapPage />} />
         </Route>
       </Route>

@@ -1,17 +1,32 @@
 const supabase = require('../config/supabaseClient');
 const { clearCache } = require('../middleware/cacheMiddleware');
+const redisClient = require('../config/redisClient');
 
 // GET /api/menu/items - Get all menu items with filters
 exports.getMenuItems = async (req, res) => {
     try {
+        // 1. Lấy đủ tất cả tham số như code cũ
         const { category_id, search, sort_by = 'name', is_available } = req.query;
+        
+        // 2. Tạo Cache Key ĐẦY ĐỦ (Bao gồm cả sort và available để không bị lẫn lộn kết quả)
+        // Ví dụ key: menu_cat1_searchNone_priceAsc_true
+        const cacheKey = `menu_${category_id || 'all'}_${search || 'none'}_${sort_by}_${is_available || 'all'}`;
 
+        // 3. Kiểm tra Redis trước
+        try {
+            const cachedData = await redisClient.get(cacheKey);
+            if (cachedData) {
+                console.log('⚡ Lấy Menu từ Redis Cache:', cacheKey);
+                return res.status(200).json(JSON.parse(cachedData));
+            }
+        } catch (redisErr) {
+            console.log('Redis lỗi (bỏ qua):', redisErr.message);
+        }
+
+        // 4. Logic Query Database (GIỮ NGUYÊN TỪ CODE CŨ CỦA BẠN)
         let query = supabase
             .from('menu_items')
-            .select(`
-        *,
-        category:categories(id, name)
-      `);
+            .select(`*, category:categories(id, name)`);
 
         // Filter by category
         if (category_id) {
@@ -28,7 +43,7 @@ exports.getMenuItems = async (req, res) => {
             query = query.ilike('name', `%${search}%`);
         }
 
-        // Sort
+        // Sort logic (Quan trọng)
         if (sort_by === 'price_asc') {
             query = query.order('price', { ascending: true });
         } else if (sort_by === 'price_desc') {
@@ -41,15 +56,19 @@ exports.getMenuItems = async (req, res) => {
 
         if (error) throw error;
 
-        res.status(200).json({
-            success: true,
-            data: data
-        });
+        const responseData = { success: true, data: data };
+
+        // 5. Lưu kết quả vào Redis (Hết hạn sau 1 giờ)
+        try {
+            await redisClient.setEx(cacheKey, 3600, JSON.stringify(responseData));
+        } catch (e) {
+            console.error("Lỗi lưu cache:", e.message);
+        }
+
+        res.status(200).json(responseData);
+
     } catch (err) {
-        res.status(500).json({
-            success: false,
-            error: err.message
-        });
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 

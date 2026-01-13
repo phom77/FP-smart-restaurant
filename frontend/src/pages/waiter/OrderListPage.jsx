@@ -59,14 +59,19 @@ const OrderListPage = () => {
             fetchOrders();
         };
 
-        socket.on('new_order', refreshOrders);
-        socket.on('order_status_updated', refreshOrders);
-        socket.on('item_status_update', refreshOrders);
+        // Lắng nghe ĐỦ 3 sự kiện này
+        socket.on('new_order', refreshOrders);          // 1. Có đơn mới
+        socket.on('order_status_updated', refreshOrders); // 2. Đơn đổi trạng thái (Accept/Reject)
+        socket.on('item_status_update', refreshOrders);   // 3. QUAN TRỌNG: Bếp nấu xong 1 món -> Refresh ngay
+        socket.on('payment_request', refreshOrders); 
+        socket.on('order_paid', refreshOrders);
 
         return () => {
             socket.off('new_order', refreshOrders);
             socket.off('order_status_updated', refreshOrders);
             socket.off('item_status_update', refreshOrders);
+            socket.off('payment_request', refreshOrders); // <--- Nhớ off
+            socket.off('order_paid', refreshOrders);
         };
     }, [socket, statusFilter, currentPage]);
 

@@ -19,44 +19,60 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
         }
     };
 
-    // Bảo vệ: Nếu order null thì không render
     if (!order) return null;
 
+    // Kiểm tra trạng thái thanh toán
+    const isPaid = order.payment_status === 'paid';
+    const isWaitingPayment = order.payment_status === 'waiting_payment';
+
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full relative group">
-            {/* Header: Table Info */}
+        <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full relative group ${
+            isWaitingPayment ? 'border-orange-400 ring-2 ring-orange-100' : 'border-gray-100'}`}>
+            {/* Header */}
             <div
                 onClick={onViewDetails}
-                className="bg-gradient-to-r from-blue-50 to-white p-4 flex justify-between items-center border-b border-blue-50 cursor-pointer hover:bg-blue-50 transition-colors"
+                className={`p-4 flex justify-between items-center border-b cursor-pointer transition-colors ${
+                    isPaid ? 'bg-green-50 border-green-100' : 
+                    isWaitingPayment ? 'bg-orange-50 border-orange-100' : // Màu cam cho chờ thanh toán
+                    'bg-gradient-to-r from-blue-50 to-white border-blue-50'
+                }`}
             >
                 <div className="flex items-center gap-2">
-                    <div className={`w-1.5 h-8 rounded-full transition-all ${order.status === 'pending' ? 'bg-yellow-500' : 'bg-blue-500'}`}></div>
+                    <div className={`w-1.5 h-8 rounded-full transition-all ${
+                        order.status === 'pending' ? 'bg-yellow-500' : 
+                        isPaid ? 'bg-green-500' : 'bg-blue-500'
+                    }`}></div>
                     <span className="font-extrabold text-lg text-gray-800">
                         {t('waiter.table')} {order.table?.table_number || 'N/A'}
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
+                    {/* --- 🟢 HIỂN THỊ BADGE --- */}
+                    {isPaid && <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">PAID</span>}
+                    {isWaitingPayment && <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded animate-pulse">BILL?</span>}
+                    {/* ------------------------- */}
+                    
                     <span className="text-xs font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100 font-bold">
                         #{order.id?.slice(0, 6)}
                     </span>
                 </div>
             </div>
 
-            {/* Body: Items */}
+            {/* Body: Items & Progress */}
             <div className="p-5 flex-1">
-
+                {/* Thanh tiến độ bếp */}
                 {order.status === 'processing' && (
                     <div className="mb-3">
                         <div className="flex justify-between text-xs mb-1">
                             <span className="text-gray-500">{t('waiter.kitchen_progress')}</span>
                             <span className="font-bold text-blue-600">
-                                {order.items.filter(i => i.status === 'ready' || i.status === 'served').length} / {order.items.length}
+                                {order.items?.filter(i => i.status === 'ready' || i.status === 'served').length} / {order.items?.length}
                             </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                             <div
                                 className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                                style={{ width: `${(order.items.filter(i => i.status === 'ready' || i.status === 'served').length / order.items.length) * 100}%` }}
+                                style={{ width: `${(order.items?.filter(i => i.status === 'ready' || i.status === 'served').length / order.items?.length) * 100}%` }}
                             ></div>
                         </div>
                     </div>
@@ -83,7 +99,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                 </ul>
             </div>
 
-            {/* Footer: Total & Actions */}
+            {/* Footer: Actions */}
             <div className="p-5 pt-0 mt-auto">
                 <div className="flex justify-between items-end mb-4 border-t border-dashed border-gray-100 pt-4">
                     <span className="text-gray-500 font-medium text-xs uppercase tracking-wider">{t('waiter.total')}</span>
@@ -117,13 +133,42 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                         >
                             <span>{t('waiter.mark_completed')}</span>
                         </button>
+                        <>
+                            {isPaid ? (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onComplete && onComplete(order.id); }}
+                                    className="bg-gray-800 hover:bg-black text-white py-2.5 rounded-xl font-bold text-sm shadow-sm w-full flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined text-sm">check_circle</span>
+                                    Đóng bàn (Đã trả tiền)
+                                </button>
+                            ) : (
+                                // --- 🟢 NÚT XỬ LÝ KHI CHỜ THANH TOÁN ---
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onViewDetails(); }} 
+                                    className={`py-2.5 rounded-xl font-bold text-sm w-full flex items-center justify-center gap-2 ${
+                                        isWaitingPayment 
+                                        ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-md animate-bounce-short' 
+                                        : 'bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50'
+                                    }`}
+                                >
+                                    {isWaitingPayment ? (
+                                        <>
+                                            <span className="material-symbols-outlined text-sm">payments</span>
+                                            Khách gọi thanh toán!
+                                        </>
+                                    ) : (
+                                        'Thanh toán / Chi tiết'
+                                    )}
+                                </button>
+                                // ---------------------------------------
+                            )}
+                        </>
                     )}
                 </div>
-
+                
                 <div className="text-center mt-3">
-                    <span className="text-xs text-gray-300 font-medium">
-                        {formatDate(order.created_at)}
-                    </span>
+                    <span className="text-xs text-gray-300 font-medium">{formatDate(order.created_at)}</span>
                 </div>
             </div>
         </div>
