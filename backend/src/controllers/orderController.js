@@ -5,7 +5,9 @@ const { updateOrderStatusSchema } = require('../utils/validation');
 // GET /api/waiter/orders
 exports.getOrders = async (req, res) => {
   try {
-    const { status, page = 1, limit = 10 } = req.query;
+    const status = req.query.status;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
     let query = supabase
@@ -105,12 +107,12 @@ exports.updateOrderStatus = async (req, res) => {
       if (status === 'processing' && currentOrder.status === 'pending') {
         newTableStatus = 'occupied';
       }
-      // Processing -> Completed => Available (or Dirty)
-      else if (status === 'completed' && currentOrder.status === 'processing') {
-        newTableStatus = 'available'; // Simplified as per request
+      // Any -> Completed or Cancelled => Available
+      else if (status === 'completed' || status === 'cancelled') {
+        newTableStatus = 'available';
       }
 
-      if (newTableStatus) {
+      if (newTableStatus && updatedOrder.table_id) {
         await supabase
           .from('tables')
           .update({ status: newTableStatus })
@@ -137,9 +139,9 @@ exports.updateOrderStatus = async (req, res) => {
     }
 
     if (status === 'processing') {
-      io.to('kitchen').emit('new_order', { 
+      io.to('kitchen').emit('new_order', {
         message: 'Có món mới được duyệt',
-        order_id: id 
+        order_id: id
       });
     }
 
@@ -170,14 +172,14 @@ exports.createOrder = async (req, res) => {
       .select('status, table_number')
       .eq('id', table_id)
       .single();
-    
+
     if (tableError) throw tableError;
 
     // Nếu bàn đang có khách -> Chặn lại
     if (tableData.status === 'occupied') {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Bàn ${tableData.table_number} đang có khách. Vui lòng dùng chức năng "Gọi thêm món" hoặc nhờ nhân viên hỗ trợ.` 
+      return res.status(400).json({
+        success: false,
+        message: `Bàn ${tableData.table_number} đang có khách. Vui lòng dùng chức năng "Gọi thêm món" hoặc nhờ nhân viên hỗ trợ.`
       });
     }
     // -----------------------------------------
@@ -305,11 +307,13 @@ exports.createOrder = async (req, res) => {
     }
 
     // --- 🟢 FIX 2: CẬP NHẬT TRẠNG THÁI BÀN ---
-    // Chuyển bàn sang 'occupied' ngay lập tức
-    await supabase
-      .from('tables')
-      .update({ status: 'occupied' })
-      .eq('id', table_id);
+    // Chuyển bàn sang 'occupied' ngay lập tức (Chỉ chạy nếu có table_id hợp lệ)
+    if (table_id) {
+      await supabase
+        .from('tables')
+        .update({ status: 'occupied' })
+        .eq('id', table_id);
+    }
     // -----------------------------------------
 
     // 5. Bắn Socket
@@ -394,15 +398,15 @@ exports.getOrder = async (req, res) => {
 };
 
 exports.addItemsToOrder = async (req, res) => {
-    // Logic gọi thêm món (tương tự createOrder nhưng update vào order cũ)
-    // Tạm thời trả về success để không lỗi route
-    res.status(200).json({ success: true, message: "Tính năng gọi thêm món đang phát triển" });
+  // Logic gọi thêm món (tương tự createOrder nhưng update vào order cũ)
+  // Tạm thời trả về success để không lỗi route
+  res.status(200).json({ success: true, message: "Tính năng gọi thêm món đang phát triển" });
 };
 
 // POST /api/orders/:id/checkout - Thanh toán
 exports.checkoutOrder = async (req, res) => {
-    // Logic thanh toán
-    res.status(200).json({ success: true, message: "Tính năng thanh toán đang phát triển" });
+  // Logic thanh toán
+  res.status(200).json({ success: true, message: "Tính năng thanh toán đang phát triển" });
 };
 // GET /api/orders/my-orders - Get all orders for logged-in customer
 exports.getCustomerOrders = async (req, res) => {
@@ -411,9 +415,9 @@ exports.getCustomerOrders = async (req, res) => {
     const customerId = req.user?.id;
 
     if (!customerId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Vui lòng đăng nhập để xem đơn hàng' 
+      return res.status(401).json({
+        success: false,
+        message: 'Vui lòng đăng nhập để xem đơn hàng'
       });
     }
 
@@ -464,10 +468,10 @@ exports.getCustomerOrders = async (req, res) => {
 
   } catch (err) {
     console.error("Get Customer Orders Error:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Lỗi lấy danh sách đơn hàng', 
-      error: err.message 
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi lấy danh sách đơn hàng',
+      error: err.message
     });
   }
 };

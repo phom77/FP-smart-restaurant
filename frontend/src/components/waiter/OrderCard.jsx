@@ -1,13 +1,22 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => {
-    const formatPrice = (price) => parseInt(price || 0).toLocaleString() + 'đ';
-    
+    const { t } = useTranslation();
+
+    // Format currency an toàn
+    const formatPrice = (price) => {
+        return parseInt(price || 0).toLocaleString() + 'đ';
+    };
+
+    // Parse date an toàn
     const formatDate = (dateString) => {
-        if (!dateString) return 'Just now';
+        if (!dateString) return t('waiter.just_now');
         try {
             return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } catch (e) { return 'Invalid date'; }
+        } catch (e) {
+            return t('waiter.invalid_date');
+        }
     };
 
     if (!order) return null;
@@ -34,7 +43,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                         isPaid ? 'bg-green-500' : 'bg-blue-500'
                     }`}></div>
                     <span className="font-extrabold text-lg text-gray-800">
-                        Table {order.table?.table_number || 'N/A'}
+                        {t('waiter.table')} {order.table?.table_number || 'N/A'}
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -55,13 +64,13 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                 {order.status === 'processing' && (
                     <div className="mb-3">
                         <div className="flex justify-between text-xs mb-1">
-                            <span className="text-gray-500">Tiến độ bếp</span>
+                            <span className="text-gray-500">{t('waiter.kitchen_progress')}</span>
                             <span className="font-bold text-blue-600">
                                 {order.items?.filter(i => i.status === 'ready' || i.status === 'served').length} / {order.items?.length}
                             </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
+                            <div
                                 className="bg-blue-500 h-2 rounded-full transition-all duration-500"
                                 style={{ width: `${(order.items?.filter(i => i.status === 'ready' || i.status === 'served').length / order.items?.length) * 100}%` }}
                             ></div>
@@ -75,12 +84,14 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                             <div className="flex-1 pr-2">
                                 <span className="font-bold text-gray-800 mr-2">{item.quantity}x</span>
                                 <span className="text-gray-700 font-medium">{item.menu_item?.name || 'Unknown'}</span>
-                                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded border ${
-                                    item.status === 'ready' ? 'bg-green-100 text-green-700 border-green-200' :
-                                    item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                                    'bg-gray-100 text-gray-500 border-gray-200'
-                                }`}>
-                                    {item.status}
+
+                                {/* Hiển thị trạng thái từng món nhỏ */}
+                                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-tighter ${item.status === 'ready' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                        item.status === 'preparing' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                            item.status === 'served' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                'bg-gray-50 text-gray-500 border-gray-100'
+                                    }`}>
+                                    {t(`waiter.status.${item.status}`)}
                                 </span>
                             </div>
                         </li>
@@ -91,8 +102,8 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
             {/* Footer: Actions */}
             <div className="p-5 pt-0 mt-auto">
                 <div className="flex justify-between items-end mb-4 border-t border-dashed border-gray-100 pt-4">
-                    <span className="text-gray-500 font-medium text-xs uppercase tracking-wider">Total</span>
-                    <span className="text-2xl font-extrabold text-blue-600 leading-none">
+                    <span className="text-gray-500 font-medium text-xs uppercase tracking-wider">{t('waiter.total')}</span>
+                    <span className="text-2xl font-extrabold text-emerald-600 leading-none">
                         {formatPrice(order.total_amount)}
                     </span>
                 </div>
@@ -100,12 +111,28 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                 <div className="grid grid-cols-1 gap-2">
                     {order.status === 'pending' && (
                         <div className="grid grid-cols-2 gap-2">
-                            <button onClick={(e) => { e.stopPropagation(); onAccept(order.id); }} className="bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-sm">Accept</button>
-                            <button onClick={(e) => { e.stopPropagation(); onReject(order.id); }} className="bg-white hover:bg-rose-50 text-rose-500 py-2.5 rounded-xl font-bold text-sm border border-rose-100">Reject</button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onAccept(order.id); }}
+                                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <span>{t('waiter.accept')}</span>
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onReject(order.id); }}
+                                className="bg-white hover:bg-rose-50 text-rose-500 py-3 rounded-xl font-bold text-sm border border-rose-100 hover:border-rose-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <span>{t('waiter.reject')}</span>
+                            </button>
                         </div>
                     )}
 
                     {order.status === 'processing' && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onComplete && onComplete(order.id); }}
+                            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-3 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 w-full flex items-center justify-center gap-2"
+                        >
+                            <span>{t('waiter.mark_completed')}</span>
+                        </button>
                         <>
                             {isPaid ? (
                                 <button

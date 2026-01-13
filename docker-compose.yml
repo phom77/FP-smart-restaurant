@@ -16,9 +16,20 @@ services:
       - "5001:5001"
     environment:
       - PORT=5001
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
     volumes:
       - ./backend:/app
       - /app/node_modules
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    container_name: smart-restaurant-redis
+    ports:
+      - "6379:6379"
     networks:
       - app-network
 

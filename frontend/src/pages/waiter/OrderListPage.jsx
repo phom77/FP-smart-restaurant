@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useSocket } from '../../contexts/SocketContext'; 
+import { useSocket } from '../../contexts/SocketContext';
 import OrderCard from '../../components/waiter/OrderCard';
 import OrderDetailModal from '../../components/waiter/OrderDetailModal';
+import { useTranslation } from 'react-i18next';
 
 const OrderListPage = () => {
+    const { t } = useTranslation();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [statusFilter, setStatusFilter] = useState('pending');
-    
-    const socket = useSocket(); // <--- SỬ DỤNG HOOK NÀY
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const ITEMS_PER_PAGE = 8;
+
+    const socket = useSocket();
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -21,69 +26,36 @@ const OrderListPage = () => {
 
     const fetchOrders = async () => {
         try {
-            // Không set loading = true ở đây để tránh nháy màn hình khi update realtime
-            let url = `${API_URL}/api/orders`;
+            let url = `${API_URL}/api/orders?page=${currentPage}&limit=${ITEMS_PER_PAGE}`;
             if (statusFilter !== 'all') {
-                url += `?status=${statusFilter}`;
+                url += `&status=${statusFilter}`;
             }
             const res = await axios.get(url, getAuthHeader());
-            const sorted = res.data.data.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-            setOrders(sorted);
-            setLoading(false); // Chỉ tắt loading lần đầu
+            // Backend returns { success, data, pagination: { total, page, limit, totalPages } }
+            setOrders(res.data.data);
+            setTotalPages(res.data.pagination?.totalPages || 1);
+            setLoading(false);
         } catch (err) {
             console.error(err);
-            // Không setError ở đây để tránh hiện lỗi đỏ lòm khi mạng lag xíu
+            setLoading(false);
         }
     };
 
-    // Effect 1: Fetch ban đầu và khi đổi filter
+    useEffect(() => {
+        setCurrentPage(1); // Reset to first page when filter changes
+    }, [statusFilter]);
+
     useEffect(() => {
         setLoading(true);
         fetchOrders();
-    }, [statusFilter]);
+    }, [statusFilter, currentPage]);
 
-    // 3. Effect Socket (QUAN TRỌNG: Dependency Array Rỗng [])
-    useEffect(() => {
-        if (!socket) return;
-
-        // Join room 1 lần duy nhất
-        socket.emit('join_room', 'waiter');
-
-        const handleUpdate = () => {
-            console.log("🔔 Có update từ Socket");
-            // Gọi fetchOrders bên trong này sẽ dùng closure, 
-            // nhưng vì fetchOrders phụ thuộc statusFilter (state), 
-            // nên ta cần cẩn thận. 
-            // Cách tốt nhất: Gọi lại API bất kể filter là gì, hoặc reload nhẹ.
-            
-            // Ở đây ta gọi hàm fetchOrders() đã định nghĩa ở trên.
-            // Lưu ý: Hàm fetchOrders ở đây sẽ lấy giá trị statusFilter tại thời điểm render.
-            // Để fix triệt để, ta nên dùng useRef cho statusFilter hoặc bỏ qua filter khi socket báo tin.
-            
-            // Cách đơn giản nhất cho đồ án:
-            window.dispatchEvent(new Event('order_updated')); // Trigger custom event hoặc gọi trực tiếp
-        };
-
-        socket.on('new_order', handleUpdate);
-        socket.on('order_status_updated', handleUpdate);
-        socket.on('item_status_update', handleUpdate);
-
-        return () => {
-            socket.off('new_order', handleUpdate);
-            socket.off('order_status_updated', handleUpdate);
-            socket.off('item_status_update', handleUpdate);
-        };
-    }, [socket]); // Chỉ chạy lại khi socket object thay đổi (lúc init)
-
-    // 4. Effect phụ để lắng nghe update (Hack nhẹ để refresh đúng state)
     useEffect(() => {
         if (!socket) return;
 
         socket.emit('join_room', 'waiter');
 
-        // Hàm refresh dữ liệu
         const refreshOrders = () => {
-            console.log("🔔 Có thay đổi, đang tải lại danh sách...");
             fetchOrders();
         };
 
@@ -101,83 +73,153 @@ const OrderListPage = () => {
             socket.off('payment_request', refreshOrders); // <--- Nhớ off
             socket.off('order_paid', refreshOrders);
         };
-    }, [socket, statusFilter]); // Thêm statusFilter để fetch đúng tab hiện tại
+    }, [socket, statusFilter, currentPage]);
 
     const handleAccept = async (orderId) => {
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'processing' }, getAuthHeader());
-            // Không cần fetchOrders() ở đây vì Socket sẽ bắn sự kiện 'order_status_updated' về và tự trigger fetch
         } catch (err) {
-            alert("Failed to accept: " + (err.response?.data?.message || err.message));
+            alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
     };
 
     const handleReject = async (orderId) => {
-        if (!window.confirm("Reject this order?")) return;
+        if (!window.confirm(t('waiter.reject_confirm'))) return;
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'cancelled' }, getAuthHeader());
         } catch (err) {
-            alert("Failed to reject: " + (err.response?.data?.message || err.message));
+            alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
     };
 
     const handleComplete = async (orderId) => {
-        if (!window.confirm("Mark this order as completed?")) return;
+        if (!window.confirm(t('waiter.complete_confirm'))) return;
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'completed' }, getAuthHeader());
         } catch (err) {
-            alert("Failed to complete: " + (err.response?.data?.message || err.message));
+            alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
     };
 
     if (loading && orders.length === 0) return (
         <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
         </div>
     );
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-lg min-h-[80vh]">
+        <div className="bg-white p-6 rounded-2xl shadow-lg min-h-[80vh] flex flex-col">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h2 className="text-3xl font-extrabold text-gray-800 tracking-tight">Order List</h2>
-                    <p className="text-gray-500 mt-1">Track and manage customer orders</p>
+                    <h2 className="text-3xl font-extrabold text-gray-800 tracking-tight">{t('waiter.order_list')}</h2>
+                    <p className="text-gray-500 mt-1">{t('waiter.track_orders')}</p>
                 </div>
 
                 <div className="relative w-full md:w-auto">
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-emerald-500 font-medium w-full md:w-auto min-w-[150px]"
+                        className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 px-5 pr-10 rounded-xl leading-tight focus:outline-none focus:bg-white focus:border-emerald-500 font-bold w-full md:w-auto min-w-[180px] shadow-sm transition-all"
                     >
-                        <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                        <option value="all">All Orders</option>
+                        <option value="pending">{t('waiter.status.pending')}</option>
+                        <option value="processing">{t('waiter.status.processing')}</option>
+                        <option value="completed">{t('waiter.status.completed')}</option>
+                        <option value="cancelled">{t('waiter.status.cancelled')}</option>
+                        <option value="all">{t('waiter.all_orders')}</option>
                     </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                    </div>
                 </div>
             </div>
 
             {error && <div className="text-red-500 mb-4">{error}</div>}
 
-            {orders.length === 0 ? (
-                <div className="text-center py-20 text-gray-400">
-                    No orders found in "{statusFilter}"
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {orders.map(order => (
-                        <div key={order.id} className="h-full">
-                            <OrderCard
-                                order={order}
-                                onAccept={handleAccept}
-                                onReject={handleReject}
-                                onComplete={handleComplete}
-                                onViewDetails={() => setSelectedOrder(order)}
-                            />
-                        </div>
-                    ))}
+            <div className="flex-1">
+                {orders.length === 0 ? (
+                    <div className="text-center py-20 text-gray-400 font-medium">
+                        {t('waiter.no_orders', { status: statusFilter === 'all' ? t('waiter.all_orders') : t(`waiter.status.${statusFilter}`) })}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {orders.map(order => (
+                            <div key={order.id} className="h-full">
+                                <OrderCard
+                                    order={order}
+                                    onAccept={handleAccept}
+                                    onReject={handleReject}
+                                    onComplete={handleComplete}
+                                    onViewDetails={() => setSelectedOrder(order)}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="mt-12 flex flex-wrap justify-center items-center gap-2 md:gap-4 py-6 border-t border-gray-50 bg-gray-50/30 rounded-b-2xl">
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className={`p-2.5 rounded-xl border transition-all ${currentPage === 1
+                            ? 'text-gray-300 border-gray-100 cursor-not-allowed bg-white'
+                            : 'text-emerald-600 border-emerald-100 bg-white hover:bg-emerald-50 hover:shadow-sm active:scale-95'}`}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                        {(() => {
+                            const pages = [];
+                            const delta = 1; // Number of pages to show around current page
+
+                            for (let i = 1; i <= totalPages; i++) {
+                                if (
+                                    i === 1 || // Always show first
+                                    i === totalPages || // Always show last
+                                    (i >= currentPage - delta && i <= currentPage + delta) // Show window
+                                ) {
+                                    if (pages.length > 0 && i - pages[pages.length - 1] > 1) {
+                                        pages.push('...');
+                                    }
+                                    pages.push(i);
+                                }
+                            }
+
+                            return pages.map((page, idx) => (
+                                page === '...' ? (
+                                    <span key={`dots-${idx}`} className="px-2 text-gray-400 font-bold select-none">...</span>
+                                ) : (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`w-9 h-9 md:w-11 md:h-11 rounded-xl font-bold transition-all flex items-center justify-center text-sm md:text-base ${currentPage === page
+                                                ? 'bg-emerald-500 text-white shadow-lg scale-110'
+                                                : 'bg-white text-gray-600 border border-gray-100 hover:border-emerald-200 hover:text-emerald-600 hover:shadow-sm'
+                                            }`}
+                                    >
+                                        {page}
+                                    </button>
+                                )
+                            ));
+                        })()}
+                    </div>
+
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className={`p-2.5 rounded-xl border transition-all ${currentPage === totalPages
+                            ? 'text-gray-300 border-gray-100 cursor-not-allowed bg-white'
+                            : 'text-emerald-600 border-emerald-100 bg-white hover:bg-emerald-50 hover:shadow-sm active:scale-95'}`}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
                 </div>
             )}
 

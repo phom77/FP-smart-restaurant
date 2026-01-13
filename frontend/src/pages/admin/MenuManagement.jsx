@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 const MenuManagement = () => {
+    const { t } = useTranslation();
     const [items, setItems] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -110,18 +112,18 @@ const MenuManagement = () => {
             resetForm();
             fetchData();
         } catch (err) {
-            setError(err.response?.data?.error || err.message || 'Failed to save menu item');
+            setError(err.response?.data?.error || err.message || t('menu.failed_save'));
         }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Delete this item?")) return;
+        if (!window.confirm(t('menu.confirm_delete'))) return;
         try {
             await axios.delete(`${API_URL}/api/admin/menu-items/${id}`, getAuthHeader());
             fetchData();
             if (editingId === id) resetForm();
         } catch (err) {
-            setError('Failed to delete item');
+            setError(t('menu.failed_delete'));
         }
     };
 
@@ -135,11 +137,11 @@ const MenuManagement = () => {
         setViewItem(null);
     };
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return <div>{t('common.loading')}</div>;
 
     return (
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-lg relative">
-            <h2 className="text-xl md:text-2xl font-bold mb-6 text-gray-800">Menu Management</h2>
+            <h2 className="text-xl md:text-2xl font-bold mb-6 text-gray-800">{t('menu.title')}</h2>
 
             {error && <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-xl text-sm">{error}</div>}
 
@@ -147,11 +149,11 @@ const MenuManagement = () => {
             <form onSubmit={handleSubmit} className={`mb-8 p-4 md:p-6 border-2 rounded-2xl transition-colors ${editingId ? 'border-amber-200 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30'}`}>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
                     <h3 className={`text-lg font-bold ${editingId ? 'text-amber-800' : 'text-emerald-800'}`}>
-                        {editingId ? '🍽️ Edit Menu Item' : '🍽️ Add New Menu Item'}
+                        {editingId ? t('menu.edit_title') : t('menu.add_title')}
                     </h3>
                     {editingId && (
                         <button type="button" onClick={resetForm} className="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors w-full md:w-auto">
-                            Cancel Edit
+                            {t('menu.cancel_edit')}
                         </button>
                     )}
                 </div>
@@ -159,7 +161,7 @@ const MenuManagement = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input
                         type="text"
-                        placeholder="Item Name"
+                        placeholder={t('menu.item_name')}
                         className="border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors w-full"
                         value={newItem.name}
                         onChange={e => setNewItem({ ...newItem, name: e.target.value })}
@@ -167,7 +169,7 @@ const MenuManagement = () => {
                     />
                     <input
                         type="number"
-                        placeholder="Price"
+                        placeholder={t('menu.price')}
                         className="border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors w-full"
                         value={newItem.price}
                         onChange={e => setNewItem({ ...newItem, price: e.target.value })}
@@ -179,7 +181,7 @@ const MenuManagement = () => {
                         onChange={e => setNewItem({ ...newItem, category_id: e.target.value })}
                         required
                     >
-                        <option value="">Select Category</option>
+                        <option value="">{t('menu.select_category')}</option>
                         {categories.map(cat => (
                             <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
@@ -193,14 +195,14 @@ const MenuManagement = () => {
                             onChange={e => setNewItem({ ...newItem, is_available: e.target.checked })}
                             className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
                         />
-                        <label className="text-sm font-semibold text-gray-600">Available to Serve</label>
+                        <label className="text-sm font-semibold text-gray-600">{t('menu.available')}</label>
                     </div>
 
                     <div className="flex items-center gap-4 border-2 border-gray-200 p-2.5 rounded-xl bg-white col-span-1 md:col-span-2 w-full">
-                        <span className="text-sm font-semibold text-gray-600 whitespace-nowrap pl-1">Image:</span>
+                        <span className="text-sm font-semibold text-gray-600 whitespace-nowrap pl-1">{t('menu.image')}:</span>
 
                         <label className="cursor-pointer bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm border border-gray-300">
-                            Choose File
+                            {t('menu.choose_file')}
                             <input
                                 type="file"
                                 accept="image/*"
@@ -212,7 +214,7 @@ const MenuManagement = () => {
                         </label>
 
                         <span className="text-sm text-gray-500 italic truncate flex-1">
-                            {imageFile ? imageFile.name : (newItem.image_url ? 'Current Image Set' : 'No file chosen')}
+                            {imageFile ? imageFile.name : (newItem.image_url ? t('menu.current_image') : t('menu.no_file'))}
                         </span>
 
                         {(newItem.image_url || imageFile) && (
@@ -236,7 +238,7 @@ const MenuManagement = () => {
                     </div>
 
                     <textarea
-                        placeholder="Description"
+                        placeholder={t('menu.description')}
                         className="border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors col-span-1 md:col-span-2 w-full"
                         rows="3"
                         value={newItem.description}
@@ -250,7 +252,7 @@ const MenuManagement = () => {
                         : 'bg-gradient-to-r from-emerald-500 to-green-500'
                         }`}
                 >
-                    {editingId ? '💾 Update Menu Item' : '💾 Save Item'}
+                    {editingId ? t('menu.update') : t('menu.save')}
                 </button>
             </form>
 
@@ -259,12 +261,12 @@ const MenuManagement = () => {
                 <table className="w-full text-left border-collapse min-w-[800px]">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-32">Image</th>
-                            <th className="p-4 border-b text-left text-gray-600 font-semibold">Name</th>
-                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-40">Category</th>
-                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-32">Price</th>
-                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-32">Status</th>
-                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-56">Actions</th>
+                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-32">{t('menu.table_image')}</th>
+                            <th className="p-4 border-b text-left text-gray-600 font-semibold">{t('menu.table_name')}</th>
+                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-40">{t('menu.table_category')}</th>
+                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-32">{t('menu.table_price')}</th>
+                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-32">{t('menu.table_status')}</th>
+                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-56">{t('menu.table_actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -290,7 +292,7 @@ const MenuManagement = () => {
                                 </td>
                                 <td className="p-4 border-b border-gray-100 text-center">
                                     <span className={`px-3 py-1 text-xs font-bold rounded-full ${item.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        {item.is_available ? 'Active' : 'Hidden'}
+                                        {item.is_available ? t('menu.active') : t('menu.hidden')}
                                     </span>
                                 </td>
                                 <td className="p-4 border-b border-gray-100">
@@ -298,23 +300,23 @@ const MenuManagement = () => {
                                         <button
                                             onClick={() => handleView(item)}
                                             className="bg-gray-50 text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                                            title="View"
+                                            title={t('menu.view')}
                                         >
-                                            View
+                                            {t('menu.view')}
                                         </button>
                                         <button
                                             onClick={() => handleEdit(item)}
                                             className="bg-blue-50 text-blue-600 p-2 rounded-lg hover:bg-blue-100 transition-colors"
-                                            title="Edit"
+                                            title={t('menu.edit')}
                                         >
-                                            Edit
+                                            {t('menu.edit')}
                                         </button>
                                         <button
                                             onClick={() => handleDelete(item.id)}
                                             className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-100 transition-colors"
-                                            title="Delete"
+                                            title={t('menu.delete')}
                                         >
-                                            Delete
+                                            {t('menu.delete')}
                                         </button>
                                     </div>
                                 </td>
@@ -354,7 +356,7 @@ const MenuManagement = () => {
                                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                                     <div>
                                         <span className="inline-block px-4 py-1.5 rounded-full text-sm font-bold bg-emerald-500/90 text-white backdrop-blur-sm mb-3 shadow-lg border border-white/20">
-                                            {viewItem.category?.name || 'Uncategorized'}
+                                            {viewItem.category?.name || t('menu.modal_uncategorized')}
                                         </span>
                                         <h3 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-md leading-tight">
                                             {viewItem.name}
@@ -376,7 +378,7 @@ const MenuManagement = () => {
                                 <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${viewItem.is_available ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
                                     <span className={`w-2.5 h-2.5 rounded-full ${viewItem.is_available ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
                                     <span className="font-bold text-sm uppercase tracking-wide">
-                                        {viewItem.is_available ? 'Available Now' : 'Currently Unavailable'}
+                                        {viewItem.is_available ? t('menu.modal_available') : t('menu.modal_unavailable')}
                                     </span>
                                 </div>
                             </div>
@@ -385,10 +387,10 @@ const MenuManagement = () => {
                             <div className="flex-1">
                                 <h4 className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
                                     <span className="w-8 h-[2px] bg-emerald-500/50"></span>
-                                    Description
+                                    {t('menu.modal_desc_label')}
                                 </h4>
                                 <p className="text-gray-600 leading-relaxed text-base md:text-lg font-light text-justify">
-                                    {viewItem.description || 'No detailed description provided for this item yet.'}
+                                    {viewItem.description || t('menu.modal_desc_empty')}
                                 </p>
                             </div>
 
@@ -399,14 +401,14 @@ const MenuManagement = () => {
                                     className="flex-1 group bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white p-1 rounded-2xl shadow-lg transition-all"
                                 >
                                     <div className="bg-transparent h-full w-full rounded-xl flex items-center justify-center gap-2 py-3">
-                                        <span className="font-bold text-base md:text-lg tracking-wide">Edit Item</span>
+                                        <span className="font-bold text-base md:text-lg tracking-wide">{t('menu.modal_edit')}</span>
                                     </div>
                                 </button>
                                 <button
                                     onClick={closeView}
                                     className="flex-1 bg-white border-2 border-gray-100 hover:border-gray-300 text-gray-500 hover:text-gray-800 rounded-2xl font-bold py-3 md:py-4 text-base md:text-lg transition-all"
                                 >
-                                    Close Preview
+                                    {t('menu.modal_close')}
                                 </button>
                             </div>
                         </div>

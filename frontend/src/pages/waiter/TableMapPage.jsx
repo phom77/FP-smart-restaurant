@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import { useTranslation } from 'react-i18next';
 
 const TableMapPage = () => {
+    const { t } = useTranslation();
     const [tables, setTables] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -22,18 +24,21 @@ const TableMapPage = () => {
     useEffect(() => {
         fetchTables();
 
-        // Socket for real-time table status updates
-        const newSocket = io(API_URL);
-
-        newSocket.on('connect', () => {
-            newSocket.emit('join_room', 'waiter'); // Listen to waiter room or global updates
+        const newSocket = io(API_URL, {
+            auth: {
+                token: localStorage.getItem('token')
+            }
         });
 
-        // Assuming backend might emit this evt, or we infer from order updates
-        // For now, let's just re-fetch on generic update or timer
-        // ideally: newSocket.on('table_updated', fetchTables);
+        newSocket.on('connect', () => {
+            newSocket.emit('join_room', 'waiter');
+        });
 
-        const interval = setInterval(fetchTables, 10000); // Polling as backup
+        newSocket.on('new_order', fetchTables);
+        newSocket.on('order_status_updated', fetchTables);
+        newSocket.on('item_status_update', fetchTables);
+
+        const interval = setInterval(fetchTables, 30000);
 
         return () => {
             newSocket.close();
@@ -43,25 +48,31 @@ const TableMapPage = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'available': return 'bg-green-100 border-green-300 text-green-800';
-            case 'occupied': return 'bg-red-100 border-red-300 text-red-800';
-            case 'reserved': return 'bg-amber-100 border-amber-300 text-amber-800';
-            case 'dirty': return 'bg-gray-200 border-gray-400 text-gray-800'; // If we had this status
-            default: return 'bg-gray-100 border-gray-200 text-gray-600';
+            case 'available': return 'bg-emerald-50 border-emerald-200 text-emerald-700';
+            case 'occupied': return 'bg-rose-50 border-rose-200 text-rose-700';
+            case 'reserved': return 'bg-amber-50 border-amber-200 text-amber-700';
+            case 'dirty': return 'bg-gray-100 border-gray-300 text-gray-700';
+            default: return 'bg-gray-50 border-gray-200 text-gray-600';
         }
     };
 
-    if (loading) return <div>Loading map...</div>;
+    if (loading) return (
+        <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+            <span className="ml-3 text-gray-500">{t('waiter.loading_map')}</span>
+        </div>
+    );
 
     return (
         <div className="bg-white p-6 rounded-2xl shadow-lg h-full">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-center mb-10">
                 <div>
-                    <h2 className="text-3xl font-extrabold text-gray-800 tracking-tight">Table Map</h2>
-                    <p className="text-gray-500 mt-1">Live overview of restaurant tables</p>
+                    <h2 className="text-3xl font-extrabold text-gray-800 tracking-tight">{t('waiter.table_map')}</h2>
+                    <p className="text-gray-500 mt-1">{t('waiter.live_map')}</p>
                 </div>
-                <div className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                    Live Updates
+                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 shadow-sm animate-pulse">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    <span className="text-xs font-bold uppercase tracking-wider">{t('waiter.live_updates')}</span>
                 </div>
             </div>
 
@@ -76,27 +87,29 @@ const TableMapPage = () => {
                     >
                         <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
                         <span className="text-3xl font-bold">{table.table_number}</span>
-                        <span className="text-sm font-medium uppercase mt-2 tracking-wider">{table.status}</span>
+                        <span className="text-sm font-medium uppercase mt-2 tracking-wider">
+                            {t(`waiter.status.${table.status}`)}
+                        </span>
 
-                        <div className="mt-2 text-xs opacity-70">
-                            Capacity: {table.capacity}
+                        <div className="mt-2 text-[10px] opacity-70 font-bold uppercase">
+                            {t('waiter.capacity')}: {table.capacity}
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div className="mt-8 flex gap-4 text-sm justify-center">
+            <div className="mt-12 flex flex-wrap gap-6 text-sm justify-center border-t border-gray-50 pt-8">
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-                    <span>Available</span>
+                    <div className="w-4 h-4 bg-emerald-50 border border-emerald-200 rounded shadow-sm"></div>
+                    <span className="font-medium text-gray-600">{t('waiter.status.available')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
-                    <span>Occupied</span>
+                    <div className="w-4 h-4 bg-rose-50 border border-rose-200 rounded shadow-sm"></div>
+                    <span className="font-medium text-gray-600">{t('waiter.status.occupied')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-amber-100 border-amber-300 rounded"></div>
-                    <span>Reserved</span>
+                    <div className="w-4 h-4 bg-amber-50 border border-amber-200 rounded shadow-sm"></div>
+                    <span className="font-medium text-gray-600">{t('waiter.status.reserved')}</span>
                 </div>
             </div>
         </div>

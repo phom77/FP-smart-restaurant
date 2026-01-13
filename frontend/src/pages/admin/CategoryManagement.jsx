@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 const CategoryManagement = () => {
+    const { t } = useTranslation();
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [newItem, setNewItem] = useState({ name: '', image_url: '', sort_order: 0 });
@@ -32,13 +34,13 @@ const CategoryManagement = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Delete this category?")) return;
+        if (!window.confirm(t('category.confirm_delete'))) return;
         try {
             await axios.delete(`${API_URL}/api/admin/categories/${id}`, getAuthHeader());
             fetchCategories();
             if (editingId === id) resetForm();
         } catch (err) {
-            setError('Failed to delete category');
+            setError(t('category.failed_delete'));
         }
     };
 
@@ -81,15 +83,15 @@ const CategoryManagement = () => {
             resetForm();
             fetchCategories();
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to save category');
+            setError(err.response?.data?.error || t('category.failed_save'));
         }
     };
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return <div>{t('common.loading')}</div>;
 
     return (
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-lg relative">
-            <h2 className="text-xl md:text-2xl font-bold mb-6 text-gray-800">Category Management</h2>
+            <h2 className="text-xl md:text-2xl font-bold mb-6 text-gray-800">{t('category.title')}</h2>
 
             {error && <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-xl text-sm">{error}</div>}
 
@@ -97,11 +99,11 @@ const CategoryManagement = () => {
             <form onSubmit={handleSubmit} className={`mb-8 p-4 md:p-6 border-2 rounded-2xl transition-colors ${editingId ? 'border-amber-200 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30'}`}>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
                     <h3 className={`text-lg font-bold ${editingId ? 'text-amber-800' : 'text-emerald-800'}`}>
-                        {editingId ? 'Edit Category' : '✨ Add New Category'}
+                        {editingId ? t('category.edit_title') : t('category.add_title')}
                     </h3>
                     {editingId && (
                         <button type="button" onClick={resetForm} className="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors w-full md:w-auto">
-                            Cancel Edit
+                            {t('category.cancel_edit')}
                         </button>
                     )}
                 </div>
@@ -109,7 +111,7 @@ const CategoryManagement = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <input
                         type="text"
-                        placeholder="Category Name"
+                        placeholder={t('category.cat_name')}
                         className="border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors w-full"
                         value={newItem.name}
                         onChange={e => setNewItem({ ...newItem, name: e.target.value })}
@@ -117,14 +119,14 @@ const CategoryManagement = () => {
                     />
                     <input
                         type="text"
-                        placeholder="Image URL (Optional)"
+                        placeholder={t('category.image_url')}
                         className="border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors w-full"
                         value={newItem.image_url}
                         onChange={e => setNewItem({ ...newItem, image_url: e.target.value })}
                     />
                     <input
                         type="number"
-                        placeholder="Sort Order"
+                        placeholder={t('category.sort_order')}
                         className="border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors w-full"
                         value={newItem.sort_order}
                         onChange={e => setNewItem({ ...newItem, sort_order: parseInt(e.target.value) || 0 })}
@@ -137,7 +139,7 @@ const CategoryManagement = () => {
                         : 'bg-gradient-to-r from-emerald-500 to-green-500'
                         }`}
                 >
-                    {editingId ? '💾 Update Category' : '+ Add Category'}
+                    {editingId ? t('category.update') : t('category.save')}
                 </button>
             </form>
 
@@ -146,10 +148,10 @@ const CategoryManagement = () => {
                 <table className="w-full text-left border-collapse min-w-[600px] table-fixed">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="p-4 border-b text-left text-gray-600 font-semibold w-[15%]">Order</th>
-                            <th className="p-4 border-b text-left text-gray-600 font-semibold w-[30%]">Name</th>
-                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-[30%]">Image</th>
-                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-[25%]">Actions</th>
+                            <th className="p-4 border-b text-left text-gray-600 font-semibold w-[15%]">{t('category.table_order')}</th>
+                            <th className="p-4 border-b text-left text-gray-600 font-semibold w-[30%]">{t('category.table_name')}</th>
+                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-[30%]">{t('category.table_image')}</th>
+                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-[25%]">{t('category.table_actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -173,23 +175,23 @@ const CategoryManagement = () => {
                                         <button
                                             onClick={() => handleView(cat)}
                                             className="bg-gray-50 text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                                            title="View"
+                                            title={t('category.view')}
                                         >
-                                            View
+                                            {t('category.view')}
                                         </button>
                                         <button
                                             onClick={() => handleEdit(cat)}
                                             className="bg-blue-50 text-blue-600 p-2 rounded-lg hover:bg-blue-100 transition-colors"
-                                            title="Edit"
+                                            title={t('category.edit')}
                                         >
-                                            Edit
+                                            {t('category.edit')}
                                         </button>
                                         <button
                                             onClick={() => handleDelete(cat.id)}
                                             className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-100 transition-colors"
-                                            title="Delete"
+                                            title={t('category.delete')}
                                         >
-                                            Delete
+                                            {t('category.delete')}
                                         </button>
                                     </div>
                                 </td>
@@ -223,7 +225,7 @@ const CategoryManagement = () => {
                                 <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
                                     <div className="flex items-end gap-3 mb-2">
                                         <span className="px-3 py-1 rounded-full text-xs font-bold text-black bg-white/90 backdrop-blur-sm shadow-sm uppercase tracking-wider">
-                                            Order #{viewCategory.sort_order}
+                                            {t('category.table_order')} #{viewCategory.sort_order}
                                         </span>
                                     </div>
                                     <h3 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
@@ -237,10 +239,10 @@ const CategoryManagement = () => {
                                 <div className="flex-1">
                                     <h4 className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
                                         <span className="w-8 h-[2px] bg-emerald-500/50"></span>
-                                        Category Details
+                                        {t('category.modal_title')}
                                     </h4>
                                     <p className="text-gray-500 font-light text-base md:text-lg">
-                                        This category contains items that appear at position <strong className="text-gray-800 font-bold">#{viewCategory.sort_order}</strong> in the public menu.
+                                        {t('category.modal_desc', { order: viewCategory.sort_order })}
                                     </p>
                                 </div>
 
@@ -250,14 +252,14 @@ const CategoryManagement = () => {
                                         className="flex-1 group bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white p-1 rounded-2xl shadow-lg transition-all"
                                     >
                                         <div className="bg-transparent h-full w-full rounded-xl flex items-center justify-center gap-2 py-3">
-                                            <span className="font-bold text-base md:text-lg tracking-wide">Edit Category</span>
+                                            <span className="font-bold text-base md:text-lg tracking-wide">{t('category.modal_edit')}</span>
                                         </div>
                                     </button>
                                     <button
                                         onClick={closeView}
                                         className="flex-1 bg-white border-2 border-gray-100 hover:border-gray-300 text-gray-500 hover:text-gray-800 rounded-2xl font-bold py-3 md:py-4 text-base md:text-lg transition-all"
                                     >
-                                        Close
+                                        {t('category.modal_close')}
                                     </button>
                                 </div>
                             </div>
