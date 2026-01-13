@@ -15,6 +15,9 @@ const authRoutes = require('./routes/authRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const kitchenRoutes = require('./routes/kitchenRoutes');
 const tableRoutes = require('./routes/tableRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const searchRoutes = require('./routes/searchRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const path = require('path');
 
 initSocket(server);
@@ -31,12 +34,16 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/revenue', require('./routes/revenueRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
+app.use('/api/revenue', require('./routes/revenueRoutes')); // Keep for backward compatibility or remove if preferred
 app.use('/api/tables', tableRoutes);
 app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/payment', paymentRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello from Smart Restaurant Backend (Running on Docker WSL)!');

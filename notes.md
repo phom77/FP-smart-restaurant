@@ -15,3 +15,23 @@ The backend server port has been changed from `5000` to `5001`.
 
 ### Action Required
 run `make stop` and `make dev` to apply changes.
+
+---
+
+## [2026-01-13] Member 3: Analytics Seeding & Cleanup
+
+Hướng dẫn tạo và xóa dữ liệu giả để kiểm tra các tính năng báo cáo (Analytics).
+
+### 1. Tạo Dữ liệu (Seeding)
+Tạo 150 đơn hàng giả có quy luật (giờ cao điểm, cuối tuần) để test biểu đồ.
+```bash
+# Thực hiện tại thư mục backend
+node src/scripts/seedAnalytics.js
+```
+
+### 2. Xóa Dữ liệu (Cleanup)
+Xóa sạch 150 đơn hàng giả đã tạo (không ảnh hưởng dữ liệu thật).
+```bash
+# Thực hiện tại thư mục backend
+node src/scripts/cleanupAnalytics.js
+```

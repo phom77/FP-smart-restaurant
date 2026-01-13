@@ -1,12 +1,19 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const AdminSidebar = () => {
     const { logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const { t, i18n } = useTranslation();
+
+    const toggleLanguage = () => {
+        const newLang = i18n.language === 'vi' ? 'en' : 'vi';
+        i18n.changeLanguage(newLang);
+    };
 
     const handleLogout = () => {
         logout();
@@ -32,7 +39,7 @@ const AdminSidebar = () => {
                         </svg>
                     </button>
                     <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                        Admin Panel
+                        {t('admin.panel')}
                     </h1>
                 </div>
                 <button
@@ -61,7 +68,7 @@ const AdminSidebar = () => {
             `}>
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                        Admin Panel
+                        {t('admin.panel')}
                     </h1>
                     {/* Close button for mobile */}
                     <button
@@ -76,31 +83,37 @@ const AdminSidebar = () => {
 
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                     <Link to="/admin/dashboard" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/dashboard' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">📊</span> Dashboard
+                        <span className="mr-3">📊</span> {t('admin.dashboard')}
                     </Link>
                     <Link to="/admin/categories" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/categories' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">📂</span> Categories
+                        <span className="mr-3">📂</span> {t('admin.categories')}
                     </Link>
                     <Link to="/admin/menu" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/menu' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">🍔</span> Menu Items
+                        <span className="mr-3">🍔</span> {t('admin.menu')}
                     </Link>
                     <Link to="/admin/revenue" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/revenue' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">💰</span> Revenue
+                        <span className="mr-3">💰</span> {t('admin.revenue')}
                     </Link>
 
                     <div className="my-4 border-t border-gray-100"></div>
 
                     <Link to="/menu" className="flex items-center px-4 py-3 text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-all font-medium">
-                        <span className="mr-3">👀</span> View Public Menu
+                        <span className="mr-3">👀</span> {t('admin.public_menu')}
                     </Link>
                 </nav>
 
                 <div className="p-4 border-t border-gray-100 bg-gray-50/50">
                     <button
+                        onClick={toggleLanguage}
+                        className="w-full mb-3 px-4 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                    >
+                        {i18n.language === 'vi' ? '🇺🇸 English' : '🇻🇳 Tiếng Việt'}
+                    </button>
+                    <button
                         onClick={handleLogout}
                         className="w-full px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                     >
-                        🚪 Logout
+                        🚪 {t('admin.logout')}
                     </button>
                 </div>
             </div>
@@ -108,7 +121,7 @@ const AdminSidebar = () => {
             {/* Main Content */}
             <div className="flex-1 overflow-auto bg-gray-50 w-full pt-16 md:pt-0">
                 <header className="hidden md:block bg-white shadow-sm p-6 mb-6">
-                    <h2 className="text-xl font-bold text-gray-800">Restaurant Operations</h2>
+                    <h2 className="text-xl font-bold text-gray-800">{t('admin.operations')}</h2>
                 </header>
                 <main className="p-4 md:p-8 md:pb-8 pb-24">
                     <Outlet />
