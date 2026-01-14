@@ -133,7 +133,7 @@ exports.exportToExcel = async (req, res) => {
         }
 
         // Fetch all data in parallel
-        const [revenueRes, topRes, peakRes] = await Promise.all([
+        const [revenueRes, topRes, peakRes, ordersRes] = await Promise.all([
             supabase.rpc('get_revenue_analytics', {
                 p_start_date: startDate.toISOString(),
                 p_end_date: endDate.toISOString(),
@@ -147,12 +147,27 @@ exports.exportToExcel = async (req, res) => {
             supabase.rpc('get_peak_hours', {
                 p_start_date: startDate.toISOString(),
                 p_end_date: endDate.toISOString()
-            })
+            }),
+            supabase
+                .from('orders')
+                .select(`
+                    id,
+                    created_at,
+                    total_amount,
+                    status,
+                    payment_method,
+                    tables (table_number),
+                    users (full_name)
+                `)
+                .gte('created_at', startDate.toISOString())
+                .lte('created_at', endDate.toISOString())
+                .order('created_at', { ascending: false })
         ]);
 
         if (revenueRes.error) throw revenueRes.error;
         if (topRes.error) throw topRes.error;
         if (peakRes.error) throw peakRes.error;
+        if (ordersRes.error) throw ordersRes.error;
 
         const workbook = new ExcelJS.Workbook();
 
@@ -182,8 +197,31 @@ exports.exportToExcel = async (req, res) => {
         ];
         peakSheet.addRows(peakRes.data || []);
 
+        // 4. Detailed Orders Worksheet
+        const orderSheet = workbook.addWorksheet('Detailed Orders');
+        orderSheet.columns = [
+            { header: 'Date', key: 'date', width: 25 },
+            { header: 'Order ID', key: 'id', width: 36 },
+            { header: 'Table', key: 'table', width: 10 },
+            { header: 'Customer', key: 'customer', width: 20 },
+            { header: 'Amount (VND)', key: 'amount', width: 15 },
+            { header: 'Status', key: 'status', width: 15 },
+            { header: 'Payment', key: 'payment', width: 15 }
+        ];
+
+        const orderRows = ordersRes.data.map(o => ({
+            date: new Date(o.created_at).toLocaleString(),
+            id: o.id,
+            table: o.tables?.table_number || 'N/A',
+            customer: o.users?.full_name || 'Guest',
+            amount: o.total_amount,
+            status: o.status,
+            payment: o.payment_method || 'N/A'
+        }));
+        orderSheet.addRows(orderRows);
+
         // Styling: Make headers bold and add a light gray background
-        [revSheet, topSheet, peakSheet].forEach(sheet => {
+        [revSheet, topSheet, peakSheet, orderSheet].forEach(sheet => {
             sheet.getRow(1).font = { bold: true };
             sheet.getRow(1).fill = {
                 type: 'pattern',
