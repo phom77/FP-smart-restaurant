@@ -27,6 +27,7 @@ router.put('/:id/status',
 );
 
 router.post('/:id/items', orderController.addItemsToOrder);
+router.post('/add-items', orderController.addItemsToOrder); // Alternative route with orderId in body
 router.post('/:id/checkout', orderController.checkoutOrder);
 
 module.exports = router;

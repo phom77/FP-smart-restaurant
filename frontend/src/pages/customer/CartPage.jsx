@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { saveGuestOrder } from '../../utils/guestOrders';
@@ -7,12 +7,34 @@ import api from '../../services/api';
 
 export default function CartPage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useAuth();
     const { cart, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart();
     const [tables, setTables] = useState([]);
     const [selectedTable, setSelectedTable] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Get existing order info from localStorage (set by OrderTrackingPage)
+    const [existingOrderId] = useState(() => {
+        const orderId = localStorage.getItem('addToOrderId');
+        if (orderId) {
+            console.log('CartPage - Found existingOrderId in localStorage:', orderId);
+        }
+        return orderId;
+    });
+
+    const [existingTableId] = useState(() => {
+        const tableId = localStorage.getItem('addToTableId');
+        if (tableId) {
+            console.log('CartPage - Found existingTableId in localStorage:', tableId);
+        }
+        return tableId;
+    });
+
+    // Debug log
+    console.log('CartPage - existingOrderId:', existingOrderId);
+    console.log('CartPage - existingTableId:', existingTableId);
 
     // Fetch available tables
     useEffect(() => {
@@ -25,7 +47,12 @@ export default function CartPage() {
             }
         };
         fetchTables();
-    }, []);
+
+        // If adding to existing order, pre-select the table
+        if (existingTableId) {
+            setSelectedTable(existingTableId);
+        }
+    }, [existingTableId]);
 
     // Handle checkout
     const handleCheckout = async () => {
@@ -37,7 +64,7 @@ export default function CartPage() {
             return;
         }
 
-        if (!selectedTable) {
+        if (!selectedTable && !existingOrderId) {
             setError('Vui lòng chọn bàn');
             return;
         }
@@ -45,28 +72,46 @@ export default function CartPage() {
         setLoading(true);
 
         try {
-            // Prepare order data
-            const orderData = {
-                table_id: selectedTable,
-                customer_id: user?.id || null,
-                items: cart.map(item => ({
-                    menu_item_id: item.id,
-                    quantity: item.quantity,
-                    notes: item.notes || '',
-                    modifiers: item.modifiers?.map(m => m.id) || []
-                }))
-            };
+            // Prepare items data
+            const items = cart.map(item => ({
+                menu_item_id: item.id,
+                quantity: item.quantity,
+                notes: item.notes || '',
+                modifiers: item.modifiers?.map(m => m.id) || []
+            }));
 
-            // Submit order
-            const response = await api.post('/api/orders', orderData);
+            let response;
+            let orderId;
 
-            if (response.data.success) {
-                const orderId = response.data.order_id;
+            // Check if adding to existing order or creating new one
+            if (existingOrderId) {
+                // Add items to existing order
+                response = await api.post('/api/orders/add-items', {
+                    orderId: existingOrderId,
+                    items: items
+                });
+                orderId = existingOrderId;
+            } else {
+                // Create new order
+                const orderData = {
+                    table_id: selectedTable,
+                    customer_id: user?.id || null,
+                    items: items
+                };
+
+                response = await api.post('/api/orders', orderData);
+                orderId = response.data.order_id;
 
                 // Save order ID for guest users (so they can claim it later)
                 if (!user) {
                     saveGuestOrder(orderId);
                 }
+            }
+
+            if (response.data.success) {
+                // Clear localStorage flags
+                localStorage.removeItem('addToOrderId');
+                localStorage.removeItem('addToTableId');
 
                 // Clear cart
                 clearCart();
@@ -132,27 +177,49 @@ export default function CartPage() {
                     </div>
                 )}
 
-                {/* Table Selection */}
-                <div className="mb-6 bg-white rounded-2xl shadow-md p-6">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Chọn bàn <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                        value={selectedTable}
-                        onChange={(e) => setSelectedTable(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:border-emerald-500 transition-all"
-                        required
-                    >
-                        <option value="">-- Chọn bàn --</option>
-                        {tables
-                            .filter(table => table.status === 'available')
-                            .map(table => (
-                                <option key={table.id} value={table.id}>
-                                    Bàn {table.table_number} (Sức chứa: {table.capacity} người)
-                                </option>
-                            ))}
-                    </select>
-                </div>
+                {/* Table Selection - Only show when creating new order */}
+                {!existingOrderId && (
+                    <div className="mb-6 bg-white rounded-2xl shadow-md p-6">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Chọn bàn <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            value={selectedTable}
+                            onChange={(e) => setSelectedTable(e.target.value)}
+                            className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:border-emerald-500 transition-all"
+                            required
+                        >
+                            <option value="">-- Chọn bàn --</option>
+                            {tables
+                                .filter(table => table.status === 'available')
+                                .map(table => (
+                                    <option key={table.id} value={table.id}>
+                                        Bàn {table.table_number} (Sức chứa: {table.capacity} người)
+                                    </option>
+                                ))}
+                        </select>
+                    </div>
+                )}
+
+                {/* Info message when adding to existing order */}
+                {existingOrderId && (
+                    <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl flex justify-between items-center flex-wrap gap-4">
+                        <div>
+                            <p className="font-semibold">📝 Đang thêm món vào đơn hàng hiện tại</p>
+                            <p className="text-sm mt-1">Món mới sẽ được thêm vào order #{existingOrderId.slice(0, 8)}</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem('addToOrderId');
+                                localStorage.removeItem('addToTableId');
+                                window.location.reload();
+                            }}
+                            className="bg-white border border-blue-300 text-blue-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 shadow-sm transition-all whitespace-nowrap"
+                        >
+                            Hủy & Tạo đơn mới
+                        </button>
+                    </div>
+                )}
 
                 {/* Cart Items */}
                 <div className="space-y-4 mb-6">

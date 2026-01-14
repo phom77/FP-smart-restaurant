@@ -52,7 +52,7 @@ export default function OrderTrackingPage() {
                 return {
                     ...prev,
                     order_items: prev.order_items?.map(item =>
-                        item.id === data.itemId 
+                        item.id === data.itemId
                             ? { ...item, status: data.status }
                             : item
                     ) || []
@@ -62,9 +62,9 @@ export default function OrderTrackingPage() {
 
         const handlePaymentUpdate = (data) => {
             console.log("💰 Payment Update nhận được:", data);
-            
+
             const incomingId = data.orderId || data.order_id;
-            
+
             if (incomingId === orderId) {
                 // ✅ Giờ fetchOrder đã stable, gọi an toàn
                 fetchOrder();
@@ -75,7 +75,7 @@ export default function OrderTrackingPage() {
         socket.on('item_status_update', handleItemUpdate);
         socket.on('payment_status_update', handlePaymentUpdate);
         socket.on('payment_success', handlePaymentUpdate);
-        socket.on('order_paid', handlePaymentUpdate); 
+        socket.on('order_paid', handlePaymentUpdate);
 
         return () => {
             socket.off('order_status_update', handleOrderUpdate);
@@ -142,15 +142,33 @@ export default function OrderTrackingPage() {
                                 Đơn #{order.id?.slice(0, 8)}
                             </h1>
                             <p className="text-gray-500 mt-1">
-                                Bàn {order.table?.table_number || 'N/A'} • {new Date(order.created_at).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}
+                                Bàn {order.table?.table_number || 'N/A'} • {new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                         </div>
-                        <button
-                            onClick={() => navigate('/menu')}
-                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all"
-                        >
-                            Thêm món
-                        </button>
+                        {/* Only show "Add More Items" button if order is not completed and not paid */}
+                        {order.status !== 'completed' &&
+                            order.status !== 'cancelled' &&
+                            order.payment_status !== 'paid' &&
+                            order.payment_status !== 'success' && (
+                                <button
+                                    onClick={() => {
+                                        console.log('OrderTrackingPage - Thêm món clicked');
+                                        console.log('OrderTrackingPage - Passing state:', {
+                                            existingOrderId: order.id,
+                                            tableId: order.table_id
+                                        });
+
+                                        // Store in localStorage to persist across navigation
+                                        localStorage.setItem('addToOrderId', order.id);
+                                        localStorage.setItem('addToTableId', order.table_id);
+
+                                        navigate('/menu');
+                                    }}
+                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all"
+                                >
+                                    Thêm món
+                                </button>
+                            )}
                     </div>
                 </header>
 
@@ -183,11 +201,10 @@ export default function OrderTrackingPage() {
                                         return (
                                             <div key={step.key} className="flex flex-col items-center z-10">
                                                 <div
-                                                    className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all duration-300 border-4 ${
-                                                        isActive
-                                                            ? 'bg-emerald-500 text-white border-emerald-100'
-                                                            : 'bg-white text-gray-300 border-gray-100'
-                                                    } ${isCurrent ? 'scale-110 ring-2 ring-emerald-500 ring-offset-2' : ''}`}
+                                                    className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all duration-300 border-4 ${isActive
+                                                        ? 'bg-emerald-500 text-white border-emerald-100'
+                                                        : 'bg-white text-gray-300 border-gray-100'
+                                                        } ${isCurrent ? 'scale-110 ring-2 ring-emerald-500 ring-offset-2' : ''}`}
                                                 >
                                                     {step.icon}
                                                 </div>
@@ -219,7 +236,7 @@ export default function OrderTrackingPage() {
                                                 <span className="font-bold text-gray-800">{item.quantity}x</span>
                                                 <span className="font-medium text-gray-800">{item.menu_item?.name || 'Món không xác định'}</span>
                                             </div>
-                                            
+
                                             {/* Modifiers */}
                                             {item.order_item_modifiers?.length > 0 && (
                                                 <div className="mt-1 ml-6 space-y-0.5">
@@ -230,7 +247,7 @@ export default function OrderTrackingPage() {
                                                     ))}
                                                 </div>
                                             )}
-                                            
+
                                             {/* Notes */}
                                             {item.notes && (
                                                 <p className="mt-1 ml-6 text-sm text-amber-600 italic">
@@ -241,14 +258,13 @@ export default function OrderTrackingPage() {
                                         <div className="text-right">
                                             <p className="font-bold text-gray-800">{itemTotal.toLocaleString('vi-VN')}đ</p>
                                             {/* Item Status Badge */}
-                                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                                item.status === 'ready' ? 'bg-green-100 text-green-700' :
+                                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.status === 'ready' ? 'bg-green-100 text-green-700' :
                                                 item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
-                                                'bg-gray-100 text-gray-500'
-                                            }`}>
-                                                {item.status === 'pending' ? 'Chờ' : 
-                                                 item.status === 'preparing' ? 'Đang nấu' : 
-                                                 item.status === 'ready' ? 'Xong' : item.status}
+                                                    'bg-gray-100 text-gray-500'
+                                                }`}>
+                                                {item.status === 'pending' ? 'Chờ' :
+                                                    item.status === 'preparing' ? 'Đang nấu' :
+                                                        item.status === 'ready' ? 'Xong' : item.status}
                                             </span>
                                         </div>
                                     </div>
@@ -272,25 +288,25 @@ export default function OrderTrackingPage() {
                                     <span className="material-symbols-outlined">check_circle</span>
                                     Đã thanh toán thành công
                                 </div>
-                            ) : 
-                            /* Trường hợp 2: Đang chờ nhân viên (Tiền mặt) */
-                            order.payment_status === 'waiting_payment' ? (
-                                <div className="w-full py-3 bg-yellow-100 text-yellow-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-yellow-200">
-                                    <span className="material-symbols-outlined">hourglass_top</span>
-                                    Đang chờ nhân viên xác nhận...
-                                </div>
-                            ) : (
-                                /* Trường hợp 3: Chưa thanh toán -> Hiện nút */
-                                order.status !== 'cancelled' && (
-                                    <button
-                                        onClick={() => navigate('/checkout', { state: { order } })}
-                                        className="w-full py-3 bg-gray-900 text-white font-bold rounded-xl shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <span className="material-symbols-outlined">credit_card</span>
-                                        Thanh toán ngay
-                                    </button>
-                                )
-                            )}
+                            ) :
+                                /* Trường hợp 2: Đang chờ nhân viên (Tiền mặt) */
+                                order.payment_status === 'waiting_payment' ? (
+                                    <div className="w-full py-3 bg-yellow-100 text-yellow-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-yellow-200">
+                                        <span className="material-symbols-outlined">hourglass_top</span>
+                                        Đang chờ nhân viên xác nhận...
+                                    </div>
+                                ) : (
+                                    /* Trường hợp 3: Chưa thanh toán -> Hiện nút */
+                                    order.status !== 'cancelled' && (
+                                        <button
+                                            onClick={() => navigate('/checkout', { state: { order } })}
+                                            className="w-full py-3 bg-gray-900 text-white font-bold rounded-xl shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <span className="material-symbols-outlined">credit_card</span>
+                                            Thanh toán ngay
+                                        </button>
+                                    )
+                                )}
                         </div>
                     </div>
                 </div>
