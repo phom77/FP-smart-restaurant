@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { claimGuestOrders } from '../../utils/guestOrders';
 import api from '../../services/api'; // Axios instance đã cấu hình
 
 export default function LoginPage() {
@@ -23,6 +24,13 @@ export default function LoginPage() {
             if (res.data.success) {
                 // Lưu token và user vào Context
                 login(res.data.user, res.data.token);
+
+                // Claim guest orders if any
+                const claimResult = await claimGuestOrders(res.data.token);
+                if (claimResult.success && claimResult.claimed > 0) {
+                    console.log(`Claimed ${claimResult.claimed} guest orders`);
+                }
+
                 const role = res.data.user.role;
                 // Điều hướng dựa trên Role
                 if (role === 'admin') navigate('/admin/dashboard');

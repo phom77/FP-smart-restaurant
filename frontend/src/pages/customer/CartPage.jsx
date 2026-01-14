@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { saveGuestOrder } from '../../utils/guestOrders';
 import api from '../../services/api';
 
 export default function CartPage() {
@@ -60,11 +61,18 @@ export default function CartPage() {
             const response = await api.post('/api/orders', orderData);
 
             if (response.data.success) {
+                const orderId = response.data.order_id;
+
+                // Save order ID for guest users (so they can claim it later)
+                if (!user) {
+                    saveGuestOrder(orderId);
+                }
+
                 // Clear cart
                 clearCart();
 
                 // Navigate to order tracking
-                navigate(`/orders/${response.data.order_id}`);
+                navigate(`/orders/${orderId}`);
             }
         } catch (err) {
             console.error('Checkout error:', err);

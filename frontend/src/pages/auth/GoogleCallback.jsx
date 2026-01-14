@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { claimGuestOrders } from '../../utils/guestOrders';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -34,6 +35,12 @@ const GoogleCallback = () => {
 
                         // Update AuthContext with user and token
                         login(user, token);
+
+                        // Claim guest orders if any
+                        const claimResult = await claimGuestOrders(token);
+                        if (claimResult.success && claimResult.claimed > 0) {
+                            console.log(`Claimed ${claimResult.claimed} guest orders`);
+                        }
 
                         // Redirect based on role
                         if (user.role === 'admin') {
