@@ -45,11 +45,9 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
-                    {/* --- 🟢 HIỂN THỊ BADGE --- */}
-                    {isServed && !isPaid && <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">SERVED</span>}
-                    {isPaid && <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">PAID</span>}
-                    {isWaitingPayment && <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded animate-pulse">BILL?</span>}
-                    {/* ------------------------- */}
+                    {isServed && !isPaid && <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">{t('waiter.served_badge')}</span>}
+                    {isPaid && <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">{t('waiter.paid_badge')}</span>}
+                    {isWaitingPayment && <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded animate-pulse">{t('waiter.bill_request')}</span>}
 
                     <span className="text-xs font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100 font-bold">
                         #{order.id?.slice(0, 6)}
@@ -138,7 +136,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                             className="w-full py-2 rounded-xl font-bold text-xs border bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed flex items-center justify-center gap-2"
                                         >
                                             <span className="material-symbols-outlined text-sm">timelapse</span>
-                                            Chờ bếp nấu xong...
+                                            {t('waiter.waiting_for_kitchen')}
                                         </button>
                                     );
                                 }
@@ -151,7 +149,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                         className="w-full py-2.5 rounded-xl font-bold text-sm border-2 bg-white text-blue-600 border-blue-500 hover:bg-blue-50 cursor-pointer transition-all flex items-center justify-center gap-2"
                                     >
                                         <span className="material-symbols-outlined text-sm">room_service</span>
-                                        Đánh dấu đã phục vụ
+                                        {t('waiter.mark_as_served')}
                                     </button>
                                 );
                             })()}
@@ -163,7 +161,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                     className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md border-2 border-blue-600 flex items-center justify-center gap-2 transition-all"
                                 >
                                     <span className="material-symbols-outlined text-sm">payments</span>
-                                    Xác nhận thanh toán
+                                    {t('waiter.confirm_payment')}
                                 </button>
                             )}
 
@@ -173,7 +171,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                     className="bg-gray-800 hover:bg-black text-white py-2.5 rounded-xl font-bold text-sm shadow-sm w-full flex items-center justify-center gap-2"
                                 >
                                     <span className="material-symbols-outlined text-sm">check_circle</span>
-                                    Đóng bàn (Đã trả tiền)
+                                    {t('waiter.close_table')}
                                 </button>
                             ) : (
                                 <button
@@ -186,10 +184,10 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                     {isWaitingPayment ? (
                                         <>
                                             <span className="material-symbols-outlined text-sm">payments</span>
-                                            Khách gọi thanh toán!
+                                            {t('waiter.customer_request_payment')}
                                         </>
                                     ) : (
-                                        'Thanh toán / Chi tiết'
+                                        t('waiter.payment_details')
                                     )}
                                 </button>
                             )}

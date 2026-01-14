@@ -99,33 +99,135 @@ const TableManagement = () => {
             printWindow.document.write(`
                 <html>
                     <head>
-                        <title>Print Table ${table.table_number}</title>
+                        <title>Table ${table.table_number} QR</title>
+                        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
                         <style>
-                            body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-                            .card { border: 2px solid #eee; padding: 40px; border-radius: 20px; text-align: center; max-width: 400px; }
-                            h1 { color: #4f46e5; margin: 0; font-size: 24px; }
-                            .table-num { font-size: 72px; font-weight: bold; margin: 20px 0; color: #1f2937; }
-                            .instruction { font-size: 18px; font-weight: bold; color: #4f46e5; margin-top: 20px; }
-                            .wifi { margin-top: 30px; font-size: 12px; color: #6b7280; border-top: 1px solid #eee; padding-top: 10px; }
-                            @media print { .no-print { display: none; } }
+                            @page { size: auto; margin: 0; }
+                            * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                            
+                            html, body { 
+                                margin: 0 !important; 
+                                padding: 0 !important; 
+                                font-family: 'Plus Jakarta Sans', sans-serif;
+                                background: #ffffff;
+                                height: 100vh;
+                                width: 100vw;
+                                display: flex;
+                                flex-direction: column;
+                                justify-content: center;
+                                align-items: center;
+                                overflow: hidden;
+                            }
+
+                            .wrapper {
+                                width: 100%;
+                                max-width: 400px;
+                                text-align: center;
+                                padding: 40px;
+                                position: relative;
+                            }
+
+                            .brand-title {
+                                font-size: 24px;
+                                font-weight: 800;
+                                color: #6366f1;
+                                letter-spacing: -0.5px;
+                                margin-bottom: 8px;
+                            }
+
+                            .brand-subtitle {
+                                color: #94a3b8;
+                                font-size: 10px;
+                                font-weight: 600;
+                                text-transform: uppercase;
+                                letter-spacing: 1.5px;
+                                margin-bottom: 40px;
+                            }
+
+                            .table-label {
+                                font-size: 14px;
+                                font-weight: 700;
+                                color: #1e293b;
+                                text-transform: uppercase;
+                                letter-spacing: 1px;
+                                margin-bottom: 4px;
+                            }
+
+                            .table-number {
+                                font-size: 80px;
+                                font-weight: 800;
+                                color: #6366f1;
+                                line-height: 1;
+                                margin-bottom: 40px;
+                            }
+
+                            .qr-container {
+                                background: white;
+                                padding: 12px;
+                                border: 1px solid #f1f5f9;
+                                border-radius: 24px;
+                                display: inline-block;
+                                box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+                                margin-bottom: 40px;
+                            }
+
+                            .qr-image {
+                                display: block;
+                                width: 200px;
+                                height: 200px;
+                            }
+
+                            .instructions {
+                                color: #1e293b;
+                                font-size: 18px;
+                                font-weight: 800;
+                                margin-bottom: 8px;
+                            }
+
+                            .instruction-steps {
+                                color: #64748b;
+                                font-size: 11px;
+                                font-weight: 600;
+                            }
+
+                            @media print { 
+                                body { background: white !important; }
+                                .no-print { display: none !important; }
+                            }
+                            
+                            .print-btn {
+                                position: fixed;
+                                top: 20px;
+                                right: 20px;
+                                background: #6366f1;
+                                color: white;
+                                border: none;
+                                padding: 12px 24px;
+                                border-radius: 12px;
+                                font-weight: 700;
+                                cursor: pointer;
+                                z-index: 100;
+                                font-family: inherit;
+                                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+                            }
                         </style>
                     </head>
                     <body>
-                        <div class="card">
-                            <h1>SMART RESTAURANT</h1>
-                            <div style="color: #9ca3af; font-size: 10px; letter-spacing: 1px;">CONTACTLESS ORDERING</div>
-                            <div class="table-num">${table.table_number}</div>
-                            <img src="${qrImage}" width="250" />
-                            <div class="instruction">SCAN TO ORDER</div>
-                            <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">
-                                1. Open Camera &nbsp; 2. Scan &nbsp; 3. Order
+                        <button class="no-print print-btn" onclick="window.print()">Print This QR</button>
+                        <div class="wrapper">
+                            <div class="brand-title">SMART RESTAURANT</div>
+                            <div class="brand-subtitle">Contactless Ordering System</div>
+                            
+                            <div class="table-label">Table</div>
+                            <div class="table-number">${table.table_number}</div>
+
+                            <div class="qr-container">
+                                <img src="${qrImage}" class="qr-image" />
                             </div>
-                            <div class="wifi">
-                                <strong>GUEST WIFI</strong><br/>
-                                SSID: Smart_Restaurant_Guest | PW: welcome_guest
-                            </div>
+
+                            <div class="instructions">SCAN TO ORDER</div>
+                            <div class="instruction-steps">1. Open Camera  |  2. Scan QR  |  3. Enjoy</div>
                         </div>
-                        <button class="no-print" onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background: #4f46e5; color: white; border: none; border-radius: 8px; cursor: pointer;">Print Now</button>
                     </body>
                 </html>
             `);

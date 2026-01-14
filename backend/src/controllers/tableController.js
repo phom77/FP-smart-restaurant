@@ -212,7 +212,7 @@ exports.regenerateAllQR = async (req, res) => {
   }
 };
 
-// 5. Xuất file PDF chứa QR Code (Admin)
+// 5. Xuất file PDF chứa QR Code (Admin) - Redesigned for High-End Look
 exports.downloadTablePDF = async (req, res) => {
   try {
     const { id } = req.params;
@@ -231,49 +231,47 @@ exports.downloadTablePDF = async (req, res) => {
     const scanUrl = `${frontendUrl}/menu?table=${id}&token=${table.qr_code_token}`;
     const qrImage = await QRCode.toDataURL(scanUrl, { margin: 2, scale: 10 });
 
-    const doc = new PDFDocument({ size: 'A5', margin: 50 });
+    const doc = new PDFDocument({
+      size: 'A5',
+      margin: 0 // Using absolute positioning
+    });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=Table_${table.table_number}_QR.pdf`);
 
     doc.pipe(res);
 
-    // Border Frame
-    doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).stroke('#eeeeee');
+    // Background base
+    doc.rect(0, 0, doc.page.width, doc.page.height).fill('#ffffff');
 
-    // Title & Logo placeholder
-    doc.fillColor('#4f46e5').fontSize(24).font('Helvetica-Bold').text('SMART RESTAURANT', { align: 'center' });
-    doc.moveDown(0.2);
-    doc.fillColor('#9ca3af').fontSize(10).font('Helvetica').text('CONTACTLESS ORDERING SYSTEM', { align: 'center', characterSpacing: 1 });
-    doc.moveDown(1.5);
+    // Branding Header
+    doc.fillColor('#6366f1').fontSize(24).font('Helvetica-Bold').text('SMART RESTAURANT', 0, 60, { align: 'center' });
+    doc.fillColor('#94a3b8').fontSize(9).font('Helvetica').text('CONTACTLESS ORDERING SYSTEM', 0, 90, { align: 'center', characterSpacing: 1.5 });
 
-    // Table Number
-    doc.fillColor('#1f2937').fontSize(48).font('Helvetica-Bold').text(`${table.table_number}`, { align: 'center' });
-    doc.fontSize(12).font('Helvetica').text('TABLE NUMBER', { align: 'center' });
-    doc.moveDown(1);
+    // Decorative Line
+    doc.strokeColor('#f1f5f9').lineWidth(1).moveTo(100, 115).lineTo(doc.page.width - 100, 115).stroke();
 
-    // QR Image Centered
+    // Table Badge Section
+    doc.fillColor('#1e293b').fontSize(12).font('Helvetica-Bold').text('TABLE', 0, 140, { align: 'center' });
+    doc.fillColor('#6366f1').fontSize(64).font('Helvetica-Bold').text(`${table.table_number}`, 0, 155, { align: 'center' });
+
+    // QR Code Positioned Safely
     const imgData = qrImage.replace(/^data:image\/png;base64,/, "");
     const imgBuffer = Buffer.from(imgData, 'base64');
-    const qrSize = 240;
-    doc.image(imgBuffer, (doc.page.width - qrSize) / 2, doc.y, { width: qrSize });
-    doc.moveDown(17);
+    const qrSize = 220;
+    const qrX = (doc.page.width - qrSize) / 2;
+    const qrY = 240;
 
-    // Instructions
-    doc.fillColor('#4f46e5').fontSize(16).font('Helvetica-Bold').text('SCAN TO ORDER', { align: 'center' });
-    doc.moveDown(0.5);
-    doc.fillColor('#6b7280').fontSize(10).font('Helvetica').text('1. Open your camera or QR scanner', { align: 'center' });
-    doc.text('2. Scan the code above', { align: 'center' });
-    doc.text('3. Choose your dishes & enjoy!', { align: 'center' });
-    doc.moveDown(1.5);
+    // Draw QR
+    doc.image(imgBuffer, qrX, qrY, { width: qrSize });
 
-    // WiFi Information (Optional requirement)
-    doc.fillColor('#1f2937').fontSize(10).font('Helvetica-Bold').text('GUEST WIFI', { align: 'center' });
-    doc.fillColor('#6b7280').fontSize(9).font('Helvetica').text('SSID: Smart_Restaurant_Guest  |  Password: welcome_guest', { align: 'center' });
+    // Instruction Section
+    const instructionY = qrY + qrSize + 30;
+    doc.fillColor('#1e293b').fontSize(16).font('Helvetica-Bold').text('SCAN TO ORDER', 0, instructionY, { align: 'center' });
 
-    // Footer
-    doc.fontSize(8).fillColor('#9ca3af').text('Powered by SmartRestaurant.io', 0, doc.page.height - 40, { align: 'center' });
+    doc.fillColor('#64748b').fontSize(10).font('Helvetica').text('1. Open Camera  |  2. Scan QR  |  3. Enjoy', 0, instructionY + 25, { align: 'center' });
 
+    // Global Reset / Finished
     doc.end();
 
   } catch (err) {
@@ -342,7 +340,10 @@ exports.downloadBulkPDF = async (req, res) => {
     const { data: tables, error } = await supabase.from('tables').select('id, table_number, qr_code_token').order('table_number', { ascending: true });
     if (error) throw error;
 
-    const doc = new PDFDocument({ size: 'A5', margin: 50 });
+    const doc = new PDFDocument({
+      size: 'A5',
+      margin: 0 // Using absolute positioning
+    });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=All_Tables_Bulk_Print.pdf');
     doc.pipe(res);
@@ -356,31 +357,33 @@ exports.downloadBulkPDF = async (req, res) => {
       const scanUrl = `${frontendUrl}/menu?table=${table.id}&token=${table.qr_code_token}`;
       const qrDataUrl = await QRCode.toDataURL(scanUrl, { margin: 2, scale: 10 });
 
-      // Layout (Reuse from single PDF)
-      doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).stroke('#eeeeee');
-      doc.fillColor('#4f46e5').fontSize(24).font('Helvetica-Bold').text('SMART RESTAURANT', { align: 'center' });
-      doc.moveDown(0.2);
-      doc.fillColor('#9ca3af').fontSize(10).font('Helvetica').text('CONTACTLESS ORDERING SYSTEM', { align: 'center', characterSpacing: 1 });
-      doc.moveDown(1.5);
-      doc.fillColor('#1f2937').fontSize(48).font('Helvetica-Bold').text(`${table.table_number}`, { align: 'center' });
-      doc.fontSize(12).font('Helvetica').text('TABLE NUMBER', { align: 'center' });
-      doc.moveDown(1);
+      // Redesigned Layout (Synced with single PDF)
+      doc.rect(0, 0, doc.page.width, doc.page.height).fill('#ffffff');
 
+      // Branding Header
+      doc.fillColor('#6366f1').fontSize(24).font('Helvetica-Bold').text('SMART RESTAURANT', 0, 60, { align: 'center' });
+      doc.fillColor('#94a3b8').fontSize(9).font('Helvetica').text('CONTACTLESS ORDERING SYSTEM', 0, 90, { align: 'center', characterSpacing: 1.5 });
+
+      // Decorative Line
+      doc.strokeColor('#f1f5f9').lineWidth(1).moveTo(100, 115).lineTo(doc.page.width - 100, 115).stroke();
+
+      // Table Badge Section
+      doc.fillColor('#1e293b').fontSize(12).font('Helvetica-Bold').text('TABLE', 0, 140, { align: 'center' });
+      doc.fillColor('#6366f1').fontSize(64).font('Helvetica-Bold').text(`${table.table_number}`, 0, 155, { align: 'center' });
+
+      // QR Code Positioned Safely
       const imgData = qrDataUrl.replace(/^data:image\/png;base64,/, "");
       const imgBuffer = Buffer.from(imgData, 'base64');
-      const qrSize = 240;
-      doc.image(imgBuffer, (doc.page.width - qrSize) / 2, doc.y, { width: qrSize });
-      doc.moveDown(17);
+      const qrSize = 220;
+      const qrX = (doc.page.width - qrSize) / 2;
+      const qrY = 240;
 
-      doc.fillColor('#4f46e5').fontSize(16).font('Helvetica-Bold').text('SCAN TO ORDER', { align: 'center' });
-      doc.moveDown(0.5);
-      doc.fillColor('#6b7280').fontSize(10).font('Helvetica').text('1. Open your camera or QR scanner', { align: 'center' });
-      doc.text('2. Scan the code above', { align: 'center' });
-      doc.text('3. Choose your dishes & enjoy!', { align: 'center' });
-      doc.moveDown(1.5);
-      doc.fillColor('#1f2937').fontSize(10).font('Helvetica-Bold').text('GUEST WIFI', { align: 'center' });
-      doc.fillColor('#6b7280').fontSize(9).font('Helvetica').text('SSID: Smart_Restaurant_Guest  |  Password: welcome_guest', { align: 'center' });
-      doc.fontSize(8).fillColor('#9ca3af').text('Powered by SmartRestaurant.io', 0, doc.page.height - 40, { align: 'center' });
+      doc.image(imgBuffer, qrX, qrY, { width: qrSize });
+
+      // Instruction Section
+      const instructionY = qrY + qrSize + 30;
+      doc.fillColor('#1e293b').fontSize(16).font('Helvetica-Bold').text('SCAN TO ORDER', 0, instructionY, { align: 'center' });
+      doc.fillColor('#64748b').fontSize(10).font('Helvetica').text('1. Open Camera  |  2. Scan QR  |  3. Enjoy', 0, instructionY + 25, { align: 'center' });
     }
 
     doc.end();

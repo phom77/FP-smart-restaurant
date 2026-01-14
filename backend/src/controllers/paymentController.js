@@ -89,9 +89,7 @@ exports.mockPayment = async (req, res) => {
         const io = getIO();
         // Báo cho Waiter
         io.to('waiter').emit('order_paid', { orderId });
-        // --- 🟢 FIX: Báo cho Khách hàng ---
         if (order && order.table_id) {
-            // --- 🟢 FIX: Giải phóng bàn ---
             await supabase.from('tables').update({ status: 'available' }).eq('id', order.table_id);
 
             io.to(`table_${order.table_id}`).emit('payment_success', { orderId, status: 'paid' });

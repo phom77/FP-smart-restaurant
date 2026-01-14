@@ -154,8 +154,20 @@ i18n
                             reserved: 'Reserved',
                             ready: 'Ready',
                             preparing: 'Preparing',
+                            preparing: 'Preparing',
                             served: 'Served'
-                        }
+                        },
+                        waiting_for_kitchen: 'Waiting for Kitchen...',
+                        served_action: 'Served',
+                        mark_as_served: 'Mark as Served',
+                        confirm_payment: 'Confirm Payment',
+                        close_table: 'Close Table (Paid)',
+                        customer_request_payment: 'Customer requesting payment!',
+                        payment_details: 'Pay / Details',
+                        bill_request: 'BILL?',
+                        served_badge: 'SERVED',
+                        paid_badge: 'PAID',
+                        confirm_payment_prompt: 'Confirm payment for this order?'
                     },
                     table: {
                         title: 'Table Management',
@@ -405,7 +417,18 @@ i18n
                             ready: 'Sẵn sàng',
                             preparing: 'Đang làm',
                             served: 'Đã phục vụ'
-                        }
+                        },
+                        waiting_for_kitchen: 'Chờ bếp nấu xong...',
+                        served_action: 'Đã phục vụ',
+                        mark_as_served: 'Đánh dấu đã phục vụ',
+                        confirm_payment: 'Xác nhận thanh toán',
+                        close_table: 'Đóng bàn (Đã trả tiền)',
+                        customer_request_payment: 'Khách gọi thanh toán!',
+                        payment_details: 'Thanh toán / Chi tiết',
+                        bill_request: 'BILL?',
+                        served_badge: 'SERVED',
+                        paid_badge: 'PAID',
+                        confirm_payment_prompt: 'Xác nhận đã thu tiền đơn này?'
                     },
                     table: {
                         title: 'Quản lý Bàn ăn',
