@@ -4,10 +4,10 @@ const tableController = require('../controllers/tableController');
 const { verifyToken } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 
-// 1. Get all tables (with filters) - Admin/Staff
+// 1. Get all tables (with filters) - Admin/Staff/Customer
 router.get('/',
   verifyToken,
-  authorizeRoles('admin', 'waiter'),
+  authorizeRoles('admin', 'waiter', 'customer'),
   tableController.getTables
 );
 

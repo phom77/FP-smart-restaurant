@@ -17,7 +17,7 @@ export default function CartPage() {
     useEffect(() => {
         const fetchTables = async () => {
             try {
-                const response = await api.get('/api/tables');
+                const response = await api.get('/api/admin/tables');
                 setTables(response.data.data || []);
             } catch (err) {
                 console.error('Error fetching tables:', err);

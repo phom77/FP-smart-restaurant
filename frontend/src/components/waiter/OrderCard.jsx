@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => {
+const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmPayment, onViewDetails }) => {
     const { t } = useTranslation();
 
     // Format currency an toàn
@@ -24,6 +24,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
     // Kiểm tra trạng thái thanh toán
     const isPaid = order.payment_status === 'paid';
     const isWaitingPayment = order.payment_status === 'waiting_payment';
+    const isServed = order.is_served;
 
     return (
         <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full relative group ${isWaitingPayment ? 'border-orange-400 ring-2 ring-orange-100' : 'border-gray-100'}`}>
@@ -31,13 +32,13 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
             <div
                 onClick={onViewDetails}
                 className={`p-4 flex justify-between items-center border-b cursor-pointer transition-colors ${isPaid ? 'bg-green-50 border-green-100' :
-                        isWaitingPayment ? 'bg-orange-50 border-orange-100' : // Màu cam cho chờ thanh toán
-                            'bg-gradient-to-r from-blue-50 to-white border-blue-50'
+                    isWaitingPayment ? 'bg-orange-50 border-orange-100' : // Màu cam cho chờ thanh toán
+                        'bg-gradient-to-r from-blue-50 to-white border-blue-50'
                     }`}
             >
                 <div className="flex items-center gap-2">
                     <div className={`w-1.5 h-8 rounded-full transition-all ${order.status === 'pending' ? 'bg-yellow-500' :
-                            isPaid ? 'bg-green-500' : 'bg-blue-500'
+                        isPaid ? 'bg-green-500' : 'bg-blue-500'
                         }`}></div>
                     <span className="font-extrabold text-lg text-gray-800">
                         {t('waiter.table')} {order.table?.table_number || 'N/A'}
@@ -45,6 +46,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                 </div>
                 <div className="flex items-center gap-2">
                     {/* --- 🟢 HIỂN THỊ BADGE --- */}
+                    {isServed && !isPaid && <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">SERVED</span>}
                     {isPaid && <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">PAID</span>}
                     {isWaitingPayment && <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded animate-pulse">BILL?</span>}
                     {/* ------------------------- */}
@@ -124,7 +126,47 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                     )}
 
                     {order.status === 'processing' && (
-                        <>
+                        <div className="flex flex-col gap-2">
+                            {/* Nút Served (Chỉ hiện khi tất cả món đã Ready) */}
+                            {/* Nút Served (Chỉ hiện khi tất cả món đã Ready) */}
+                            {(() => {
+                                const allReady = order.items?.every(i => i.status === 'ready' || i.status === 'served');
+                                if (!allReady && !isServed) {
+                                    return (
+                                        <button
+                                            disabled
+                                            className="w-full py-2 rounded-xl font-bold text-xs border bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed flex items-center justify-center gap-2"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">timelapse</span>
+                                            Chờ bếp nấu xong...
+                                        </button>
+                                    );
+                                }
+                                // Nếu đã phục vụ rồi thì ẩn nút này đi (cho gọn UI)
+                                if (isServed) return null;
+
+                                return (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onServed && onServed(order.id, isServed); }}
+                                        className="w-full py-2.5 rounded-xl font-bold text-sm border-2 bg-white text-blue-600 border-blue-500 hover:bg-blue-50 cursor-pointer transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">room_service</span>
+                                        Đánh dấu đã phục vụ
+                                    </button>
+                                );
+                            })()}
+
+                            {/* Nút xác nhận thanh toán cho món đã Served */}
+                            {isServed && !isPaid && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onConfirmPayment && onConfirmPayment(order.id); }}
+                                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md border-2 border-blue-600 flex items-center justify-center gap-2 transition-all"
+                                >
+                                    <span className="material-symbols-outlined text-sm">payments</span>
+                                    Xác nhận thanh toán
+                                </button>
+                            )}
+
                             {isPaid ? (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onComplete && onComplete(order.id); }}
@@ -134,12 +176,11 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                                     Đóng bàn (Đã trả tiền)
                                 </button>
                             ) : (
-                                // --- 🟢 NÚT XỬ LÝ KHI CHỜ THANH TOÁN ---
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
                                     className={`py-2.5 rounded-xl font-bold text-sm w-full flex items-center justify-center gap-2 ${isWaitingPayment
-                                            ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-md animate-bounce-short'
-                                            : 'bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50'
+                                        ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-md animate-bounce-short'
+                                        : 'bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50'
                                         }`}
                                 >
                                     {isWaitingPayment ? (
@@ -151,9 +192,8 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onViewDetails }) => 
                                         'Thanh toán / Chi tiết'
                                     )}
                                 </button>
-                                // ---------------------------------------
                             )}
-                        </>
+                        </div>
                     )}
                 </div>
 

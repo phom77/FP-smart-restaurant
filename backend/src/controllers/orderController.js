@@ -34,6 +34,10 @@ exports.getOrders = async (req, res) => {
       query = query.eq('status', status);
     }
 
+    if (req.query.is_served) {
+      query = query.eq('is_served', req.query.is_served === 'true');
+    }
+
     const { data, error, count } = await query;
 
     if (error) throw error;
@@ -154,6 +158,70 @@ exports.updateOrderStatus = async (req, res) => {
   } catch (err) {
     console.error("Update Order Status Error:", err);
     res.status(500).json({ success: false, message: 'Lỗi cập nhật trạng thái', error: err.message });
+  }
+};
+
+// PUT /api/orders/:id/served
+exports.updateOrderServedStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_served } = req.body;
+
+    // Validation
+    if (typeof is_served !== 'boolean') {
+      return res.status(400).json({ success: false, message: 'Trạng thái served phải là boolean' });
+    }
+
+    // --- 🟢 FIX: Check if all items are ready ---
+    if (is_served) {
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('status')
+        .eq('order_id', id);
+
+      if (itemsError) throw itemsError;
+
+      const allReady = orderItems.every(item => item.status === 'ready' || item.status === 'served');
+      if (!allReady) {
+        return res.status(400).json({ success: false, message: 'Tất cả món ăn phải ở trạng thái Ready mới được phục vụ.' });
+      }
+    }
+    // -------------------------------------------
+
+    // Update Served Status
+    const { data: updatedOrder, error: updateError } = await supabase
+      .from('orders')
+      .update({ is_served, updated_at: new Date() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    // Socket Emit (Real-time updates)
+    const io = getIO();
+    io.to('waiter').emit('order_served_update', {
+      order_id: id,
+      is_served: is_served
+    });
+
+    // Notify table
+    if (updatedOrder.table_id) {
+      io.to(`table_${updatedOrder.table_id}`).emit('order_served_update', {
+        order_id: id,
+        is_served: is_served
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Cập nhật trạng thái phục vụ thành công',
+      data: updatedOrder
+    });
+
+  } catch (err) {
+    console.error("Update Order Served Status Error:", err);
+    res.status(500).json({ success: false, message: 'Lỗi cập nhật trạng thái phục vụ', error: err.message });
   }
 };
 

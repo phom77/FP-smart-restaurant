@@ -26,6 +26,12 @@ router.put('/:id/status',
   orderController.updateOrderStatus
 );
 
+router.put('/:id/served',
+  verifyToken,
+  authorizeRoles('waiter', 'admin'),
+  orderController.updateOrderServedStatus
+);
+
 router.post('/:id/items', orderController.addItemsToOrder);
 router.post('/:id/checkout', orderController.checkoutOrder);
 

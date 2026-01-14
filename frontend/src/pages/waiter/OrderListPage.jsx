@@ -27,7 +27,11 @@ const OrderListPage = () => {
     const fetchOrders = async () => {
         try {
             let url = `${API_URL}/api/orders?page=${currentPage}&limit=${ITEMS_PER_PAGE}`;
-            if (statusFilter !== 'all') {
+            if (statusFilter === 'served') {
+                url += `&status=processing&is_served=true`;
+            } else if (statusFilter === 'processing') {
+                url += `&status=processing&is_served=false`;
+            } else if (statusFilter !== 'all') {
                 url += `&status=${statusFilter}`;
             }
             const res = await axios.get(url, getAuthHeader());
@@ -63,8 +67,9 @@ const OrderListPage = () => {
         socket.on('new_order', refreshOrders);          // 1. Có đơn mới
         socket.on('order_status_updated', refreshOrders); // 2. Đơn đổi trạng thái (Accept/Reject)
         socket.on('item_status_update', refreshOrders);   // 3. QUAN TRỌNG: Bếp nấu xong 1 món -> Refresh ngay
-        socket.on('payment_request', refreshOrders); 
+        socket.on('payment_request', refreshOrders);
         socket.on('order_paid', refreshOrders);
+        socket.on('order_served_update', refreshOrders); // 4. Đơn đã phục vụ
 
         return () => {
             socket.off('new_order', refreshOrders);
@@ -72,6 +77,7 @@ const OrderListPage = () => {
             socket.off('item_status_update', refreshOrders);
             socket.off('payment_request', refreshOrders); // <--- Nhớ off
             socket.off('order_paid', refreshOrders);
+            socket.off('order_served_update', refreshOrders);
         };
     }, [socket, statusFilter, currentPage]);
 
@@ -101,6 +107,23 @@ const OrderListPage = () => {
         }
     };
 
+    const handleServed = async (orderId, currentStatus) => {
+        try {
+            await axios.put(`${API_URL}/api/orders/${orderId}/served`, { is_served: !currentStatus }, getAuthHeader());
+        } catch (err) {
+            alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
+        }
+    };
+
+    const handleConfirmPayment = async (orderId) => {
+        if (!window.confirm("Xác nhận đã thu tiền đơn này?")) return;
+        try {
+            await axios.post(`${API_URL}/api/payment/confirm-cash`, { orderId }, getAuthHeader());
+        } catch (err) {
+            alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
+        }
+    };
+
     if (loading && orders.length === 0) return (
         <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
@@ -123,6 +146,7 @@ const OrderListPage = () => {
                     >
                         <option value="pending">{t('waiter.status.pending')}</option>
                         <option value="processing">{t('waiter.status.processing')}</option>
+                        <option value="served">{t('waiter.status.served') || 'Đã phục vụ'}</option>
                         <option value="completed">{t('waiter.status.completed')}</option>
                         <option value="cancelled">{t('waiter.status.cancelled')}</option>
                         <option value="all">{t('waiter.all_orders')}</option>
@@ -138,7 +162,7 @@ const OrderListPage = () => {
             <div className="flex-1">
                 {orders.length === 0 ? (
                     <div className="text-center py-20 text-gray-400 font-medium">
-                        {t('waiter.no_orders', { status: statusFilter === 'all' ? t('waiter.all_orders') : t(`waiter.status.${statusFilter}`) })}
+                        {t('waiter.no_orders', { status: statusFilter === 'all' ? t('waiter.all_orders') : (statusFilter === 'served' ? 'Đã phục vụ' : t(`waiter.status.${statusFilter}`)) })}
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -149,6 +173,8 @@ const OrderListPage = () => {
                                     onAccept={handleAccept}
                                     onReject={handleReject}
                                     onComplete={handleComplete}
+                                    onServed={handleServed}
+                                    onConfirmPayment={handleConfirmPayment}
                                     onViewDetails={() => setSelectedOrder(order)}
                                 />
                             </div>
@@ -198,8 +224,8 @@ const OrderListPage = () => {
                                         key={page}
                                         onClick={() => setCurrentPage(page)}
                                         className={`w-9 h-9 md:w-11 md:h-11 rounded-xl font-bold transition-all flex items-center justify-center text-sm md:text-base ${currentPage === page
-                                                ? 'bg-emerald-500 text-white shadow-lg scale-110'
-                                                : 'bg-white text-gray-600 border border-gray-100 hover:border-emerald-200 hover:text-emerald-600 hover:shadow-sm'
+                                            ? 'bg-emerald-500 text-white shadow-lg scale-110'
+                                            : 'bg-white text-gray-600 border border-gray-100 hover:border-emerald-200 hover:text-emerald-600 hover:shadow-sm'
                                             }`}
                                     >
                                         {page}
