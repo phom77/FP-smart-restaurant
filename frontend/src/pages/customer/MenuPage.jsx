@@ -150,6 +150,17 @@ export default function MenuPage() {
                             </button>
                         )}
 
+                        {/* Profile Button */}
+                        {user && (
+                            <button
+                                onClick={() => navigate('/profile')}
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
+                            >
+                                <span>👤</span>
+                                <span>Tài khoản</span>
+                            </button>
+                        )}
+
                         {/* Cart Icon */}
                         <div className="relative">
                             <button
