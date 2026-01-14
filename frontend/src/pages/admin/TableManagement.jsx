@@ -10,7 +10,6 @@ const TableManagement = () => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLocation, setFilterLocation] = useState('');
-    const [filterStatus, setFilterStatus] = useState(''); // Active/Inactive
     const [sortBy, setSortBy] = useState('table_number');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -20,10 +19,9 @@ const TableManagement = () => {
         table_number: '',
         capacity: 2,
         location: 'Indoor',
-        description: '',
-        is_active: true
+        description: ''
     });
-    const [editData, setEditData] = useState({ table_number: '', capacity: 4, status: 'available', location: '', description: '', is_active: true });
+    const [editData, setEditData] = useState({ table_number: '', capacity: 4, status: 'available', location: '', description: '' });
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -36,7 +34,6 @@ const TableManagement = () => {
             setLoading(true);
             let url = `${API_URL}/api/admin/tables?sort_by=${sortBy}`;
             if (filterLocation) url += `&location=${filterLocation}`;
-            if (filterStatus) url += `&is_active=${filterStatus === 'active'}`;
 
             const response = await axios.get(url, getAuthHeader());
             setTables(response.data.data);
@@ -51,7 +48,7 @@ const TableManagement = () => {
 
     useEffect(() => {
         fetchTables();
-    }, [filterLocation, filterStatus, sortBy]);
+    }, [filterLocation, sortBy]);
 
     const handleCreateTable = async (e) => {
         e.preventDefault();
@@ -60,7 +57,7 @@ const TableManagement = () => {
             toast.success('Table created successfully');
             fetchTables();
             setIsAddModalOpen(false);
-            setNewTable({ table_number: '', capacity: 2, location: 'Indoor', description: '', is_active: true });
+            setNewTable({ table_number: '', capacity: 2, location: 'Indoor', description: '' });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to create table');
         }
@@ -359,45 +356,9 @@ const TableManagement = () => {
         }
     };
 
-    const handleToggleStatus = async (table) => {
-        const newStatus = !table.is_active;
-
-        // 1.4 Display warning if table has active orders
-        if (!newStatus) { // If deactivating
-            try {
-                const { data: activeOrders } = await axios.get(`${API_URL}/api/orders?table_id=${table.id}&status=processing`, getAuthHeader());
-                const pendingOrders = await axios.get(`${API_URL}/api/orders?table_id=${table.id}&status=pending`, getAuthHeader());
-
-                const hasOrders = (activeOrders.data && activeOrders.data.length > 0) || (pendingOrders.data && pendingOrders.data.data && pendingOrders.data.data.length > 0);
-
-                if (hasOrders) {
-                    if (!window.confirm(t('table.warning_active_orders', { number: table.table_number }))) return;
-                } else {
-                    if (!window.confirm(t('table.confirm_deactivate', { number: table.table_number }))) return;
-                }
-            } catch (err) {
-                console.error("Order check failed:", err);
-                if (!window.confirm(t('table.confirm_deactivate', { number: table.table_number }))) return;
-            }
-        } else {
-            if (!window.confirm(t('table.confirm_reactivate', { number: table.table_number }))) return;
-        }
-
-        try {
-            await axios.put(`${API_URL}/api/admin/tables/${table.id}`, {
-                ...table,
-                is_active: newStatus
-            }, getAuthHeader());
-            toast.success(`Table ${newStatus ? 'activated' : 'deactivated'}`);
-            fetchTables();
-        } catch (err) {
-            toast.error('Failed to toggle status');
-        }
-    };
-
     const filteredTables = tables.filter(t =>
-        t.table_number.toString().includes(searchQuery) ||
-        (t.location && t.location.toLowerCase().includes(searchQuery.toLowerCase()))
+    (t.table_number.toString().includes(searchQuery) ||
+        (t.location && t.location.toLowerCase().includes(searchQuery.toLowerCase())))
     );
 
     return (
@@ -438,7 +399,7 @@ const TableManagement = () => {
                         </div>
                         <button
                             onClick={() => {
-                                setNewTable({ table_number: '', capacity: 2, location: 'Indoor', description: '', is_active: true });
+                                setNewTable({ table_number: '', capacity: 2, location: 'Indoor', description: '' });
                                 setIsAddModalOpen(true);
                             }}
                             className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-bold hover:shadow-lg hover:scale-105 transition-all shadow-emerald-100 whitespace-nowrap"
@@ -483,16 +444,6 @@ const TableManagement = () => {
                             <option value="Outdoor">Outdoor</option>
                             <option value="Patio">Patio</option>
                             <option value="VIP Room">VIP Room</option>
-                        </select>
-
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer whitespace-nowrap min-w-[120px]"
-                        >
-                            <option value="">{t('table.all_status')}</option>
-                            <option value="active">{t('table.active')}</option>
-                            <option value="inactive">{t('table.inactive')}</option>
                         </select>
 
                         <select
@@ -544,9 +495,6 @@ const TableManagement = () => {
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="text-xs text-gray-400 font-bold uppercase tracking-tight">{t('table.table_label')}</span>
-                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase w-fit ${table.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                                                {table.is_active ? t('table.active') : t('table.inactive')}
-                                            </span>
                                         </div>
                                     </div>
                                     <div className="flex gap-1">
@@ -604,12 +552,6 @@ const TableManagement = () => {
                                         <span className={`text-[10px] font-black uppercase tracking-widest ${table.status === 'available' ? 'text-emerald-500' : 'text-orange-500'}`}>
                                             {table.status}
                                         </span>
-                                        <button
-                                            onClick={() => handleToggleStatus(table)}
-                                            className={`text-[10px] font-bold px-2 py-1 rounded-lg ${table.is_active ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}
-                                        >
-                                            {table.is_active ? t('table.inactive') : t('table.active')}
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -753,16 +695,6 @@ const TableManagement = () => {
                                         <option value="reserved">{t('table.reserved')}</option>
                                     </select>
                                 </div>
-                                <div className="flex items-center justify-between pt-2">
-                                    <label htmlFor="is_active" className="text-sm font-bold text-gray-700">{t('table.is_active')}</label>
-                                    <input
-                                        type="checkbox"
-                                        id="is_active"
-                                        checked={editData.is_active}
-                                        onChange={(e) => setEditData({ ...editData, is_active: e.target.checked })}
-                                        className="h-5 w-5 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
-                                    />
-                                </div>
                                 <div className="flex gap-3 pt-4">
                                     <button
                                         type="button"
@@ -838,12 +770,6 @@ const TableManagement = () => {
                                     </p>
                                     <p className="text-sm text-gray-800 font-medium">{selectedTable.token_created_at ? new Date(selectedTable.token_created_at).toLocaleString() : t('table.default_token')}</p>
                                 </div>
-                                <div className="p-4 bg-gray-50 rounded-xl flex items-center justify-between">
-                                    <p className="text-xs text-gray-400 font-bold uppercase">{t('table.active_status')}</p>
-                                    <span className={`text-sm font-bold px-2 py-1 rounded-lg ${selectedTable.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                                        {selectedTable.is_active ? t('table.active') : t('table.inactive')}
-                                    </span>
-                                </div>
                                 <div className="flex flex-col gap-3 pt-2">
                                     <button
                                         onClick={() => handleDownloadPDF(selectedTable.id, selectedTable.table_number)}
@@ -861,7 +787,12 @@ const TableManagement = () => {
                                     </button>
                                     <button
                                         onClick={() => { if (window.confirm(t('table.confirm_regenerate'))) handleRegenerateQR(selectedTable.id); }}
-                                        className="w-full py-3 bg-white border-2 border-red-50 text-red-500 hover:bg-red-50 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+                                        disabled={selectedTable.status !== 'available'}
+                                        className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${selectedTable.status === 'available'
+                                            ? 'bg-white border-2 border-red-50 text-red-500 hover:bg-red-50'
+                                            : 'bg-gray-50 border-2 border-gray-100 text-gray-400 cursor-not-allowed'
+                                            }`}
+                                        title={selectedTable.status !== 'available' ? t('table.cannot_regenerate_occupied') : t('table.regenerate_token')}
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                         {t('table.regenerate_token')}

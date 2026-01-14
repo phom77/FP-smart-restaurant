@@ -45,13 +45,6 @@ exports.verifyMenuToken = async (req, res) => {
             });
         }
 
-        if (tableData.is_active === false) {
-            return res.status(403).json({
-                success: false,
-                error: 'This table is currently out of service. Please ask staff for assistance.'
-            });
-        }
-
         // 3. Return Table Info (Menu items can be fetched separately or here)
         res.status(200).json({
             success: true,

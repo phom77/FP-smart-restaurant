@@ -163,6 +163,25 @@ exports.generateQRCode = async (req, res) => {
 exports.regenerateQRToken = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Safety Check: Don't regenerate if table is occupied
+    const { data: tableCheck, error: checkError } = await supabase
+      .from('tables')
+      .select('status, table_number')
+      .eq('id', id)
+      .single();
+
+    if (checkError || !tableCheck) {
+      return res.status(404).json({ success: false, message: 'Table not found' });
+    }
+
+    if (tableCheck.status === 'occupied') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot regenerate QR for Table ${tableCheck.table_number} while it is occupied.`
+      });
+    }
+
     const signedToken = generateTableJWT(id);
 
     const { data, error } = await supabase
