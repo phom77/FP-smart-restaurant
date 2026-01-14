@@ -15,6 +15,16 @@ export const saveGuestOrder = (orderId) => {
     }
 };
 
+// Get all guest order IDs from localStorage
+export const getGuestOrders = () => {
+    try {
+        return JSON.parse(localStorage.getItem('guestOrders') || '[]');
+    } catch (error) {
+        console.error('Error getting guest orders:', error);
+        return [];
+    }
+};
+
 // Claim all guest orders after login
 export const claimGuestOrders = async (token) => {
     try {

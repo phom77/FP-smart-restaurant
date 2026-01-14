@@ -166,8 +166,7 @@ exports.createOrder = async (req, res) => {
 
   try {
     // --- CHECK IF TABLE HAS ACTIVE ORDER ---
-    console.log(`[CREATE ORDER] Checking for active orders on table_id: ${table_id}`);
-
+    // --- CHECK IF TABLE HAS ACTIVE ORDER ---
     const { data: existingOrders, error: orderCheckError } = await supabase
       .from('orders')
       .select('id, status')
@@ -178,18 +177,12 @@ exports.createOrder = async (req, res) => {
 
     if (orderCheckError) throw orderCheckError;
 
-    console.log(`[CREATE ORDER] Found ${existingOrders?.length || 0} active orders:`, existingOrders);
-
     // If there's an active order, add items to it instead of creating new order
     if (existingOrders && existingOrders.length > 0) {
       const existingOrderId = existingOrders[0].id;
-      console.log(`[CREATE ORDER] Adding items to existing order: ${existingOrderId}`);
-
       // Use addItemsToOrder logic (will implement below)
       return await addItemsToExistingOrder(req, res, existingOrderId, items);
     }
-
-    console.log(`[CREATE ORDER] No active order found, creating new order`);
 
     // No active order, proceed with creating new order
     const { data: tableData, error: tableError } = await supabase
@@ -658,5 +651,51 @@ exports.getCustomerOrders = async (req, res) => {
       message: 'Lỗi lấy danh sách đơn hàng',
       error: err.message
     });
+  }
+};
+
+// POST /api/orders/lookup - Lookup orders by IDs (for guests)
+exports.lookupOrders = async (req, res) => {
+  try {
+    const { orderIds } = req.body;
+
+    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        table_id,
+        status,
+        total_amount,
+        created_at,
+        table:tables(table_number),
+        items:order_items(count)
+      `)
+      .in('id', orderIds)
+      .in('status', ['pending', 'processing', 'completed', 'cancelled']) // Fetch all status
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const formattedData = orders.map(order => ({
+      id: order.id,
+      table_number: order.table?.table_number || 'N/A',
+      status: order.status,
+      total_amount: order.total_amount,
+      created_at: order.created_at,
+      items_count: order.items?.[0]?.count || 0
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedData
+    });
+
+  } catch (err) {
+    console.error("Lookup Orders Error:", err);
+    res.status(500).json({ success: false, message: 'Lỗi tra cứu đơn hàng', error: err.message });
   }
 };

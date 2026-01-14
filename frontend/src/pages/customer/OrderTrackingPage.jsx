@@ -152,12 +152,6 @@ export default function OrderTrackingPage() {
                             order.payment_status !== 'success' && (
                                 <button
                                     onClick={() => {
-                                        console.log('OrderTrackingPage - Thêm món clicked');
-                                        console.log('OrderTrackingPage - Passing state:', {
-                                            existingOrderId: order.id,
-                                            tableId: order.table_id
-                                        });
-
                                         // Store in localStorage to persist across navigation
                                         localStorage.setItem('addToOrderId', order.id);
                                         localStorage.setItem('addToTableId', order.table_id);

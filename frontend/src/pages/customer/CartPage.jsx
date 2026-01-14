@@ -16,25 +16,14 @@ export default function CartPage() {
     const [error, setError] = useState('');
 
     // Get existing order info from localStorage (set by OrderTrackingPage)
+    // Get existing order info from localStorage (set by OrderTrackingPage)
     const [existingOrderId] = useState(() => {
-        const orderId = localStorage.getItem('addToOrderId');
-        if (orderId) {
-            console.log('CartPage - Found existingOrderId in localStorage:', orderId);
-        }
-        return orderId;
+        return localStorage.getItem('addToOrderId');
     });
 
     const [existingTableId] = useState(() => {
-        const tableId = localStorage.getItem('addToTableId');
-        if (tableId) {
-            console.log('CartPage - Found existingTableId in localStorage:', tableId);
-        }
-        return tableId;
+        return localStorage.getItem('addToTableId');
     });
-
-    // Debug log
-    console.log('CartPage - existingOrderId:', existingOrderId);
-    console.log('CartPage - existingTableId:', existingTableId);
 
     // Fetch available tables
     useEffect(() => {
