@@ -12,18 +12,22 @@ import AdminSidebar from './pages/admin/AdminSidebar';
 import MenuManagement from './pages/admin/MenuManagement';
 import CategoryManagement from './pages/admin/CategoryManagement';
 import RevenuePage from './pages/admin/RevenuePage'; // Import RevenuePage
+import TableManagement from './pages/admin/TableManagement';
+import StaffManagement from './pages/admin/StaffManagement';
 import WaiterLayout from './layouts/WaiterLayout'; // Import WaiterLayout
 import OrderListPage from './pages/waiter/OrderListPage'; // Import OrderListPage
 import TableMapPage from './pages/waiter/TableMapPage'; // Import TableMapPage
 import KitchenDisplayPage from './pages/kitchen/KitchenDisplayPage';
 import CheckoutPage from './pages/customer/CustomerCheckoutPage'; // <-- Đảm bảo file này tồn tại
 import WaiterBillPage from './pages/waiter/WaiterBillPage';
+import { Toaster } from 'react-hot-toast';
 import GuestActiveOrdersBanner from './components/customer/GuestActiveOrdersBanner'; // Import Banner
 import './App.css';
 
 function App() {
   return (
     <>
+      <Toaster position="top-right" />
       <GuestActiveOrdersBanner /> {/* Persistent Banner for Guests */}
       <Routes>
         {/* Public Routes */}
@@ -46,6 +50,8 @@ function App() {
             <Route path="menu" element={<MenuManagement />} />
             <Route path="categories" element={<CategoryManagement />} />
             <Route path="revenue" element={<RevenuePage />} />
+            <Route path="tables" element={<TableManagement />} />
+            <Route path="staff" element={<StaffManagement />} />
           </Route>
         </Route>
 

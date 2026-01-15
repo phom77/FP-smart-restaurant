@@ -94,6 +94,12 @@ const AdminSidebar = () => {
                     <Link to="/admin/revenue" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/revenue' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
                         <span className="mr-3">💰</span> {t('admin.revenue')}
                     </Link>
+                    <Link to="/admin/tables" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/tables' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
+                        <span className="mr-3">🪑</span> {t('admin.tables')}
+                    </Link>
+                    <Link to="/admin/staff" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/staff' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
+                        <span className="mr-3">👥</span> {t('admin.staff')}
+                    </Link>
 
                     <div className="my-4 border-t border-gray-100"></div>
 

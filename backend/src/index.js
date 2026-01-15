@@ -42,7 +42,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/orders', orderRoutes);
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/revenue', require('./routes/revenueRoutes')); // Keep for backward compatibility or remove if preferred
-app.use('/api/tables', tableRoutes);
+app.use('/api/admin/tables', tableRoutes);
 app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/menu', menuRoutes);
