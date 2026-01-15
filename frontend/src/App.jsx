@@ -20,6 +20,13 @@ import TableMapPage from './pages/waiter/TableMapPage'; // Import TableMapPage
 import KitchenDisplayPage from './pages/kitchen/KitchenDisplayPage';
 import CheckoutPage from './pages/customer/CustomerCheckoutPage'; // <-- Đảm bảo file này tồn tại
 import WaiterBillPage from './pages/waiter/WaiterBillPage';
+import VerifyEmailPage from './pages/auth/VerifyEmailPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import SuperAdminLayout from './layouts/SuperAdminLayout';
+import CreateAdminPage from './pages/superadmin/CreateAdminPage';
+import UserManagementPage from './pages/superadmin/UserManagementPage';
+import SystemSettingsPage from './pages/superadmin/SystemSettingsPage';
 import { Toaster } from 'react-hot-toast';
 import GuestActiveOrdersBanner from './components/customer/GuestActiveOrdersBanner'; // Import Banner
 import './App.css';
@@ -41,6 +48,9 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/auth/google/callback" element={<GoogleCallback />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         {/* Admin Routes */}
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
@@ -52,6 +62,17 @@ function App() {
             <Route path="revenue" element={<RevenuePage />} />
             <Route path="tables" element={<TableManagement />} />
             <Route path="staff" element={<StaffManagement />} />
+          </Route>
+        </Route>
+
+        {/* --- SUPER ADMIN ROUTES --- */}
+        <Route element={<ProtectedRoute allowedRoles={['super_admin']} />}>
+          <Route path="/super-admin" element={<SuperAdminLayout />}>
+            {/* Mặc định chuyển hướng vào trang tạo admin */}
+            <Route index element={<Navigate to="create-admin" replace />} />
+            <Route path="create-admin" element={<CreateAdminPage />} />
+            <Route path="users" element={<UserManagementPage />} />
+            <Route path="settings" element={<SystemSettingsPage />} />
           </Route>
         </Route>
 

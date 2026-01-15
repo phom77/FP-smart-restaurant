@@ -1,8 +1,9 @@
+// frontend/src/pages/auth/LoginPage.jsx
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { claimGuestOrders } from '../../utils/guestOrders';
-import api from '../../services/api'; // Axios instance đã cấu hình
+import api from '../../services/api';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -11,6 +12,7 @@ export default function LoginPage() {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -18,112 +20,126 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            // Gọi API thật
             const res = await api.post('/api/auth/login', formData);
-
             if (res.data.success) {
-                // Lưu token và user vào Context
                 login(res.data.user, res.data.token);
-
-                // Claim guest orders if any
-                const claimResult = await claimGuestOrders(res.data.token);
-                if (claimResult.success && claimResult.claimed > 0) {
-                    console.log(`Claimed ${claimResult.claimed} guest orders`);
-                }
+                await claimGuestOrders(res.data.token);
 
                 const role = res.data.user.role;
-                // Điều hướng dựa trên Role
-                if (role === 'admin') navigate('/admin/dashboard');
+                // Ưu tiên Super Admin
+                if (role === 'super_admin') navigate('/super-admin');
+                else if (role === 'admin') navigate('/admin/dashboard');
                 else if (role === 'waiter') navigate('/waiter/orders');
                 else if (role === 'kitchen') navigate('/kitchen');
                 else navigate('/menu');
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Đăng nhập thất bại');
+            setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-            <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-                <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">Đăng Nhập</h2>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8 font-sans">
+            <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg border border-gray-100">
+                <div className="text-center">
+                    <h2 className="mt-2 text-3xl font-extrabold text-gray-900">Chào mừng trở lại</h2>
+                    <p className="mt-2 text-sm text-gray-600">Đăng nhập để quản lý hoặc gọi món.</p>
+                </div>
 
-                {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Email</label>
-                        <input
-                            type="email"
-                            required
-                            className="mt-1 w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        />
+                {error && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                        <div className="flex">
+                            <div className="flex-shrink-0 text-red-500">⚠</div>
+                            <div className="ml-3 text-sm text-red-700 font-medium">{error}</div>
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Mật khẩu</label>
-                        <input
-                            type="password"
-                            required
-                            className="mt-1 w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        />
+                )}
+
+                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                    <div className="rounded-md shadow-sm space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input
+                                type="email"
+                                required
+                                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                placeholder="name@example.com"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    required
+                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    placeholder="••••••••"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                />
+                                <button
+                                    type="button"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">
+                                        {showPassword ? 'visibility_off' : 'visibility'}
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                        <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+                            Quên mật khẩu?
+                        </Link>
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400"
+                        className="w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition duration-200"
                     >
                         {loading ? 'Đang xử lý...' : 'Đăng Nhập'}
                     </button>
                 </form>
 
-                {/* Divider */}
-                <div className="relative my-6">
+                {/* --- NÚT KHÁCH VÃNG LAI (MỚI) --- */}
+                <button
+                    onClick={() => navigate('/menu')}
+                    className="w-full flex justify-center py-2.5 px-4 border border-gray-300 text-sm font-bold rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition duration-200"
+                >
+                    Khách vãng lai (Xem Menu)
+                </button>
+
+                {/* Google Button */}
+                <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-300"></div>
+                        <div className="w-full border-t border-gray-200"></div>
                     </div>
                     <div className="relative flex justify-center text-sm">
                         <span className="px-2 bg-white text-gray-500">Hoặc</span>
                     </div>
                 </div>
 
-                {/* Google Sign-In Button */}
                 <button
-                    onClick={() => {
-                        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                        window.location.href = `${API_URL}/api/auth/google`;
-                    }}
-                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition duration-200 shadow-sm"
+                    onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/google`}
+                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-50 transition duration-200 font-medium text-sm"
                 >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
-                        <path
-                            fill="#4285F4"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        />
-                        <path
-                            fill="#34A853"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        />
-                        <path
-                            fill="#FBBC05"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        />
-                        <path
-                            fill="#EA4335"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        />
-                    </svg>
-                    <span className="font-medium">Đăng nhập bằng Google</span>
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5" />
+                    Google
                 </button>
 
                 <p className="mt-4 text-center text-sm text-gray-600">
-                    Chưa có tài khoản? <Link to="/register" className="text-blue-600 hover:underline">Đăng ký ngay</Link>
+                    Chưa có tài khoản?{' '}
+                    <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 hover:underline">
+                        Đăng ký ngay
+                    </Link>
                 </p>
             </div>
         </div>
