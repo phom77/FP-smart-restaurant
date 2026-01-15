@@ -3,7 +3,11 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
+const passport = require('passport');
 const { initSocket } = require('./config/socket');
+
+// Initialize Passport configuration
+require('./config/passportConfig');
 
 const app = express();
 const server = http.createServer(app);
@@ -27,12 +31,14 @@ app.use(cors({
   credentials: true // Cho phép gửi cookie/token nếu cần
 }));
 app.use(express.json());
+app.use(passport.initialize());
 
 // Serve static files from uploads directory
 
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/orders', orderRoutes);
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/revenue', require('./routes/revenueRoutes')); // Keep for backward compatibility or remove if preferred

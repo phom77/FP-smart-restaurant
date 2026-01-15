@@ -3,8 +3,10 @@ import MenuPage from './pages/customer/MenuPage';
 import CartPage from './pages/customer/CartPage';
 import OrderTrackingPage from './pages/customer/OrderTrackingPage';
 import MyOrdersPage from './pages/customer/MyOrdersPage';
+import ProfilePage from './pages/customer/ProfilePage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import GoogleCallback from './pages/auth/GoogleCallback';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminSidebar from './pages/admin/AdminSidebar';
 import MenuManagement from './pages/admin/MenuManagement';
@@ -19,12 +21,14 @@ import KitchenDisplayPage from './pages/kitchen/KitchenDisplayPage';
 import CheckoutPage from './pages/customer/CustomerCheckoutPage'; // <-- Đảm bảo file này tồn tại
 import WaiterBillPage from './pages/waiter/WaiterBillPage';
 import { Toaster } from 'react-hot-toast';
+import GuestActiveOrdersBanner from './components/customer/GuestActiveOrdersBanner'; // Import Banner
 import './App.css';
 
 function App() {
   return (
     <>
       <Toaster position="top-right" />
+      <GuestActiveOrdersBanner /> {/* Persistent Banner for Guests */}
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LoginPage />} />
@@ -35,6 +39,8 @@ function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
+        <Route path="/profile" element={<ProfilePage />} />
 
         {/* Admin Routes */}
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>

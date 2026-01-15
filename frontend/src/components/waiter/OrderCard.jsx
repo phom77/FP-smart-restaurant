@@ -83,12 +83,13 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                 <span className="text-gray-700 font-medium">{item.menu_item?.name || 'Unknown'}</span>
 
                                 {/* Hiển thị trạng thái từng món nhỏ */}
-                                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-tighter ${item.status === 'ready' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                    item.status === 'preparing' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                        item.status === 'served' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                            'bg-gray-50 text-gray-500 border-gray-100'
+                                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-tighter ${item.status === 'pending' ? 'bg-red-100 text-red-600 border-red-200 animate-pulse' :
+                                        item.status === 'ready' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                            item.status === 'preparing' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                item.status === 'served' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                    'bg-gray-50 text-gray-500 border-gray-100'
                                     }`}>
-                                    {t(`waiter.status.${item.status}`)}
+                                    {item.status === 'pending' ? 'MỚI' : t(`waiter.status.${item.status}`)}
                                 </span>
                             </div>
                         </li>
@@ -164,6 +165,18 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                     {t('waiter.confirm_payment')}
                                 </button>
                             )}
+                        <>
+                            {/* --- 🟢 NÚT XÁC NHẬN MÓN MỚI (Quick Action) --- */}
+                            {order.items?.filter(item => item.status === 'pending').length > 0 && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onAccept(order.id); }}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-md mb-2 w-full flex items-center justify-center gap-2 animate-pulse"
+                                >
+                                    <span className="material-symbols-outlined text-sm">restaurant_menu</span>
+                                    Xác nhận {order.items.filter(item => item.status === 'pending').length} món thêm
+                                </button>
+                            )}
+                            {/* --------------------------------------------- */}
 
                             {isPaid ? (
                                 <button
