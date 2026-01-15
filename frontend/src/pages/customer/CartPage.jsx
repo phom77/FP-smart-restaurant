@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { saveGuestOrder } from '../../utils/guestOrders';
@@ -8,10 +8,12 @@ import api from '../../services/api';
 export default function CartPage() {
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams] = useSearchParams();
     const { user } = useAuth();
     const { cart, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart();
     const [tables, setTables] = useState([]);
     const [selectedTable, setSelectedTable] = useState('');
+    const [qrTableId, setQrTableId] = useState(null); // Track if table came from QR
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -37,11 +39,23 @@ export default function CartPage() {
         };
         fetchTables();
 
-        // If adding to existing order, pre-select the table
+        // Check for table parameter from QR code scan (from URL or localStorage)
+        const tableFromUrl = searchParams.get('table');
+        const tableFromStorage = localStorage.getItem('qr_table_id');
+
+        // Priority: existingTableId > tableFromUrl > tableFromStorage
         if (existingTableId) {
             setSelectedTable(existingTableId);
+        } else if (tableFromUrl) {
+            setSelectedTable(tableFromUrl);
+            setQrTableId(tableFromUrl);
+            // Store in localStorage so it persists when navigating from menu to cart
+            localStorage.setItem('qr_table_id', tableFromUrl);
+        } else if (tableFromStorage) {
+            setSelectedTable(tableFromStorage);
+            setQrTableId(tableFromStorage);
         }
-    }, [existingTableId]);
+    }, [existingTableId, searchParams]);
 
     // Handle checkout
     const handleCheckout = async () => {
@@ -101,6 +115,7 @@ export default function CartPage() {
                 // Clear localStorage flags
                 localStorage.removeItem('addToOrderId');
                 localStorage.removeItem('addToTableId');
+                localStorage.removeItem('qr_table_id'); // Clear QR table ID
 
                 // Clear cart
                 clearCart();
@@ -166,8 +181,8 @@ export default function CartPage() {
                     </div>
                 )}
 
-                {/* Table Selection - Only show when creating new order */}
-                {!existingOrderId && (
+                {/* Table Selection - Only show when creating new order AND no QR table */}
+                {!existingOrderId && !qrTableId && (
                     <div className="mb-6 bg-white rounded-2xl shadow-md p-6">
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Chọn bàn <span className="text-red-500">*</span>
@@ -179,14 +194,26 @@ export default function CartPage() {
                             required
                         >
                             <option value="">-- Chọn bàn --</option>
-                            {tables
-                                .filter(table => table.status === 'available')
-                                .map(table => (
-                                    <option key={table.id} value={table.id}>
-                                        Bàn {table.table_number} (Sức chứa: {table.capacity} người)
-                                    </option>
-                                ))}
+                            {tables.map(table => (
+                                <option
+                                    key={table.id}
+                                    value={table.id}
+                                    disabled={table.status !== 'available' && table.id !== selectedTable}
+                                >
+                                    Bàn {table.table_number} - {table.status === 'available' ? '✓ Trống' : table.status === 'occupied' ? '✗ Đang dùng' : '⏳ Đã đặt'} (Sức chứa: {table.capacity} người)
+                                </option>
+                            ))}
                         </select>
+                    </div>
+                )}
+
+                {/* Info message when table is from QR code */}
+                {qrTableId && !existingOrderId && (
+                    <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl">
+                        <p className="font-semibold">📱 Đã quét mã QR</p>
+                        <p className="text-sm mt-1">
+                            Bàn {tables.find(t => t.id === qrTableId)?.table_number || qrTableId} đã được chọn tự động
+                        </p>
                     </div>
                 )}
 

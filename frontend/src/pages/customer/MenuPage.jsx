@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import MenuCard from '../../components/MenuCard';
 import ItemDetailModal from '../../components/ItemDetailModal';
@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export default function MenuPage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { user } = useAuth();
     const [categories, setCategories] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
@@ -20,6 +21,14 @@ export default function MenuPage() {
     const [selectedItem, setSelectedItem] = useState(null);
     const [showGuestModal, setShowGuestModal] = useState(false);
     const { getCartCount } = useCart();
+
+    // Store table ID from QR code scan
+    useEffect(() => {
+        const tableFromUrl = searchParams.get('table');
+        if (tableFromUrl) {
+            localStorage.setItem('qr_table_id', tableFromUrl);
+        }
+    }, [searchParams]);
 
     // Check if user has seen the modal before
     useEffect(() => {
