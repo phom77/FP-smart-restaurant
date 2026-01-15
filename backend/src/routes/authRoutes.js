@@ -7,4 +7,8 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.get('/me', verifyToken, authController.getMe);
 
+// Google OAuth routes
+router.get('/google', authController.googleAuth);
+router.get('/google/callback', authController.googleCallback);
+
 module.exports = router;

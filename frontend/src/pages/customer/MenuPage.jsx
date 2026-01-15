@@ -18,7 +18,26 @@ export default function MenuPage() {
     const [loading, setLoading] = useState(true);
     const [searchLoading, setSearchLoading] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
+    const [showGuestModal, setShowGuestModal] = useState(false);
     const { getCartCount } = useCart();
+
+    // Check if user has seen the modal before
+    useEffect(() => {
+        const hasSeenModal = localStorage.getItem('hasSeenGuestModal');
+        if (!user && !hasSeenModal) {
+            setShowGuestModal(true);
+        }
+    }, [user]);
+
+    const handleContinueAsGuest = () => {
+        localStorage.setItem('hasSeenGuestModal', 'true');
+        setShowGuestModal(false);
+    };
+
+    const handleGoToLogin = () => {
+        localStorage.setItem('hasSeenGuestModal', 'true');
+        navigate('/login');
+    };
 
     // Fetch categories
     useEffect(() => {
@@ -150,6 +169,28 @@ export default function MenuPage() {
                             </button>
                         )}
 
+                        {/* Profile Button */}
+                        {user && (
+                            <button
+                                onClick={() => navigate('/profile')}
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
+                            >
+                                <span>👤</span>
+                                <span>Tài khoản</span>
+                            </button>
+                        )}
+
+                        {/* Login Button - Only show for guests */}
+                        {!user && (
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
+                            >
+                                <span>🔐</span>
+                                <span>Đăng nhập</span>
+                            </button>
+                        )}
+
                         {/* Cart Icon */}
                         <div className="relative">
                             <button
@@ -253,6 +294,49 @@ export default function MenuPage() {
                         item={selectedItem}
                         onClose={() => setSelectedItem(null)}
                     />
+                )}
+
+                {/* Guest/Customer Selection Modal */}
+                {showGuestModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all">
+                            <div className="text-center mb-6">
+                                <div className="text-6xl mb-4">👋</div>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">Chào mừng đến với nhà hàng!</h2>
+                                <p className="text-gray-600">Bạn muốn đặt món như thế nào?</p>
+                            </div>
+
+                            <div className="space-y-4">
+                                {/* Customer Button */}
+                                <button
+                                    onClick={handleGoToLogin}
+                                    className="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white py-4 px-6 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-600 transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-3"
+                                >
+                                    <span className="text-2xl">👤</span>
+                                    <div className="text-left">
+                                        <div className="font-bold">Tôi là khách hàng</div>
+                                        <div className="text-sm opacity-90">Đăng nhập để theo dõi đơn hàng</div>
+                                    </div>
+                                </button>
+
+                                {/* Guest Button */}
+                                <button
+                                    onClick={handleContinueAsGuest}
+                                    className="w-full bg-gray-100 text-gray-700 py-4 px-6 rounded-xl font-semibold hover:bg-gray-200 transition-all shadow-md hover:shadow-lg hover:scale-105 flex items-center justify-center gap-3"
+                                >
+                                    <span className="text-2xl">🍽️</span>
+                                    <div className="text-left">
+                                        <div className="font-bold">Tiếp tục như khách</div>
+                                        <div className="text-sm opacity-75">Đặt món không cần đăng nhập</div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <p className="text-xs text-gray-500 text-center mt-6">
+                                Bạn có thể đăng nhập sau để xem lịch sử đơn hàng
+                            </p>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
