@@ -104,7 +104,7 @@ exports.updateOrderStatus = async (req, res) => {
       // 2. BẮN SOCKET CHO BẾP
       const io = getIO();
       console.log(`📢 Emit new_order to Kitchen for Order #${id}`);
-      
+
       io.to('kitchen').emit('new_order', {
         message: 'Có món mới được duyệt',
         order_id: id,
@@ -653,8 +653,9 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
 };
 
 exports.addItemsToOrder = async (req, res) => {
-  // This endpoint can be used directly if needed
-  const { orderId, items } = req.body;
+  // Support both routes: POST /:id/items (orderId in params) and POST /add-items (orderId in body)
+  const orderId = req.params.id || req.body.orderId;
+  const { items } = req.body;
   return await addItemsToExistingOrder(req, res, orderId, items);
 };
 

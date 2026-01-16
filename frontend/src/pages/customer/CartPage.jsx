@@ -89,8 +89,7 @@ export default function CartPage() {
             // Check if adding to existing order or creating new one
             if (existingOrderId) {
                 // Add items to existing order
-                response = await api.post('/api/orders/add-items', {
-                    orderId: existingOrderId,
+                response = await api.post(`/api/orders/${existingOrderId}/items`, {
                     items: items
                 });
                 orderId = existingOrderId;

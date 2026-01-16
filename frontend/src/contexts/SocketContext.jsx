@@ -10,23 +10,37 @@ export const useSocket = () => useContext(SocketContext);
 export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
     // Lấy token từ localStorage (hoặc từ AuthContext nếu bạn muốn truyền vào)
-    const token = localStorage.getItem('token'); 
+    // const token = localStorage.getItem('token'); // This line is moved inside useEffect
 
     useEffect(() => {
-        if (!token) return; // Không có token thì không connect
+        // ✅ Kết nối WebSocket cho cả guest và authenticated users
+        const token = localStorage.getItem('token');
 
         const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5001', {
             withCredentials: true,
             transports: ['websocket', 'polling'],
             auth: {
-                token: token 
+                token: token || null // Gửi token nếu có, null nếu là guest
             }
+        });
+
+        console.log('🔌 Connecting to WebSocket...', token ? 'with token' : 'as guest');
+
+        newSocket.on('connect', () => {
+            console.log('✅ WebSocket connected:', newSocket.id);
+        });
+
+        newSocket.on('connect_error', (error) => {
+            console.error('❌ WebSocket connection error:', error.message);
         });
 
         setSocket(newSocket);
 
-        return () => newSocket.close();
-    }, [token]); // Thêm token vào dependency
+        return () => {
+            console.log('🔌 Disconnecting WebSocket...');
+            newSocket.close();
+        };
+    }, []); // Chỉ connect một lần khi component mount
 
     return (
         <SocketContext.Provider value={socket}>
