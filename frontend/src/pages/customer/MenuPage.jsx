@@ -189,6 +189,24 @@ export default function MenuPage() {
                             </button>
                         )}
 
+                        {/* Logout Button - Only show for logged-in users */}
+                        {user && (
+                            <button
+                                onClick={() => {
+                                    if (window.confirm('Bạn có chắc muốn đăng xuất?')) {
+                                        localStorage.removeItem('token');
+                                        localStorage.removeItem('user');
+                                        window.location.href = '/menu';
+                                    }
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
+                            >
+                                <span>🚪</span>
+                                <span>Đăng xuất</span>
+                            </button>
+                        )}
+
+
                         {/* Login Button - Only show for guests */}
                         {!user && (
                             <button

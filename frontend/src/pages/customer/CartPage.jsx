@@ -57,6 +57,36 @@ export default function CartPage() {
         }
     }, [existingTableId, searchParams]);
 
+    // ✅ Validate existing order is still valid (not completed/paid)
+    useEffect(() => {
+        const validateExistingOrder = async () => {
+            if (existingOrderId) {
+                try {
+                    const response = await api.get(`/api/orders/${existingOrderId}`);
+                    const order = response.data.data;
+
+                    // If order is completed or paid, clear localStorage
+                    if (order.status === 'completed' ||
+                        order.status === 'cancelled' ||
+                        order.payment_status === 'paid' ||
+                        order.payment_status === 'success') {
+                        console.log('⚠️ Order đã hoàn thành/thanh toán, xóa localStorage');
+                        localStorage.removeItem('addToOrderId');
+                        localStorage.removeItem('addToTableId');
+                        // Reload page to reset state
+                        window.location.reload();
+                    }
+                } catch (err) {
+                    console.error('Error validating order:', err);
+                    // If order not found, clear localStorage
+                    localStorage.removeItem('addToOrderId');
+                    localStorage.removeItem('addToTableId');
+                }
+            }
+        };
+        validateExistingOrder();
+    }, [existingOrderId]);
+
     // Handle checkout
     const handleCheckout = async () => {
         setError('');
