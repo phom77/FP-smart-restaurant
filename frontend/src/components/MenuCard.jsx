@@ -20,6 +20,13 @@ export default function MenuCard({ item, onClick }) {
                         e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400';
                     }}
                 />
+                {/* Chef's Choice Badge */}
+                {item.is_chef_recommendation && (
+                    <div className="absolute top-3 left-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+                        <span>👨‍🍳</span>
+                        <span>Chef's Choice</span>
+                    </div>
+                )}
                 {!item.is_available && (
                     <div className="absolute top-3 right-3 bg-red-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg">
                         Hết món

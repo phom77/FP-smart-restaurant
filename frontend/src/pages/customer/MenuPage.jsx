@@ -23,6 +23,7 @@ export default function MenuPage() {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [showChefRecommendation, setShowChefRecommendation] = useState(false);
     const observer = useRef();
     const { getCartCount } = useCart();
 
@@ -143,6 +144,11 @@ export default function MenuPage() {
                         params.sort_by = 'popularity';
                     }
 
+                    if (showChefRecommendation) {
+                        params.chef_recommendation = 'true';
+                    }
+
+
                     const response = await api.get('/api/menu/items', { params });
 
                     // Append items for infinite scroll
@@ -166,14 +172,14 @@ export default function MenuPage() {
         };
 
         fetchMenuItems();
-    }, [selectedCategory, debouncedSearch, sortBy, page]);
+    }, [selectedCategory, debouncedSearch, sortBy, page, showChefRecommendation]);
 
     // Reset page when filters change
     useEffect(() => {
         setPage(1);
         setMenuItems([]);
         setHasMore(true);
-    }, [selectedCategory, sortBy, debouncedSearch]);
+    }, [selectedCategory, sortBy, debouncedSearch, showChefRecommendation]);
 
     const handleItemClick = async (item) => {
         try {
@@ -347,6 +353,19 @@ export default function MenuPage() {
                         <option value="price_asc">Giá tăng dần</option>
                         <option value="price_desc">Giá giảm dần</option>
                     </select>
+
+                    {/* Chef's Choice Filter */}
+                    <button
+                        onClick={() => setShowChefRecommendation(!showChefRecommendation)}
+                        className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg hover:scale-105 ${showChefRecommendation
+                                ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                    >
+                        <span>👨‍🍳</span>
+                        <span>Chef's Choice</span>
+                        {showChefRecommendation && <span className="text-xs">✓</span>}
+                    </button>
                 </div>
 
                 {/* Menu Items Grid */}

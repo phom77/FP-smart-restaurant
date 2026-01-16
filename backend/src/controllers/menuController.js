@@ -70,6 +70,7 @@ exports.getMenuItems = async (req, res) => {
             search,
             sort_by = 'name',
             is_available,
+            chef_recommendation,
             page = 1,
             limit = 20
         } = req.query;
@@ -79,8 +80,8 @@ exports.getMenuItems = async (req, res) => {
         const limitNum = parseInt(limit);
         const offset = (pageNum - 1) * limitNum;
 
-        // 2. Create Cache Key (include pagination)
-        const cacheKey = `menu_${category_id || 'all'}_${search || 'none'}_${sort_by}_${is_available || 'all'}_page${page}_limit${limit}`;
+        // 2. Create Cache Key (include pagination and filters)
+        const cacheKey = `menu_${category_id || 'all'}_${search || 'none'}_${sort_by}_${is_available || 'all'}_${chef_recommendation || 'all'}_page${page}_limit${limit}`;
 
         // 3. Check Redis cache first
         try {
@@ -106,6 +107,11 @@ exports.getMenuItems = async (req, res) => {
         // Filter by availability
         if (is_available !== undefined) {
             query = query.eq('is_available', is_available === 'true');
+        }
+
+        // Filter by chef recommendation
+        if (chef_recommendation === 'true') {
+            query = query.eq('is_chef_recommendation', true);
         }
 
         // Search by name
