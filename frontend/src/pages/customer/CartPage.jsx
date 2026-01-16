@@ -68,7 +68,7 @@ export default function CartPage() {
         }
 
         if (!selectedTable && !existingOrderId) {
-            setError('Vui lòng chọn bàn');
+            setError('Vui lòng quét mã QR tại bàn để đặt món');
             return;
         }
 
@@ -181,29 +181,20 @@ export default function CartPage() {
                     </div>
                 )}
 
-                {/* Table Selection - Only show when creating new order AND no QR table */}
+                {/* Message when no QR code scanned - Prompt user to scan */}
                 {!existingOrderId && !qrTableId && (
-                    <div className="mb-6 bg-white rounded-2xl shadow-md p-6">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Chọn bàn <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                            value={selectedTable}
-                            onChange={(e) => setSelectedTable(e.target.value)}
-                            className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:border-emerald-500 transition-all"
-                            required
-                        >
-                            <option value="">-- Chọn bàn --</option>
-                            {tables.map(table => (
-                                <option
-                                    key={table.id}
-                                    value={table.id}
-                                    disabled={table.status !== 'available' && table.id !== selectedTable}
-                                >
-                                    Bàn {table.table_number} - {table.status === 'available' ? '✓ Trống' : table.status === 'occupied' ? '✗ Đang dùng' : '⏳ Đã đặt'} (Sức chứa: {table.capacity} người)
-                                </option>
-                            ))}
-                        </select>
+                    <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-2xl shadow-md p-6">
+                        <div className="flex items-start gap-4">
+                            <div className="text-4xl">📱</div>
+                            <div className="flex-1">
+                                <p className="font-bold text-amber-800 text-lg mb-2">
+                                    Vui lòng quét mã QR tại bàn
+                                </p>
+                                <p className="text-amber-700 text-sm">
+                                    Để đặt món, bạn cần quét mã QR được đặt trên bàn. Mã QR sẽ tự động chọn bàn cho bạn.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 )}
 
