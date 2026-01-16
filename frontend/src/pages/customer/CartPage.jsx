@@ -1,30 +1,91 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { saveGuestOrder } from '../../utils/guestOrders';
 import api from '../../services/api';
 
 export default function CartPage() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
     const { user } = useAuth();
     const { cart, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart();
     const [tables, setTables] = useState([]);
     const [selectedTable, setSelectedTable] = useState('');
+    const [qrTableId, setQrTableId] = useState(null); // Track if table came from QR
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Get existing order info from localStorage (set by OrderTrackingPage)
+    // Get existing order info from localStorage (set by OrderTrackingPage)
+    const [existingOrderId] = useState(() => {
+        return localStorage.getItem('addToOrderId');
+    });
+
+    const [existingTableId] = useState(() => {
+        return localStorage.getItem('addToTableId');
+    });
 
     // Fetch available tables
     useEffect(() => {
         const fetchTables = async () => {
             try {
-                const response = await api.get('/api/tables');
+                const response = await api.get('/api/admin/tables');
                 setTables(response.data.data || []);
             } catch (err) {
                 console.error('Error fetching tables:', err);
             }
         };
         fetchTables();
-    }, []);
+
+        // Check for table parameter from QR code scan (from URL or localStorage)
+        const tableFromUrl = searchParams.get('table');
+        const tableFromStorage = localStorage.getItem('qr_table_id');
+
+        // Priority: existingTableId > tableFromUrl > tableFromStorage
+        if (existingTableId) {
+            setSelectedTable(existingTableId);
+        } else if (tableFromUrl) {
+            setSelectedTable(tableFromUrl);
+            setQrTableId(tableFromUrl);
+            // Store in localStorage so it persists when navigating from menu to cart
+            localStorage.setItem('qr_table_id', tableFromUrl);
+        } else if (tableFromStorage) {
+            setSelectedTable(tableFromStorage);
+            setQrTableId(tableFromStorage);
+        }
+    }, [existingTableId, searchParams]);
+
+    // ✅ Validate existing order is still valid (not completed/paid)
+    useEffect(() => {
+        const validateExistingOrder = async () => {
+            if (existingOrderId) {
+                try {
+                    const response = await api.get(`/api/orders/${existingOrderId}`);
+                    const order = response.data.data;
+
+                    // If order is completed or paid, clear localStorage
+                    if (order.status === 'completed' ||
+                        order.status === 'cancelled' ||
+                        order.payment_status === 'paid' ||
+                        order.payment_status === 'success') {
+                        console.log('⚠️ Order đã hoàn thành/thanh toán, xóa localStorage');
+                        localStorage.removeItem('addToOrderId');
+                        localStorage.removeItem('addToTableId');
+                        // Reload page to reset state
+                        window.location.reload();
+                    }
+                } catch (err) {
+                    console.error('Error validating order:', err);
+                    // If order not found, clear localStorage
+                    localStorage.removeItem('addToOrderId');
+                    localStorage.removeItem('addToTableId');
+                }
+            }
+        };
+        validateExistingOrder();
+    }, [existingOrderId]);
 
     // Handle checkout
     const handleCheckout = async () => {
@@ -36,35 +97,60 @@ export default function CartPage() {
             return;
         }
 
-        if (!selectedTable) {
-            setError('Vui lòng chọn bàn');
+        if (!selectedTable && !existingOrderId) {
+            setError('Vui lòng quét mã QR tại bàn để đặt món');
             return;
         }
 
         setLoading(true);
 
         try {
-            // Prepare order data
-            const orderData = {
-                table_id: selectedTable,
-                customer_id: user?.id || null,
-                items: cart.map(item => ({
-                    menu_item_id: item.id,
-                    quantity: item.quantity,
-                    notes: item.notes || '',
-                    modifiers: item.modifiers?.map(m => m.id) || []
-                }))
-            };
+            // Prepare items data
+            const items = cart.map(item => ({
+                menu_item_id: item.id,
+                quantity: item.quantity,
+                notes: item.notes || '',
+                modifiers: item.modifiers?.map(m => m.id) || []
+            }));
 
-            // Submit order
-            const response = await api.post('/api/orders', orderData);
+            let response;
+            let orderId;
+
+            // Check if adding to existing order or creating new one
+            if (existingOrderId) {
+                // Add items to existing order
+                response = await api.post(`/api/orders/${existingOrderId}/items`, {
+                    items: items
+                });
+                orderId = existingOrderId;
+            } else {
+                // Create new order
+                const orderData = {
+                    table_id: selectedTable,
+                    customer_id: user?.id || null,
+                    items: items
+                };
+
+                response = await api.post('/api/orders', orderData);
+                orderId = response.data.order_id;
+
+                // Save order ID for guest users (so they can claim it later)
+                if (!user) {
+                    saveGuestOrder(orderId);
+                }
+            }
 
             if (response.data.success) {
+                // Clear localStorage flags
+                localStorage.removeItem('addToOrderId');
+                localStorage.removeItem('addToTableId');
+                localStorage.removeItem('qr_table_id'); // Clear QR table ID
+
                 // Clear cart
                 clearCart();
 
                 // Navigate to order tracking
-                navigate(`/orders/${response.data.order_id}`);
+                navigate(`/orders/${orderId}`);
             }
         } catch (err) {
             console.error('Checkout error:', err);
@@ -124,27 +210,52 @@ export default function CartPage() {
                     </div>
                 )}
 
-                {/* Table Selection */}
-                <div className="mb-6 bg-white rounded-2xl shadow-md p-6">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Chọn bàn <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                        value={selectedTable}
-                        onChange={(e) => setSelectedTable(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-base focus:outline-none focus:border-emerald-500 transition-all"
-                        required
-                    >
-                        <option value="">-- Chọn bàn --</option>
-                        {tables
-                            .filter(table => table.status === 'available')
-                            .map(table => (
-                                <option key={table.id} value={table.id}>
-                                    Bàn {table.table_number} (Sức chứa: {table.capacity} người)
-                                </option>
-                            ))}
-                    </select>
-                </div>
+                {/* Message when no QR code scanned - Prompt user to scan */}
+                {!existingOrderId && !qrTableId && (
+                    <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-2xl shadow-md p-6">
+                        <div className="flex items-start gap-4">
+                            <div className="text-4xl">📱</div>
+                            <div className="flex-1">
+                                <p className="font-bold text-amber-800 text-lg mb-2">
+                                    Vui lòng quét mã QR tại bàn
+                                </p>
+                                <p className="text-amber-700 text-sm">
+                                    Để đặt món, bạn cần quét mã QR được đặt trên bàn. Mã QR sẽ tự động chọn bàn cho bạn.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Info message when table is from QR code */}
+                {qrTableId && !existingOrderId && (
+                    <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl">
+                        <p className="font-semibold">📱 Đã quét mã QR</p>
+                        <p className="text-sm mt-1">
+                            Bàn {tables.find(t => t.id === qrTableId)?.table_number || qrTableId} đã được chọn tự động
+                        </p>
+                    </div>
+                )}
+
+                {/* Info message when adding to existing order */}
+                {existingOrderId && (
+                    <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl flex justify-between items-center flex-wrap gap-4">
+                        <div>
+                            <p className="font-semibold">📝 Đang thêm món vào đơn hàng hiện tại</p>
+                            <p className="text-sm mt-1">Món mới sẽ được thêm vào order #{existingOrderId.slice(0, 8)}</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem('addToOrderId');
+                                localStorage.removeItem('addToTableId');
+                                window.location.reload();
+                            }}
+                            className="bg-white border border-blue-300 text-blue-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 shadow-sm transition-all whitespace-nowrap"
+                        >
+                            Hủy & Tạo đơn mới
+                        </button>
+                    </div>
+                )}
 
                 {/* Cart Items */}
                 <div className="space-y-4 mb-6">

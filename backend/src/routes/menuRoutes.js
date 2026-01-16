@@ -5,6 +5,7 @@ const recommendationController = require('../controllers/recommendationControlle
 const { cacheMiddleware } = require('../middleware/cacheMiddleware');
 
 // Public routes (no authentication required)
+router.get('/', menuController.verifyMenuToken);
 router.get('/items', cacheMiddleware(3600), menuController.getMenuItems);
 router.get('/items/:id', menuController.getMenuItem);
 router.get('/items/:id/reviews', menuController.getMenuItemReviews);

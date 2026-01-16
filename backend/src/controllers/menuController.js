@@ -1,13 +1,72 @@
 const supabase = require('../config/supabaseClient');
 const { clearCache } = require('../middleware/cacheMiddleware');
 const redisClient = require('../config/redisClient');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-default-secret';
+
+// GET /api/menu - Verify QR token and load data
+exports.verifyMenuToken = async (req, res) => {
+    try {
+        const { table, token } = req.query;
+
+        if (!table || !token) {
+            return res.status(400).json({ success: false, error: 'Missing table identity or token' });
+        }
+
+        // 1. Verify JWT Signature
+        let decoded;
+        try {
+            decoded = jwt.verify(token, JWT_SECRET);
+        } catch (jwtErr) {
+            console.warn(`[SECURITY] QR JWT Verification Failed for table ${table}:`, jwtErr.message);
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid or expired QR code. Please ask staff for assistance.'
+            });
+        }
+
+        // 2. Check Database for matching token and table status
+        const { data: tableData, error: tableError } = await supabase
+            .from('tables')
+            .select('*')
+            .eq('id', table)
+            .single();
+
+        if (tableError || !tableData) {
+            return res.status(404).json({ success: false, error: 'Table not found' });
+        }
+
+        if (tableData.qr_code_token !== token) {
+            console.warn(`[SECURITY] Invalid token attempt for table ${tableData.table_number}. Token does not match database.`);
+            return res.status(401).json({
+                success: false,
+                error: 'This QR code is no longer valid. Please ask staff for assistance.'
+            });
+        }
+
+        // 3. Return Table Info (Menu items can be fetched separately or here)
+        res.status(200).json({
+            success: true,
+            table: {
+                id: tableData.id,
+                number: tableData.table_number,
+                location: tableData.location,
+                status: tableData.status
+            }
+        });
+
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
 
 // GET /api/menu/items - Get all menu items with filters
 exports.getMenuItems = async (req, res) => {
     try {
         // 1. Lấy đủ tất cả tham số như code cũ
         const { category_id, search, sort_by = 'name', is_available } = req.query;
-        
+
         // 2. Tạo Cache Key ĐẦY ĐỦ (Bao gồm cả sort và available để không bị lẫn lộn kết quả)
         // Ví dụ key: menu_cat1_searchNone_priceAsc_true
         const cacheKey = `menu_${category_id || 'all'}_${search || 'none'}_${sort_by}_${is_available || 'all'}`;

@@ -3,7 +3,11 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
+const passport = require('passport');
 const { initSocket } = require('./config/socket');
+
+// Initialize Passport configuration
+require('./config/passportConfig');
 
 const app = express();
 const server = http.createServer(app);
@@ -27,16 +31,18 @@ app.use(cors({
   credentials: true // Cho phép gửi cookie/token nếu cần
 }));
 app.use(express.json());
+app.use(passport.initialize());
 
 // Serve static files from uploads directory
 
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/orders', orderRoutes);
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/revenue', require('./routes/revenueRoutes')); // Keep for backward compatibility or remove if preferred
-app.use('/api/tables', tableRoutes);
+app.use('/api/admin/tables', tableRoutes);
 app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/menu', menuRoutes);
@@ -44,6 +50,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/system', require('./routes/systemRoutes'));
+app.use('/api/super-admin', require('./routes/superAdminRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Hello from Smart Restaurant Backend (Running on Docker WSL)!');

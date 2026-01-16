@@ -1,116 +1,138 @@
 const supabase = require('../config/supabaseClient');
+const { getIO } = require('../config/socket');
 
+// GET /api/kitchen/items - Lấy danh sách đơn hàng cho Bếp
 exports.getKitchenItems = async (req, res) => {
   try {
-    // 1. Lấy dữ liệu thô (Flat list)
-    const { data, error } = await supabase
-      .from('order_items')
+    const { data: orders, error } = await supabase
+      .from('orders')
       .select(`
-        id, quantity, notes, status, created_at,
-        menu_items (id, name, image_url),
-        orders (table_id, tables (table_number)),
-        order_item_modifiers (modifier_name)
+        id, 
+        created_at, 
+        status, 
+        payment_status,
+        tables (table_number),
+        order_items (
+          id, 
+          quantity, 
+          notes, 
+          status, 
+          created_at,
+          menu_items (id, name, image_url),
+          order_item_modifiers (modifier_name, price)
+        )
       `)
-      .in('status', ['pending', 'preparing']) // Lấy cả pending để bếp biết sắp có gì
-      .order('created_at', { ascending: true }); // Cũ nhất lên đầu
+      .eq('status', 'processing')
+      .order('created_at', { ascending: true });
 
     if (error) throw error;
 
-    // 2. LOGIC GOM NHÓM (GROUPING)
-    const groupedItems = [];
+    const filteredOrders = orders.map(order => {
+        const activeItems = order.order_items.filter(item => 
+            ['pending', 'preparing', 'ready'].includes(item.status)
+        );
+        
+        return {
+            ...order,
+            order_items: activeItems
+        };
+    }).filter(order => order.order_items.length > 0);
 
-    data.forEach(item => {
-      // Tạo một "chữ ký" duy nhất cho món ăn để so sánh
-      // Signature = ItemID + Status + Notes + Modifiers (đã sort)
-      const modifiersStr = item.order_item_modifiers
-        .map(m => m.modifier_name).sort().join(',');
-
-      const signature = `${item.menu_items.id}-${item.status}-${item.notes || ''}-${modifiersStr}`;
-
-      // Tìm xem nhóm này đã tồn tại chưa
-      const existingGroup = groupedItems.find(g => g.signature === signature);
-
-      if (existingGroup) {
-        // Nếu có rồi -> Cộng dồn số lượng và thêm ID vào danh sách con
-        existingGroup.total_quantity += item.quantity;
-        existingGroup.ids.push(item.id); // Lưu lại ID để xử lý update sau này
-        existingGroup.tables.push(item.orders?.tables?.table_number); // Lưu danh sách bàn
-      } else {
-        // Nếu chưa -> Tạo nhóm mới
-        groupedItems.push({
-          signature: signature,
-          menu_item_id: item.menu_items.id,
-          name: item.menu_items.name,
-          image_url: item.menu_items.image_url,
-          status: item.status,
-          notes: item.notes,
-          modifiers: item.order_item_modifiers.map(m => m.modifier_name),
-          total_quantity: item.quantity,
-          created_at: item.created_at, // Lấy thời gian của món đầu tiên (đợi lâu nhất)
-          ids: [item.id], // Danh sách các order_item_id con
-          tables: [item.orders?.tables?.table_number]
-        });
-      }
-    });
-
-    // Format lại danh sách bàn cho đẹp (VD: "Bàn T1, T2")
-    groupedItems.forEach(g => {
-      g.table_list = [...new Set(g.tables)].join(', ');
-    });
-
-    res.status(200).json({ success: true, data: groupedItems });
+    res.status(200).json({ success: true, data: filteredOrders });
 
   } catch (err) {
+    console.error("Kitchen Get Items Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
+// PUT /api/kitchen/items/:id - Cập nhật trạng thái món
 exports.updateItemStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
+  const validStatuses = ['pending', 'preparing', 'ready', 'served', 'rejected'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Status không hợp lệ' 
+    });
+  }
+
   try {
-    // 1. Update trạng thái món
+    // 1. Update DB & LẤY THÊM THÔNG TIN TABLE (Join orders)
+    // Đã xóa comment trong chuỗi select để tránh lỗi cú pháp
     const { data: updatedItem, error } = await supabase
       .from('order_items')
       .update({ status })
       .eq('id', id)
-      .select('order_id, menu_items(name)') // Lấy thêm order_id để check
+      .select(`
+        id,
+        order_id,
+        status,
+        menu_items(name),
+        orders (
+            table_id
+        )
+      `)
       .single();
 
     if (error) throw error;
 
-    const { getIO } = require('../config/socket');
     const io = getIO();
+    const itemName = updatedItem.menu_items?.name || 'Unknown';
+    const tableId = updatedItem.orders?.table_id;
 
-    // 2. Bắn socket báo món này đã xong (Logic cũ)
+    // 2. Bắn Socket cho WAITER
     io.to('waiter').emit('item_status_update', {
       itemId: id,
-      order_id: updatedItem.order_id, // Gửi thêm order_id để FE dễ xử lý
+      order_id: updatedItem.order_id,
       status: status,
-      message: `Món ${updatedItem.menu_items?.name} đã chuyển sang ${status}`
+      message: `Món ${itemName} → ${status}`
     });
 
+    // 3. Bắn Socket cho KITCHEN (sync màn hình khác)
+    io.to('kitchen').emit('kitchen_item_update', {
+      itemId: id,
+      order_id: updatedItem.order_id,
+      status: status
+    });
+
+    // 4. Bắn Socket cho KHÁCH HÀNG (Tracking Page)
+    if (tableId) {
+        // console.log(`📢 Update item status for Customer at Table ${tableId}`);
+        io.to(`table_${tableId}`).emit('item_status_update', {
+            itemId: id,
+            status: status,
+            order_id: updatedItem.order_id
+        });
+    }
+
+    // 5. Kiểm tra nếu CẢ ĐƠN đã xong
     if (status === 'ready') {
-      // Đếm xem trong đơn này còn món nào chưa xong không
       const { count } = await supabase
         .from('order_items')
         .select('*', { count: 'exact', head: true })
         .eq('order_id', updatedItem.order_id)
-        .neq('status', 'ready') // Đếm những món CHƯA ready
-        .neq('status', 'served') // Và chưa served
-        .neq('status', 'cancelled');
+        .in('status', ['pending', 'preparing']); 
 
       if (count === 0) {
+        // Tất cả món đã ready
         io.to('waiter').emit('order_ready_notification', {
           order_id: updatedItem.order_id,
-          message: '✅ Toàn bộ món ăn của đơn hàng đã Sẵn sàng!'
+          message: '✅ Đơn hàng đã hoàn tất! Có thể phục vụ.'
         });
       }
     }
 
-    res.status(200).json({ success: true, data: updatedItem });
+    res.status(200).json({ 
+      success: true, 
+      data: updatedItem,
+      message: `Đã cập nhật ${itemName} thành ${status}`
+    });
+
   } catch (err) {
+    console.error("Update Item Status Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

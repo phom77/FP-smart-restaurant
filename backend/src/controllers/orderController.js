@@ -34,6 +34,10 @@ exports.getOrders = async (req, res) => {
       query = query.eq('status', status);
     }
 
+    if (req.query.is_served) {
+      query = query.eq('is_served', req.query.is_served === 'true');
+    }
+
     const { data, error, count } = await query;
 
     if (error) throw error;
@@ -84,19 +88,28 @@ exports.updateOrderStatus = async (req, res) => {
       .from('orders')
       .update({ status, updated_at: new Date() })
       .eq('id', id)
-      .select()
+      .select('*, table:tables(table_number)') // Lấy thêm số bàn để hiển thị log
       .single();
 
     if (updateError) throw updateError;
 
     if (status === 'processing') {
-      const { error: itemError } = await supabase
+      // 1. Chuyển tất cả món 'pending' sang 'preparing'
+      await supabase
         .from('order_items')
-        .update({ status: 'preparing' }) // Chuyển sang đang nấu
+        .update({ status: 'preparing' })
         .eq('order_id', id)
-        .eq('status', 'pending'); // Chỉ chuyển những món đang chờ
+        .eq('status', 'pending');
 
-      if (itemError) throw itemError;
+      // 2. BẮN SOCKET CHO BẾP
+      const io = getIO();
+      console.log(`📢 Emit new_order to Kitchen for Order #${id}`);
+
+      io.to('kitchen').emit('new_order', {
+        message: 'Có món mới được duyệt',
+        order_id: id,
+        table_number: updatedOrder.table?.table_number
+      });
     }
 
     // C. Automate Table Status (Best effort)
@@ -157,6 +170,70 @@ exports.updateOrderStatus = async (req, res) => {
   }
 };
 
+// PUT /api/orders/:id/served
+exports.updateOrderServedStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_served } = req.body;
+
+    // Validation
+    if (typeof is_served !== 'boolean') {
+      return res.status(400).json({ success: false, message: 'Trạng thái served phải là boolean' });
+    }
+
+    // --- 🟢 FIX: Check if all items are ready ---
+    if (is_served) {
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('status')
+        .eq('order_id', id);
+
+      if (itemsError) throw itemsError;
+
+      const allReady = orderItems.every(item => item.status === 'ready' || item.status === 'served');
+      if (!allReady) {
+        return res.status(400).json({ success: false, message: 'Tất cả món ăn phải ở trạng thái Ready mới được phục vụ.' });
+      }
+    }
+    // -------------------------------------------
+
+    // Update Served Status
+    const { data: updatedOrder, error: updateError } = await supabase
+      .from('orders')
+      .update({ is_served, updated_at: new Date() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    // Socket Emit (Real-time updates)
+    const io = getIO();
+    io.to('waiter').emit('order_served_update', {
+      order_id: id,
+      is_served: is_served
+    });
+
+    // Notify table
+    if (updatedOrder.table_id) {
+      io.to(`table_${updatedOrder.table_id}`).emit('order_served_update', {
+        order_id: id,
+        is_served: is_served
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Cập nhật trạng thái phục vụ thành công',
+      data: updatedOrder
+    });
+
+  } catch (err) {
+    console.error("Update Order Served Status Error:", err);
+    res.status(500).json({ success: false, message: 'Lỗi cập nhật trạng thái phục vụ', error: err.message });
+  }
+};
+
 exports.createOrder = async (req, res) => {
   const { table_id, items, customer_id, notes } = req.body;
 
@@ -165,8 +242,26 @@ exports.createOrder = async (req, res) => {
   }
 
   try {
-    // --- 🟢 FIX 1: KIỂM TRA TRẠNG THÁI BÀN ---
-    // Trước khi làm gì cả, phải xem bàn này có đang ăn dở không
+    // --- CHECK IF TABLE HAS ACTIVE ORDER ---
+    // --- CHECK IF TABLE HAS ACTIVE ORDER ---
+    const { data: existingOrders, error: orderCheckError } = await supabase
+      .from('orders')
+      .select('id, status')
+      .eq('table_id', table_id)
+      .in('status', ['pending', 'processing'])
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (orderCheckError) throw orderCheckError;
+
+    // If there's an active order, add items to it instead of creating new order
+    if (existingOrders && existingOrders.length > 0) {
+      const existingOrderId = existingOrders[0].id;
+      // Use addItemsToOrder logic (will implement below)
+      return await addItemsToExistingOrder(req, res, existingOrderId, items);
+    }
+
+    // No active order, proceed with creating new order
     const { data: tableData, error: tableError } = await supabase
       .from('tables')
       .select('status, table_number')
@@ -174,15 +269,6 @@ exports.createOrder = async (req, res) => {
       .single();
 
     if (tableError) throw tableError;
-
-    // Nếu bàn đang có khách -> Chặn lại
-    if (tableData.status === 'occupied') {
-      return res.status(400).json({
-        success: false,
-        message: `Bàn ${tableData.table_number} đang có khách. Vui lòng dùng chức năng "Gọi thêm món" hoặc nhờ nhân viên hỗ trợ.`
-      });
-    }
-    // -----------------------------------------
 
     // 1. Lấy giá từ DB (Logic cũ - Giữ nguyên)
     const menuItemIds = items.map(item => item.menu_item_id);
@@ -397,10 +483,180 @@ exports.getOrder = async (req, res) => {
   }
 };
 
+// Helper function to add items to existing order
+const addItemsToExistingOrder = async (req, res, orderId, items) => {
+  try {
+    // 1. Get menu items and modifiers pricing
+    const menuItemIds = items.map(item => item.menu_item_id);
+    let modifierIds = [];
+    items.forEach(item => {
+      if (item.modifiers) modifierIds = [...modifierIds, ...item.modifiers];
+    });
+
+    const { data: dbMenuItems, error: menuError } = await supabase
+      .from('menu_items')
+      .select('id, price, name, is_available')
+      .in('id', menuItemIds);
+
+    if (menuError) throw menuError;
+
+    const unavailableItems = dbMenuItems.filter(item => !item.is_available);
+    if (unavailableItems.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Món "${unavailableItems[0].name}" hiện không có sẵn`
+      });
+    }
+
+    const { data: dbModifiers, error: modError } = await supabase
+      .from('modifiers')
+      .select('id, price_adjustment, name')
+      .in('id', modifierIds);
+
+    if (modError) throw modError;
+
+    const menuMap = new Map(dbMenuItems.map(i => [i.id, i]));
+    const modMap = new Map(dbModifiers.map(m => [m.id, m]));
+
+    // 2. Calculate prices and prepare items
+    let additionalAmount = 0;
+    const orderItemsData = [];
+
+    for (const item of items) {
+      const dbItem = menuMap.get(item.menu_item_id);
+      if (!dbItem) {
+        return res.status(400).json({ success: false, message: `Món ăn ID ${item.menu_item_id} không tồn tại` });
+      }
+
+      let itemUnitPrice = parseFloat(dbItem.price);
+      let modifiersData = [];
+
+      if (item.modifiers && item.modifiers.length > 0) {
+        item.modifiers.forEach(modId => {
+          const dbMod = modMap.get(modId);
+          if (dbMod) {
+            itemUnitPrice += parseFloat(dbMod.price_adjustment);
+            modifiersData.push({
+              modifier_id: modId,
+              modifier_name: dbMod.name,
+              price: dbMod.price_adjustment
+            });
+          }
+        });
+      }
+
+      const itemTotalPrice = itemUnitPrice * item.quantity;
+      additionalAmount += itemTotalPrice;
+
+      orderItemsData.push({
+        menu_item_id: item.menu_item_id,
+        quantity: item.quantity,
+        unit_price: itemUnitPrice,
+        total_price: itemTotalPrice,
+        notes: item.notes,
+        modifiers: modifiersData
+      });
+    }
+
+    // 3. Insert new items
+    for (const itemData of orderItemsData) {
+      const { data: newOrderItem, error: itemInsertError } = await supabase
+        .from('order_items')
+        .insert([{
+          order_id: orderId,
+          menu_item_id: itemData.menu_item_id,
+          quantity: itemData.quantity,
+          unit_price: itemData.unit_price,
+          total_price: itemData.total_price,
+          notes: itemData.notes,
+          status: 'pending'
+        }])
+        .select()
+        .single();
+
+      if (itemInsertError) throw itemInsertError;
+
+      if (itemData.modifiers.length > 0) {
+        const modifierInserts = itemData.modifiers.map(mod => ({
+          order_item_id: newOrderItem.id,
+          modifier_id: mod.modifier_id,
+          modifier_name: mod.modifier_name,
+          price: mod.price
+        }));
+
+        const { error: modInsertError } = await supabase
+          .from('order_item_modifiers')
+          .insert(modifierInserts);
+
+        if (modInsertError) throw modInsertError;
+      }
+    }
+
+    // 4. Update order total amount
+    const { data: currentOrder, error: fetchOrderError } = await supabase
+      .from('orders')
+      .select('total_amount, table_id')
+      .eq('id', orderId)
+      .single();
+
+    if (fetchOrderError) throw fetchOrderError;
+
+    const newTotalAmount = parseFloat(currentOrder.total_amount) + additionalAmount;
+
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        total_amount: newTotalAmount,
+        updated_at: new Date()
+      })
+      .eq('id', orderId);
+
+    if (updateError) throw updateError;
+
+    // 5. Emit socket event to waiter (use 'new_order' event so waiter sees it)
+    const io = getIO();
+    const { data: tableInfo } = await supabase
+      .from('tables')
+      .select('table_number')
+      .eq('id', currentOrder.table_id)
+      .single();
+
+    io.to('waiter').emit('new_order', {
+      order_id: orderId,
+      table_id: currentOrder.table_id,
+      table_number: tableInfo?.table_number,
+      items: orderItemsData,
+      message: `Bàn ${tableInfo?.table_number || currentOrder.table_id} vừa gọi thêm ${orderItemsData.length} món`,
+      is_additional: true // Flag to indicate this is adding to existing order
+    });
+
+    if (currentOrder.table_id) {
+      io.to(`table_${currentOrder.table_id}`).emit('order_items_added', {
+        order_id: orderId,
+        items_added: orderItemsData.length
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Đã thêm món vào đơn hàng hiện tại',
+      order_id: orderId,
+      items_added: orderItemsData.length,
+      additional_amount: additionalAmount,
+      new_total: newTotalAmount
+    });
+
+  } catch (err) {
+    console.error("Add Items to Order Error:", err);
+    res.status(500).json({ success: false, message: 'Lỗi thêm món vào đơn hàng', error: err.message });
+  }
+};
+
 exports.addItemsToOrder = async (req, res) => {
-  // Logic gọi thêm món (tương tự createOrder nhưng update vào order cũ)
-  // Tạm thời trả về success để không lỗi route
-  res.status(200).json({ success: true, message: "Tính năng gọi thêm món đang phát triển" });
+  // Support both routes: POST /:id/items (orderId in params) and POST /add-items (orderId in body)
+  const orderId = req.params.id || req.body.orderId;
+  const { items } = req.body;
+  return await addItemsToExistingOrder(req, res, orderId, items);
 };
 
 // POST /api/orders/:id/checkout - Thanh toán
@@ -473,5 +729,51 @@ exports.getCustomerOrders = async (req, res) => {
       message: 'Lỗi lấy danh sách đơn hàng',
       error: err.message
     });
+  }
+};
+
+// POST /api/orders/lookup - Lookup orders by IDs (for guests)
+exports.lookupOrders = async (req, res) => {
+  try {
+    const { orderIds } = req.body;
+
+    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        table_id,
+        status,
+        total_amount,
+        created_at,
+        table:tables(table_number),
+        items:order_items(count)
+      `)
+      .in('id', orderIds)
+      .in('status', ['pending', 'processing', 'completed', 'cancelled']) // Fetch all status
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const formattedData = orders.map(order => ({
+      id: order.id,
+      table_number: order.table?.table_number || 'N/A',
+      status: order.status,
+      total_amount: order.total_amount,
+      created_at: order.created_at,
+      items_count: order.items?.[0]?.count || 0
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedData
+    });
+
+  } catch (err) {
+    console.error("Lookup Orders Error:", err);
+    res.status(500).json({ success: false, message: 'Lỗi tra cứu đơn hàng', error: err.message });
   }
 };

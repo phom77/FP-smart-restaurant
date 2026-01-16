@@ -107,9 +107,20 @@ const OrderDetailModal = ({ order, onClose }) => {
                                 {order.items?.map((item, idx) => (
                                     <tr key={idx}>
                                         <td className="py-2">
-                                            <div>{item.menu_item?.name}</div>
+                                            <div className="flex items-center gap-2">
+                                                <span>{item.menu_item?.name}</span>
+                                                {/* Status Badge */}
+                                                <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${item.status === 'pending' ? 'bg-red-100 text-red-600 animate-pulse' :
+                                                        item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
+                                                            item.status === 'ready' ? 'bg-green-100 text-green-700' :
+                                                                item.status === 'served' ? 'bg-gray-100 text-gray-500 line-through' :
+                                                                    'bg-gray-100'
+                                                    }`}>
+                                                    {item.status === 'pending' ? 'MỚI' : item.status}
+                                                </span>
+                                            </div>
                                             {item.modifiers?.length > 0 && (
-                                                <div className="text-xs text-gray-500 italic">
+                                                <div className="text-xs text-gray-500 italic mt-0.5">
                                                     + {item.modifiers.map(m => m.modifier_name).join(', ')}
                                                 </div>
                                             )}
@@ -137,7 +148,25 @@ const OrderDetailModal = ({ order, onClose }) => {
                 {/* Footer Actions */}
                 <div className="p-5 border-t bg-gray-50 flex flex-col gap-3">
 
-                    {/* --- 🟢 HIỂN THỊ NÚT XÁC NHẬN NẾU ĐANG CHỜ THANH TOÁN --- */}
+                    {/* --- 🟢 HIỂN THỊ NÚT XÁC NHẬN MÓN MỚI (NẾU CÓ MÓN PENDING) --- */}
+                    {order.items?.some(item => item.status === 'pending') && (
+                        <button
+                            onClick={async () => {
+                                try {
+                                    await api.put(`/api/orders/${order.id}/status`, { status: 'processing' });
+                                    onClose();
+                                } catch (err) {
+                                    alert("Lỗi: " + (err.response?.data?.message || err.message));
+                                }
+                            }}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 animate-pulse"
+                        >
+                            <span className="material-symbols-outlined">restaurant_menu</span>
+                            Xác nhận món mới ({order.items.filter(i => i.status === 'pending').length})
+                        </button>
+                    )}
+
+                    {/* --- 🟢 HIỂN THỊ NÚT XÁC NHẬN THU TIỀN --- */}
                     {order.payment_status === 'waiting_payment' && (
                         <button
                             onClick={handleConfirmCash}

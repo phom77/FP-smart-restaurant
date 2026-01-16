@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 let io;
 
 const initSocket = (httpServer) => {
-    io = new Server(httpServer, {
+  io = new Server(httpServer, {
     cors: {
       origin: [
         "http://localhost:5173", // Frontend Local
@@ -19,28 +19,63 @@ const initSocket = (httpServer) => {
     // Lấy token từ client gửi lên (thường nằm trong auth object)
     const token = socket.handshake.auth.token;
 
+    // ✅ OPTIONAL AUTHENTICATION: Cho phép kết nối cả khi không có token
     if (!token) {
-      return next(new Error("Authentication error: Token not found"));
+      console.log('⚠️ Guest user connected (no token)');
+      socket.user = null; // Guest user
+      return next();
     }
 
     try {
-      // Verify token
+      // Verify token nếu có
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       // Lưu thông tin user vào socket để dùng sau này nếu cần
-      socket.user = decoded; 
+      socket.user = decoded;
+      console.log(`✅ Authenticated user connected: ${decoded.email || decoded.id}`);
       next();
     } catch (err) {
-      return next(new Error("Authentication error: Invalid token"));
+      console.log('⚠️ Invalid token, connecting as guest');
+      socket.user = null; // Token không hợp lệ, coi như guest
+      next();
     }
   });
 
   io.on('connection', (socket) => {
     console.log(`🔌 Client connected: ${socket.id}`);
 
-    // Join Room theo vai trò
+    // ✅ SECURE Join Room với kiểm tra quyền
     socket.on('join_room', (room) => {
+      const user = socket.user;
+
+      // 🔒 Kiểm tra quyền truy cập room
+      if (room === 'kitchen') {
+        // Chỉ kitchen staff mới được join kitchen room
+        if (!user || (user.role !== 'kitchen' && user.role !== 'admin')) {
+          console.log(`❌ UNAUTHORIZED: User ${socket.id} tried to join kitchen room`);
+          socket.emit('error', { message: 'Unauthorized access to kitchen room' });
+          return;
+        }
+      } else if (room === 'waiter') {
+        // Chỉ waiter và admin mới được join waiter room
+        if (!user || (user.role !== 'waiter' && user.role !== 'admin')) {
+          console.log(`❌ UNAUTHORIZED: User ${socket.id} tried to join waiter room`);
+          socket.emit('error', { message: 'Unauthorized access to waiter room' });
+          return;
+        }
+      } else if (room.startsWith('table_')) {
+        // Table rooms là public (cho khách hàng tracking orders)
+        // Nhưng vẫn log để audit
+        console.log(`📱 Guest/Customer joined table room: ${room}`);
+      } else {
+        // Room không hợp lệ
+        console.log(`❌ INVALID ROOM: User ${socket.id} tried to join unknown room: ${room}`);
+        socket.emit('error', { message: 'Invalid room' });
+        return;
+      }
+
+      // ✅ Cho phép join room
       socket.join(room);
-      console.log(`User ${socket.id} joined room: ${room}`);
+      console.log(`✅ User ${socket.id} (${user?.role || 'guest'}) joined room: ${room}`);
     });
 
     socket.on('disconnect', () => {

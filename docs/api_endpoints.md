@@ -27,27 +27,30 @@ Admin quản lý tài khoản nhân viên (Waiter, Kitchen).
 
 | Method | Endpoint | Quyền | Mô tả | Body |
 |------|---------|-------|------|------|
-| GET | `/admin/users` | Admin | Lấy danh sách nhân viên | `?role=waiter` |
-| GET | `/admin/users/:id` | Admin | Xem chi tiết nhân viên | None |
-| POST | `/admin/users` | Admin | Tạo tài khoản nhân viên | `{ email, password, full_name, role }` |
-| PUT | `/admin/users/:id` | Admin | Cập nhật thông tin | `{ full_name, role, is_active }` |
-| DELETE | `/admin/users/:id` | Admin | Xóa/Vô hiệu hóa nhân viên | None |
+| GET | `/api/admin/staff` | Admin | Lấy danh sách nhân viên | None |
+| GET | `/api/admin/staff/:id` | Admin | Xem chi tiết nhân viên | None |
+| POST | `/api/admin/staff` | Admin | Tạo tài khoản nhân viên | `{ email, password, full_name, role, phone }` |
+| PUT | `/api/admin/staff/:id` | Admin | Cập nhật thông tin (gồm cả mật khẩu) | `{ full_name, role, phone, password }` |
+| DELETE | `/api/admin/staff/:id` | Admin | Xóa nhân viên | None |
 
 ---
 
 ## 3. 🪑 Table & QR Management (Quản lý Bàn & QR)
 Quản lý sơ đồ bàn và mã QR.
 
-| Method | Endpoint | Quyền | Mô tả | Body |
-|------|---------|-------|------|------|
-| GET | `/admin/tables` | Public / Staff | Lấy danh sách bàn | `?status=available` |
-| GET | `/admin/tables/:id` | Public / Staff | Chi tiết bàn | None |
-| POST | `/admin/tables` | Admin | Tạo bàn mới | `{ table_number, capacity }` |
-| PUT | `/admin/tables/:id` | Admin | Sửa thông tin bàn | `{ table_number, capacity }` |
-| DELETE | `/admin/tables/:id` | Admin | Xóa bàn | None |
-| POST | `/admin/tables/:id/qr` | Admin | Tạo lại mã QR | None |
-| GET | `/admin/tables/qr-all` | Admin | Tải toàn bộ QR (Zip/PDF) | None |
-| PATCH | `/tables/:id/status` | Waiter / Admin | Cập nhật trạng thái bàn | `{ status: 'occupied' }` |
+| Method | Endpoint | Quyền | Mô tả | Body / Query |
+|------|---------|-------|------|--------------|
+| GET | `/api/admin/tables` | Admin / Staff | Lấy danh sách bàn (kèm bộ lọc) | `?status=&location=&sort_by=` |
+| GET | `/api/admin/tables/:id` | Admin | Lấy thông tin chi tiết một bàn | None |
+| POST | `/api/admin/tables` | Admin | Tạo bàn mới | `{ table_number, capacity, location, description }` |
+| PUT | `/api/admin/tables/:id` | Admin | Cập nhật thông tin bàn | `{ table_number, capacity, location, description, is_active }` |
+| PATCH | `/api/admin/tables/:id/status` | Admin / Staff | Cập nhật trạng thái (Available/Occupied) | `{ status }` |
+| DELETE | `/api/admin/tables/:id` | Admin | Xóa bàn (Hard delete) | None |
+| POST | `/api/admin/tables/:id/qr/generate` | Admin | Tạo mới/Cấp lại Token QR | None |
+| GET | `/api/admin/tables/:id/qr/download` | Admin | Tải mã QR (PNG hoặc PDF) | `?format=png` hoặc `?format=pdf` |
+| GET | `/api/admin/tables/qr/download-all` | Admin | Tải toàn bộ mã QR (file ZIP) | None |
+| GET | `/api/admin/tables/:id/qr` | Admin | Lấy preview ảnh QR (Base64) | None |
+| GET | `/api/menu` | Public | Xác thực Token QR và tải dữ liệu | `?table_id=&token=` |
 
 ---
 

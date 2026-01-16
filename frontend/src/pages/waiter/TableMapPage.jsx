@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { io } from 'socket.io-client';
 import { useTranslation } from 'react-i18next';
 
@@ -12,7 +12,7 @@ const TableMapPage = () => {
 
     const fetchTables = async () => {
         try {
-            const res = await axios.get(`${API_URL}/api/tables`);
+            const res = await api.get('/api/admin/tables');
             setTables(res.data.data);
             setLoading(false);
         } catch (err) {

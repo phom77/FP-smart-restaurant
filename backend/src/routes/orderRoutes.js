@@ -7,6 +7,8 @@ const { authorizeRoles } = require('../middleware/roleMiddleware');
 router.post('/', orderController.createOrder);
 
 // Customer's own orders (must be before /:id to avoid route conflict)
+router.post('/lookup', orderController.lookupOrders);
+
 router.get('/my-orders',
   verifyToken,
   orderController.getCustomerOrders
@@ -26,7 +28,14 @@ router.put('/:id/status',
   orderController.updateOrderStatus
 );
 
+router.put('/:id/served',
+  verifyToken,
+  authorizeRoles('waiter', 'admin'),
+  orderController.updateOrderServedStatus
+);
+
 router.post('/:id/items', orderController.addItemsToOrder);
+router.post('/add-items', verifyToken, orderController.addItemsToOrder); // Alternative route with orderId in body
 router.post('/:id/checkout', orderController.checkoutOrder);
 
 module.exports = router;

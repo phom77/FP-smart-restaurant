@@ -3,6 +3,7 @@ const router = express.Router();
 const menuController = require('../controllers/menuController');
 const categoryController = require('../controllers/categoryController');
 const uploadController = require('../controllers/uploadController');
+const staffController = require('../controllers/staffController');
 const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 
@@ -23,5 +24,12 @@ router.delete('/categories/:id', categoryController.deleteCategory);
 
 // --- UPLOAD ---
 router.post('/upload/image', uploadController.uploadMiddleware, uploadController.uploadImage);
+
+// --- STAFF MANAGEMENT ---
+router.get('/staff', staffController.getStaff);
+router.get('/staff/:id', staffController.getStaffById);
+router.post('/staff', staffController.createStaff);
+router.put('/staff/:id', staffController.updateStaff);
+router.delete('/staff/:id', staffController.deleteStaff);
 
 module.exports = router;
