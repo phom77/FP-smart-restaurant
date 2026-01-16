@@ -1,0 +1,2 @@
+ALTER TABLE payments 
+ADD COLUMN IF NOT EXISTS response_log JSONB;

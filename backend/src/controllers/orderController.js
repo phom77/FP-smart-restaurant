@@ -88,19 +88,28 @@ exports.updateOrderStatus = async (req, res) => {
       .from('orders')
       .update({ status, updated_at: new Date() })
       .eq('id', id)
-      .select()
+      .select('*, table:tables(table_number)') // Lấy thêm số bàn để hiển thị log
       .single();
 
     if (updateError) throw updateError;
 
     if (status === 'processing') {
-      const { error: itemError } = await supabase
+      // 1. Chuyển tất cả món 'pending' sang 'preparing'
+      await supabase
         .from('order_items')
-        .update({ status: 'preparing' }) // Chuyển sang đang nấu
+        .update({ status: 'preparing' })
         .eq('order_id', id)
-        .eq('status', 'pending'); // Chỉ chuyển những món đang chờ
+        .eq('status', 'pending');
 
-      if (itemError) throw itemError;
+      // 2. BẮN SOCKET CHO BẾP
+      const io = getIO();
+      console.log(`📢 Emit new_order to Kitchen for Order #${id}`);
+      
+      io.to('kitchen').emit('new_order', {
+        message: 'Có món mới được duyệt',
+        order_id: id,
+        table_number: updatedOrder.table?.table_number
+      });
     }
 
     // C. Automate Table Status (Best effort)

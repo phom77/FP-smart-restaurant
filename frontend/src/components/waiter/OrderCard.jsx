@@ -167,13 +167,17 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                             )}
 
                             {/* --- 🟢 NÚT XÁC NHẬN MÓN MỚI (Quick Action) --- */}
-                            {order.items?.filter(item => item.status === 'pending').length > 0 && (
+                            {/* Nút xác nhận món mới - CHỈ hiện khi order đang processing */}
+                            {order.status === 'processing' && order.items?.some(item => item.status === 'pending') && (
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); onAccept(order.id); }}
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        onAccept(order.id); // Sẽ chuyển món pending → preparing
+                                    }}
                                     className="bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-md mb-2 w-full flex items-center justify-center gap-2 animate-pulse"
                                 >
                                     <span className="material-symbols-outlined text-sm">restaurant_menu</span>
-                                    Xác nhận {order.items.filter(item => item.status === 'pending').length} món thêm
+                                    Gửi {order.items.filter(item => item.status === 'pending').length} món thêm vào bếp
                                 </button>
                             )}
                             {/* --------------------------------------------- */}
