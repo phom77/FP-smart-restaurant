@@ -17,29 +17,41 @@ exports.createPaymentIntent = async (req, res) => {
 
         // --- TIỀN MẶT ---
         if (paymentMethod === 'cash') {
-            // 1. Update DB trước (Quan trọng để khi Frontend fetch lại sẽ thấy status mới)
-            await supabase.from('orders')
-                .update({ payment_status: 'waiting_payment' })
-                .eq('id', orderId);
+            // ✅ Lấy số bàn để hiển thị
+            const { data: tableInfo } = await supabase
+                .from('tables')
+                .select('table_number')
+                .eq('id', order.table_id)
+                .single();
+
+            // Update DB
+            await supabase.from('orders').update({ 
+                payment_status: 'waiting_payment' 
+            }).eq('id', orderId);
 
             const io = getIO();
-
-            // 2. Báo cho Waiter (Sự kiện: payment_request)
+            
+            // Báo cho Waiter
             io.to('waiter').emit('payment_request', {
                 orderId,
                 tableId: order.table_id,
-                message: `Bàn yêu cầu thanh toán tiền mặt`
+                tableNumber: tableInfo?.table_number, // ✅ THÊM DÒNG NÀY
+                amount: order.total_amount,
+                method: 'cash',
+                message: `Bàn ${tableInfo?.table_number || order.table_id} muốn thanh toán Tiền mặt`
             });
 
-            // 3. Báo cho Khách (Sự kiện: payment_status_update)
-            if (order.table_id) {
-                io.to(`table_${order.table_id}`).emit('payment_status_update', {
-                    orderId,
-                    status: 'waiting_payment'
-                });
-            }
+            // Báo cho Khách
+            io.to(`table_${order.table_id}`).emit('payment_status_update', {
+                orderId,
+                status: 'waiting_payment'
+            });
 
-            return res.json({ success: true, method: 'cash', message: 'Đã gửi yêu cầu hỗ trợ' });
+            return res.json({ 
+                success: true, 
+                method: 'cash', 
+                message: 'Đã gửi nhân viên hỗ trợ' 
+            });
         }
 
         // --- THẺ (STRIPE) ---
@@ -114,7 +126,8 @@ exports.confirmPayment = async (req, res) => {
         if (paymentIntent.status === 'succeeded') {
             // Update DB ngay lập tức
             await supabase.from('orders').update({
-                payment_status: 'paid'
+                payment_status: 'paid',
+                status: 'completed' // ✅ THÊM DÒNG NÀY
             }).eq('id', orderId);
 
             // Lưu lịch sử
@@ -201,36 +214,57 @@ exports.handleWebhook = async (req, res) => {
 
 exports.confirmCashPayment = async (req, res) => {
     const { orderId } = req.body;
+    
     try {
-        // Update DB
-        await supabase.from('orders').update({
-            payment_status: 'paid',
-            status: 'completed' // Đóng đơn luôn
-        }).eq('id', orderId);
+        // ✅ 1. Lấy thông tin đơn hàng
+        const { data: order } = await supabase
+            .from('orders')
+            .select('table_id, total_amount')
+            .eq('id', orderId)
+            .single();
 
-        // Lưu lịch sử
-        await supabase.from('payments').insert([{
-            order_id: orderId,
-            amount: 0, // Hoặc query lấy amount
-            gateway: 'cash',
-            status: 'success',
-            transaction_code: `CASH-${Date.now()}`
-        }]);
-
-        // Bắn socket báo cho Khách và Waiter (để refresh UI)
-        const io = getIO();
-        const { data: order } = await supabase.from('orders').select('table_id').eq('id', orderId).single();
-
-        if (order?.table_id) {
-            await supabase.from('tables').update({ status: 'available' }).eq('id', order.table_id);
-
-            io.to(`table_${order.table_id}`).emit('payment_success', { orderId, status: 'paid' });
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Đơn hàng không tồn tại' });
         }
 
+        // 2. Update DB
+        await supabase.from('orders').update({
+            payment_status: 'paid',
+            status: 'completed'
+        }).eq('id', orderId);
+
+        // 3. Lưu lịch sử với số tiền thực
+        await supabase.from('payments').insert([{
+            order_id: orderId,
+            amount: order.total_amount, // ✅ Dùng total_amount thực
+            gateway: 'cash',
+            status: 'success',
+            transaction_code: `CASH_${Date.now()}`,
+            response_log: { method: 'cash', confirmed_by: 'waiter', confirmed_at: new Date().toISOString() }
+        }]);
+
+        // 4. Giải phóng bàn
+        if (order.table_id) {
+            await supabase.from('tables')
+                .update({ status: 'available' })
+                .eq('id', order.table_id);
+        }
+
+        // 5. Bắn socket
+        const io = getIO();
+        
         io.to('waiter').emit('order_paid', { orderId });
+        
+        if (order.table_id) {
+            io.to(`table_${order.table_id}`).emit('payment_success', { 
+                orderId, 
+                status: 'paid' 
+            });
+        }
 
         res.json({ success: true, message: "Đã xác nhận thu tiền" });
     } catch (err) {
+        console.error("Confirm Cash Payment Error:", err);
         res.status(500).json({ success: false, message: err.message });
     }
 };

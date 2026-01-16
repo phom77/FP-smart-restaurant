@@ -65,14 +65,10 @@ const OrderListPage = () => {
         socket.emit('join_room', 'waiter');
 
         const refreshOrders = () => {
+            console.log("🔄 Refreshing orders...");
             fetchOrders();
         };
 
-        // Lắng nghe ĐỦ 3 sự kiện này
-        socket.on('new_order', refreshOrders);          // 1. Có đơn mới
-        socket.on('order_status_updated', refreshOrders); // 2. Đơn đổi trạng thái (Accept/Reject)
-        socket.on('item_status_update', refreshOrders);   // 3. QUAN TRỌNG: Bếp nấu xong 1 món -> Refresh ngay
-        socket.on('payment_request', refreshOrders);
         // Helper notification function
         const showNotification = (title, body) => {
             if (!("Notification" in window)) return;
@@ -88,39 +84,40 @@ const OrderListPage = () => {
             }
         };
 
-        // Lắng nghe ĐỦ 4 sự kiện này
-        socket.on('new_order', (data) => {
-            // Hiển thị thông báo nếu có món mới (đặc biệt là thêm món)
+        // ✅ SOCKET LISTENERS - MỖI EVENT CHỈ 1 LẦN
+        const handleNewOrder = (data) => {
             if (data?.message) {
                 showNotification('🔔 Đơn hàng mới / Cập nhật', data.message);
             } else {
                 showNotification('🔔 Đơn hàng mới', 'Có đơn hàng mới chờ xác nhận');
             }
             refreshOrders();
-        });
+        };
 
-        socket.on('order_status_updated', refreshOrders);
-        socket.on('item_status_update', (data) => {
-            // Bếp nấu xong
+        const handleItemUpdate = (data) => {
             if (data.status === 'ready') {
-                showNotification('👨‍🍳 Bếp đã nấu xong', `Món ăn cho đơn #${data.orderId?.slice(0, 8)} đã sẵn sàng phục vụ!`);
+                showNotification('👨‍🍳 Bếp đã nấu xong', `Món ăn cho đơn #${data.order_id?.slice(0, 8)} đã sẵn sàng phục vụ!`);
             }
             refreshOrders();
-        });
+        };
 
-        socket.on('payment_request', (data) => {
-            showNotification('💰 Yêu cầu thanh toán', `Bàn ${data.tableNumber || '???'} yêu cầu thanh toán`);
+        const handlePaymentRequest = (data) => {
+            showNotification('💰 Yêu cầu thanh toán', `Bàn ${data.tableId || data.table_number || '???'} yêu cầu thanh toán`);
             refreshOrders();
-        });
+        };
 
+        socket.on('new_order', handleNewOrder);
+        socket.on('order_status_updated', refreshOrders);
+        socket.on('item_status_update', handleItemUpdate);
+        socket.on('payment_request', handlePaymentRequest);
         socket.on('order_paid', refreshOrders);
-        socket.on('order_served_update', refreshOrders); // 4. Đơn đã phục vụ
+        socket.on('order_served_update', refreshOrders);
 
         return () => {
-            socket.off('new_order', refreshOrders);
+            socket.off('new_order', handleNewOrder);
             socket.off('order_status_updated', refreshOrders);
-            socket.off('item_status_update', refreshOrders);
-            socket.off('payment_request', refreshOrders); // <--- Nhớ off
+            socket.off('item_status_update', handleItemUpdate);
+            socket.off('payment_request', handlePaymentRequest);
             socket.off('order_paid', refreshOrders);
             socket.off('order_served_update', refreshOrders);
         };

@@ -32,6 +32,14 @@ export default function OrderTrackingPage() {
         }
     }, [orderId, fetchOrder]); // Thêm fetchOrder vào dependency
 
+    useEffect(() => {
+        if (order?.status === 'completed' || order?.payment_status === 'paid') {
+            localStorage.removeItem('addToOrderId');
+            localStorage.removeItem('addToTableId');
+            localStorage.removeItem('qr_table_id'); // ✅ Thêm cả dòng này
+        }
+    }, [order?.status, order?.payment_status]);
+
     // 2. Socket Logic
     useEffect(() => {
         if (!socket || !order) return;
