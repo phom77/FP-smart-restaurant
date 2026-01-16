@@ -26,10 +26,25 @@ const path = require('path');
 
 initSocket(server);
 
+const allowedOrigins = [
+  "http://localhost:5173", 
+  process.env.FRONTEND_URL 
+].filter(Boolean);
+
 app.use(cors({
-  origin: true, // Cho phép mọi origin phản hồi lại
-  credentials: true // Cho phép gửi cookie/token nếu cần
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log("Blocked by CORS:", origin); 
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 }));
+
 app.use(express.json());
 app.use(passport.initialize());
 
