@@ -102,9 +102,14 @@ const OrderListPage = () => {
         };
 
         const handlePaymentRequest = (data) => {
-            showNotification('💰 Yêu cầu thanh toán', `Bàn ${data.tableId || data.table_number || '???'} yêu cầu thanh toán`);
+            const invoiceText = data.requestInvoice ? ' - CẦN HÓA ĐƠN VAT ✓' : '';
+            showNotification(
+                '💰 Yêu cầu thanh toán',
+                `Bàn ${data.tableNumber || data.tableId || '???'} yêu cầu thanh toán ${data.method === 'cash' ? 'Tiền mặt' : 'Thẻ'}${invoiceText}`
+            );
             refreshOrders();
         };
+
 
         socket.on('new_order', handleNewOrder);
         socket.on('order_status_updated', refreshOrders);
