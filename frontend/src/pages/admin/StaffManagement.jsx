@@ -51,8 +51,25 @@ const StaffManagement = () => {
         fetchStaff();
     }, []);
 
+    const validateStaffForm = (data) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+        if (!emailRegex.test(data.email)) {
+            toast.error("Email không hợp lệ");
+            return false;
+        }
+        // Chỉ validate password nếu đang tạo mới hoặc đang đổi password
+        if (data.password && !passwordRegex.test(data.password)) {
+            toast.error("Mật khẩu yếu! Cần 8+ ký tự, Hoa, Thường, Số, Ký tự đặc biệt.");
+            return false;
+        }
+        return true;
+    };
+
     const handleCreateStaff = async (e) => {
         e.preventDefault();
+        if (!validateStaffForm(formData)) return;
         try {
             await axios.post(`${API_URL}/api/admin/staff`, formData, getAuthHeader());
             toast.success(t('staff.toast_created'));

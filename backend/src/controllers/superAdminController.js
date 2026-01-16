@@ -1,25 +1,35 @@
 const supabase = require('../config/supabaseClient');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { registerSchema } = require('../utils/validation'); // Import validation strict
+const { sendStaffInvitation } = require('../services/emailService');
 
 // 1. TẠO TÀI KHOẢN CHỦ NHÀ HÀNG (Restaurant Admin)
 exports.createRestaurantAdmin = async (req, res) => {
     try {
         const { email, password, full_name, phone, restaurant_name } = req.body;
 
-        if (!email || !password || !full_name) {
-            return res.status(400).json({ success: false, message: 'Thiếu thông tin bắt buộc' });
+        // 1. Validate dữ liệu đầu vào nghiêm ngặt
+        const { error: validationError } = registerSchema.validate({ 
+            email, password, full_name, phone, restaurant_name 
+        });
+        if (validationError) {
+            return res.status(400).json({ success: false, message: validationError.details[0].message });
         }
 
-        // Check trùng email
+        // 2. Check trùng email
         const { data: existing } = await supabase.from('users').select('id').eq('email', email).single();
         if (existing) {
             return res.status(400).json({ success: false, message: 'Email đã tồn tại' });
         }
 
+        // 3. Hash Password & Tạo Token Verify
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
 
-        // Insert User với role 'admin' (Chủ nhà hàng)
+        // 4. Insert User (is_verified = FALSE)
         const { data: newUser, error } = await supabase
             .from('users')
             .insert([{
@@ -27,23 +37,28 @@ exports.createRestaurantAdmin = async (req, res) => {
                 password_hash: passwordHash,
                 full_name,
                 phone,
-                role: 'admin', // Role Admin thường (Chủ quán)
-                is_verified: true // Admin do Super tạo thì không cần verify mail
+                role: 'admin',
+                is_verified: false, // BẮT BUỘC FALSE
+                verification_token: verificationToken,
+                verification_token_expires: tokenExpiry
             }])
             .select()
             .single();
 
         if (error) throw error;
 
-        // Nếu có nhập tên nhà hàng -> Update luôn vào System Settings
+        // 5. Update System Settings nếu có tên nhà hàng
         if (restaurant_name) {
             await supabase.from('system_settings').upsert({ key: 'restaurant_name', value: restaurant_name });
         }
 
+        // 6. Gửi Email Xác thực
+        await sendStaffInvitation(email, full_name, password, verificationToken);
+
         res.status(201).json({
             success: true,
-            message: 'Đã tạo tài khoản Chủ nhà hàng thành công',
-            data: newUser
+            message: 'Đã tạo tài khoản thành công. Email xác thực đã được gửi tới chủ nhà hàng.',
+            data: { ...newUser, verification_token: undefined } // Không trả về token
         });
 
     } catch (err) {

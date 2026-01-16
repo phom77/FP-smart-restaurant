@@ -72,8 +72,30 @@ const sendVerificationEmail = async (email, token) => {
     return await sendEmail(email, "Kích hoạt tài khoản Smart Restaurant", html);
 };
 
+const sendStaffInvitation = async (email, full_name, password, token) => {
+    const verifyLink = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+    
+    const html = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+            <h2 style="color: #2e7d32;">Lời mời tham gia hệ thống</h2>
+            <p>Xin chào <strong>${full_name}</strong>,</p>
+            <p>Bạn đã được cấp tài khoản để truy cập vào hệ thống Smart Restaurant.</p>
+            <p><strong>Thông tin đăng nhập tạm thời:</strong></p>
+            <ul>
+                <li>Email: <strong>${email}</strong></li>
+                <li>Mật khẩu: <strong>${password}</strong></li>
+            </ul>
+            <p>Vui lòng nhấn vào nút bên dưới để <strong>Kích hoạt tài khoản</strong> trước khi đăng nhập:</p>
+            <a href="${verifyLink}" style="display: inline-block; padding: 12px 24px; background-color: #2e7d32; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Xác thực tài khoản ngay</a>
+            <p style="margin-top: 20px; color: #666; font-size: 12px;">Vui lòng đổi mật khẩu ngay sau khi đăng nhập lần đầu tiên.</p>
+        </div>
+    `;
+    return await sendEmail(email, "Lời mời tham gia Smart Restaurant - Xác thực tài khoản", html);
+};
+
 module.exports = {
     sendResetPasswordEmail,
     sendWelcomeEmail,
-    sendVerificationEmail 
+    sendVerificationEmail,
+    sendStaffInvitation // Export thêm hàm mới
 };
