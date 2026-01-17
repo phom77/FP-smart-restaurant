@@ -143,10 +143,10 @@ export default function OrderTrackingPage() {
     if (error || !order) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-                <div className="text-center bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
-                    <div className="text-4xl mb-4">😕</div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-2">Không tìm thấy đơn hàng</h2>
-                    <button onClick={() => navigate('/menu')} className="mt-4 px-6 py-2 bg-emerald-500 text-white rounded-lg">
+                <div className="text-center bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-md w-full">
+                    <div className="text-3xl sm:text-4xl mb-4">😕</div>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">Không tìm thấy đơn hàng</h2>
+                    <button onClick={() => navigate('/menu')} className="mt-4 px-6 py-2 bg-emerald-500 text-white rounded-lg w-full sm:w-auto">
                         Về thực đơn
                     </button>
                 </div>
@@ -156,15 +156,15 @@ export default function OrderTrackingPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20">
-            <div className="max-w-3xl mx-auto px-4 py-6">
+            <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
                 {/* Header */}
-                <header className="mb-6 bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-800">
+                <header className="mb-4 sm:mb-6 bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-100">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-0">
+                        <div className="flex-1">
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
                                 Đơn #{order.id?.slice(0, 8)}
                             </h1>
-                            <p className="text-gray-500 mt-1">
+                            <p className="text-sm sm:text-base text-gray-500 mt-1">
                                 Bàn {order.table?.table_number || 'N/A'} • {new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                         </div>
@@ -181,7 +181,7 @@ export default function OrderTrackingPage() {
 
                                         navigate('/menu');
                                     }}
-                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all"
+                                    className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all text-sm sm:text-base w-full sm:w-auto text-center"
                                 >
                                     Thêm món
                                 </button>
@@ -190,12 +190,12 @@ export default function OrderTrackingPage() {
                 </header>
 
                 {/* Status Timeline */}
-                <div className="mb-6 bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                <div className="mb-4 sm:mb-6 bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-100">
                     {isCancelled ? (
                         <div className="text-center py-4">
-                            <div className="text-5xl mb-2">🚫</div>
-                            <h2 className="text-xl font-bold text-red-600">Đơn hàng đã bị hủy</h2>
-                            <p className="text-gray-500 mb-4">Vui lòng liên hệ nhân viên để được hỗ trợ.</p>
+                            <div className="text-4xl sm:text-5xl mb-2">🚫</div>
+                            <h2 className="text-lg sm:text-xl font-bold text-red-600">Đơn hàng đã bị hủy</h2>
+                            <p className="text-sm sm:text-base text-gray-500 mb-4">Vui lòng liên hệ nhân viên để được hỗ trợ.</p>
                             <button
                                 onClick={() => {
                                     // Clear any stored order/table data
@@ -206,16 +206,16 @@ export default function OrderTrackingPage() {
                                     // Navigate back to menu
                                     navigate('/menu');
                                 }}
-                                className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all inline-flex items-center gap-2"
+                                className="px-4 sm:px-6 py-2 sm:py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all inline-flex items-center gap-2 text-sm sm:text-base"
                             >
-                                <span className="material-symbols-outlined">restaurant_menu</span>
+                                <span className="material-symbols-outlined text-lg sm:text-xl">restaurant_menu</span>
                                 Về thực đơn
                             </button>
                         </div>
                     ) : (
                         <>
-                            <h2 className="text-lg font-bold text-gray-800 mb-6">Trạng thái</h2>
-                            <div className="relative mx-4">
+                            <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6">Trạng thái</h2>
+                            <div className="relative mx-2 sm:mx-4">
                                 {/* Progress Line */}
                                 <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full">
                                     <div
@@ -233,14 +233,14 @@ export default function OrderTrackingPage() {
                                         return (
                                             <div key={step.key} className="flex flex-col items-center z-10">
                                                 <div
-                                                    className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all duration-300 border-4 ${isActive
+                                                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-base sm:text-lg transition-all duration-300 border-4 ${isActive
                                                         ? 'bg-emerald-500 text-white border-emerald-100'
                                                         : 'bg-white text-gray-300 border-gray-100'
                                                         } ${isCurrent ? 'scale-110 ring-2 ring-emerald-500 ring-offset-2' : ''}`}
                                                 >
                                                     {step.icon}
                                                 </div>
-                                                <p className={`mt-2 text-xs font-bold uppercase ${isActive ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                <p className={`mt-2 text-[10px] sm:text-xs font-bold uppercase text-center ${isActive ? 'text-emerald-600' : 'text-gray-400'}`}>
                                                     {step.label}
                                                 </p>
                                             </div>
@@ -253,27 +253,38 @@ export default function OrderTrackingPage() {
                 </div>
 
                 {/* Order Items */}
-                <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-800 mb-4">Chi tiết món</h2>
+                <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-100">
+                    <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-3 sm:mb-4">Chi tiết món</h2>
                     <div className="divide-y divide-gray-100">
                         {order.order_items?.map((item) => {
                             const modifiersTotal = item.order_item_modifiers?.reduce((sum, mod) => sum + (parseFloat(mod.price) || 0), 0) || 0;
                             const itemTotal = (parseFloat(item.unit_price) || 0) * (parseInt(item.quantity) || 0);
 
                             return (
-                                <div key={item.id} className="py-4 first:pt-0 last:pb-0">
-                                    <div className="flex justify-between">
+                                <div key={item.id} className="py-3 sm:py-4 first:pt-0 last:pb-0">
+                                    <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0">
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-gray-800">{item.quantity}x</span>
-                                                <span className="font-medium text-gray-800">{item.menu_item?.name || 'Món không xác định'}</span>
+                                            <div className="flex items-start gap-2">
+                                                <span className="font-bold text-gray-800 text-sm sm:text-base">{item.quantity}x</span>
+                                                <div className="flex-1">
+                                                    <span className="font-medium text-gray-800 text-sm sm:text-base">{item.menu_item?.name || 'Món không xác định'}</span>
+                                                    {/* Item Status Badge - Mobile inline */}
+                                                    <span className={`inline-block ml-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.status === 'ready' ? 'bg-green-100 text-green-700' :
+                                                        item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
+                                                            'bg-gray-100 text-gray-500'
+                                                        }`}>
+                                                        {item.status === 'pending' ? 'Chờ' :
+                                                            item.status === 'preparing' ? 'Đang nấu' :
+                                                                item.status === 'ready' ? 'Xong' : item.status}
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             {/* Modifiers */}
                                             {item.order_item_modifiers?.length > 0 && (
-                                                <div className="mt-1 ml-6 space-y-0.5">
+                                                <div className="mt-1 ml-6 sm:ml-8 space-y-0.5">
                                                     {item.order_item_modifiers.map((mod, idx) => (
-                                                        <p key={idx} className="text-sm text-gray-500">
+                                                        <p key={idx} className="text-xs sm:text-sm text-gray-500">
                                                             + {mod.modifier_name}
                                                         </p>
                                                     ))}
@@ -282,22 +293,13 @@ export default function OrderTrackingPage() {
 
                                             {/* Notes */}
                                             {item.notes && (
-                                                <p className="mt-1 ml-6 text-sm text-amber-600 italic">
+                                                <p className="mt-1 ml-6 sm:ml-8 text-xs sm:text-sm text-amber-600 italic">
                                                     Ghi chú: {item.notes}
                                                 </p>
                                             )}
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-bold text-gray-800">{itemTotal.toLocaleString('vi-VN')}đ</p>
-                                            {/* Item Status Badge */}
-                                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.status === 'ready' ? 'bg-green-100 text-green-700' :
-                                                item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
-                                                    'bg-gray-100 text-gray-500'
-                                                }`}>
-                                                {item.status === 'pending' ? 'Chờ' :
-                                                    item.status === 'preparing' ? 'Đang nấu' :
-                                                        item.status === 'ready' ? 'Xong' : item.status}
-                                            </span>
+                                        <div className="text-right ml-6 sm:ml-0">
+                                            <p className="font-bold text-gray-800 text-sm sm:text-base">{itemTotal.toLocaleString('vi-VN')}đ</p>
                                         </div>
                                     </div>
                                 </div>
@@ -306,8 +308,8 @@ export default function OrderTrackingPage() {
                     </div>
 
                     {/* Total & Payment Actions */}
-                    <div className="mt-6 pt-4 border-t border-gray-100">
-                        <div className="flex justify-between items-center text-xl font-bold text-gray-900">
+                    <div className="mt-4 sm:mt-6 pt-4 border-t border-gray-100">
+                        <div className="flex justify-between items-center text-lg sm:text-xl font-bold text-gray-900">
                             <span>Tổng tiền</span>
                             <span className="text-emerald-600">{order.total_amount?.toLocaleString('vi-VN')}đ</span>
                         </div>
@@ -317,8 +319,8 @@ export default function OrderTrackingPage() {
                             {/* Trường hợp 1: Đã thanh toán xong */}
                             {order.payment_status === 'paid' || order.payment_status === 'success' ? (
                                 <div className="space-y-3">
-                                    <div className="w-full py-3 bg-green-100 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-green-200 animate-pulse">
-                                        <span className="material-symbols-outlined">check_circle</span>
+                                    <div className="w-full py-2 sm:py-3 bg-green-100 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-green-200 animate-pulse text-sm sm:text-base">
+                                        <span className="material-symbols-outlined text-lg sm:text-xl">check_circle</span>
                                         Đã thanh toán thành công
                                     </div>
                                     <button
@@ -331,17 +333,17 @@ export default function OrderTrackingPage() {
                                             // Navigate back to menu
                                             navigate('/menu');
                                         }}
-                                        className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                                        className="w-full py-2 sm:py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 text-sm sm:text-base active:scale-[0.98]"
                                     >
-                                        <span className="material-symbols-outlined">restaurant_menu</span>
+                                        <span className="material-symbols-outlined text-lg sm:text-xl">restaurant_menu</span>
                                         Về thực đơn
                                     </button>
                                 </div>
                             ) :
                                 /* Trường hợp 2: Đang chờ nhân viên (Tiền mặt) */
                                 order.payment_status === 'waiting_payment' ? (
-                                    <div className="w-full py-3 bg-yellow-100 text-yellow-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-yellow-200">
-                                        <span className="material-symbols-outlined">hourglass_top</span>
+                                    <div className="w-full py-2 sm:py-3 bg-yellow-100 text-yellow-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-yellow-200 text-sm sm:text-base">
+                                        <span className="material-symbols-outlined text-lg sm:text-xl">hourglass_top</span>
                                         Đang chờ nhân viên xác nhận...
                                     </div>
                                 ) : (
@@ -349,9 +351,9 @@ export default function OrderTrackingPage() {
                                     order.status !== 'cancelled' && (
                                         <button
                                             onClick={() => navigate('/checkout', { state: { order } })}
-                                            className="w-full py-3 bg-gray-900 text-white font-bold rounded-xl shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
+                                            className="w-full py-2 sm:py-3 bg-gray-900 text-white font-bold rounded-xl shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2 text-sm sm:text-base active:scale-[0.98]"
                                         >
-                                            <span className="material-symbols-outlined">credit_card</span>
+                                            <span className="material-symbols-outlined text-lg sm:text-xl">credit_card</span>
                                             Thanh toán ngay
                                         </button>
                                     )
