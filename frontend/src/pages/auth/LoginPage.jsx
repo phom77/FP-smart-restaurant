@@ -12,7 +12,7 @@ export default function LoginPage() {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false); // State quản lý ẩn/hiện
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -44,7 +44,7 @@ export default function LoginPage() {
             <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg border border-gray-100">
                 <div className="text-center">
                     <h2 className="mt-2 text-3xl font-extrabold text-gray-900">Chào mừng trở lại</h2>
-                    <p className="mt-2 text-sm text-gray-600">Đăng nhập để quản lý hoặc gọi món.</p>
+                    <p className="mt-2 text-sm text-gray-600">Đăng nhập để quản lý.</p>
                 </div>
 
                 {error && (
@@ -112,13 +112,6 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                <button
-                    onClick={() => navigate('/menu')}
-                    className="w-full flex justify-center py-2.5 px-4 border border-gray-300 text-sm font-bold rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition duration-200"
-                >
-                    Khách vãng lai (Xem Menu)
-                </button>
-
                 <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-gray-200"></div>
@@ -135,13 +128,6 @@ export default function LoginPage() {
                      <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5" />
                     Google
                 </button>
-
-                <p className="mt-4 text-center text-sm text-gray-600">
-                    Chưa có tài khoản?{' '}
-                    <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 hover:underline">
-                        Đăng ký ngay
-                    </Link>
-                </p>
             </div>
         </div>
     );
