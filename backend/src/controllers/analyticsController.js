@@ -18,36 +18,23 @@ exports.getRevenueStats = async (req, res) => {
             else if (diffDays <= 366) type = 'monthly';
             else type = 'yearly';
         } else {
-            endDate = now;
-            switch (range) {
-                case 'today':
-                    startDate = new Date(now);
-                    startDate.setHours(0, 0, 0, 0);
-                    type = 'daily';
-                    break;
-                case 'week':
-                    startDate = new Date(now);
-                    startDate.setDate(now.getDate() - 7);
-                    type = 'daily';
-                    break;
-                case 'month':
-                    startDate = new Date(now);
-                    startDate.setDate(now.getDate() - 30);
-                    type = 'daily';
-                    break;
-                case 'year':
-                    startDate = new Date(now);
-                    startDate.setFullYear(now.getFullYear() - 1);
-                    type = 'monthly';
-                    break;
-                case 'all':
-                    startDate = new Date(0);
-                    type = 'yearly';
-                    break;
-                default:
-                    startDate = new Date(now);
-                    startDate.setDate(now.getDate() - 7);
-                    type = 'daily';
+            const { getStartOfPeriod, getEndOfPeriod } = require('../utils/timeUtils');
+
+            if (range === 'all') {
+                startDate = new Date(0);
+                endDate = new Date();
+                type = 'yearly';
+            } else {
+                startDate = getStartOfPeriod(range);
+                endDate = getEndOfPeriod(); // Current Vietnam day end
+
+                switch (range) {
+                    case 'today': type = 'daily'; break;
+                    case 'week': type = 'daily'; break;
+                    case 'month': type = 'daily'; break;
+                    case 'year': type = 'monthly'; break;
+                    default: type = 'daily';
+                }
             }
         }
 
@@ -122,14 +109,14 @@ exports.exportToExcel = async (req, res) => {
             endDate = new Date(to);
             endDate.setHours(23, 59, 59, 999);
         } else {
-            startDate = new Date();
-            endDate = new Date();
-
-            if (range === 'week') startDate.setDate(startDate.getDate() - 7);
-            else if (range === 'month') startDate.setDate(startDate.getDate() - 30);
-            else if (range === 'year') startDate.setFullYear(startDate.getFullYear() - 1);
-            else if (range === 'today') startDate.setHours(0, 0, 0, 0);
-            else startDate = new Date(0);
+            const { getStartOfPeriod, getEndOfPeriod } = require('../utils/timeUtils');
+            if (range === 'all') {
+                startDate = new Date(0);
+                endDate = new Date();
+            } else {
+                startDate = getStartOfPeriod(range);
+                endDate = getEndOfPeriod();
+            }
         }
 
         // Fetch all data in parallel
@@ -195,7 +182,15 @@ exports.exportToExcel = async (req, res) => {
             { header: 'Hour (0-23)', key: 'hour', width: 15 },
             { header: 'Order Count', key: 'order_count', width: 15 }
         ];
-        peakSheet.addRows(peakRes.data || []);
+
+        let peakData = peakRes.data || [];
+        // Shift hours by +7 for VN Time
+        peakData = peakData.map(item => ({
+            ...item,
+            hour: (item.hour + 7) % 24
+        })).sort((a, b) => a.hour - b.hour);
+
+        peakSheet.addRows(peakData);
 
         // 4. Detailed Orders Worksheet
         const orderSheet = workbook.addWorksheet('Detailed Orders');
@@ -210,7 +205,7 @@ exports.exportToExcel = async (req, res) => {
         ];
 
         const orderRows = ordersRes.data.map(o => ({
-            date: new Date(o.created_at).toLocaleString(),
+            date: new Date(o.created_at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
             id: o.id,
             table: o.tables?.table_number || 'N/A',
             customer: o.users?.full_name || 'Guest',

@@ -23,7 +23,7 @@ export default function WaiterBillPage() {
     }, [orderId]);
 
     const handleCloseTable = async () => {
-        if(!window.confirm("Xác nhận đóng bàn và hoàn tất đơn hàng?")) return;
+        if (!window.confirm("Xác nhận đóng bàn và hoàn tất đơn hàng?")) return;
         try {
             await api.put(`/api/orders/${orderId}/status`, { status: 'completed' });
             navigate('/waiter/map');
@@ -39,6 +39,74 @@ export default function WaiterBillPage() {
     const serviceCharge = subtotal * 0.05; // 5%
     const tax = subtotal * 0.08; // 8%
     const finalTotal = subtotal + serviceCharge + tax;
+
+    const handlePrint = () => {
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Bill - Table ${order.table?.table_number}</title>
+                    <style>
+                        body { font-family: 'Courier New', Courier, monospace; width: 300px; margin: 0 auto; }
+                        .header { text-align: center; margin-bottom: 20px; }
+                        .title { font-size: 24px; font-weight: bold; }
+                        .info { font-size: 14px; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+                        .item { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
+                        .total-section { border-top: 1px dashed #000; padding-top: 10px; margin-top: 10px; }
+                        .row { display: flex; justify-content: space-between; font-size: 14px; }
+                        .grand-total { font-weight: bold; font-size: 18px; margin-top: 10px; }
+                        .footer { text-align: center; margin-top: 20px; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="title">SMART RESTAURANT</div>
+                        <div>123 Food Street, Culinary City</div>
+                    </div>
+                    <div class="info">
+                        <div>Table: ${order.table?.table_number}</div>
+                        <div>Date: ${new Date().toLocaleString()}</div>
+                        <div>Order #: ${order.id}</div>
+                    </div>
+                    <div class="items">
+                        ${order.items.map(item => `
+                            <div class="item">
+                                <span>${item.quantity}x ${item.menu_item?.name}</span>
+                                <span>${(item.unit_price * item.quantity).toLocaleString()}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="total-section">
+                        <div class="row">
+                            <span>Subtotal</span>
+                            <span>${subtotal.toLocaleString()}</span>
+                        </div>
+                        <div class="row">
+                            <span>Service (5%)</span>
+                            <span>${serviceCharge.toLocaleString()}</span>
+                        </div>
+                        <div class="row">
+                            <span>Tax (8%)</span>
+                            <span>${tax.toLocaleString()}</span>
+                        </div>
+                        <div class="row grand-total">
+                            <span>TOTAL</span>
+                            <span>${finalTotal.toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div class="footer">
+                        <p>Thank you for dining with us!</p>
+                        <p>See you again soon.</p>
+                    </div>
+                    <script>
+                        window.print();
+                        window.onafterprint = function() { window.close(); }
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 pb-32 font-sans">
@@ -91,7 +159,7 @@ export default function WaiterBillPage() {
                     <div className="p-4 border-b border-gray-50">
                         <h3 className="font-bold text-gray-900">Bill Summary</h3>
                     </div>
-                    
+
                     <div className="divide-y divide-gray-50">
                         {order.items?.map((item, idx) => (
                             <div key={idx} className="p-4 flex justify-between items-center">
@@ -134,18 +202,30 @@ export default function WaiterBillPage() {
 
                 {/* Quick Actions */}
                 <div className="grid grid-cols-3 gap-3">
-                    {['print', 'call_split', 'percent'].map((icon, i) => (
-                        <button key={i} className="bg-white p-3 rounded-xl border border-gray-200 flex flex-col items-center gap-2 hover:border-emerald-500 hover:bg-emerald-50 transition-all group">
-                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-white">
-                                <span className="material-symbols-outlined text-gray-600 group-hover:text-emerald-600">{icon}</span>
-                            </div>
-                            <span className="text-xs font-semibold text-gray-700">
-                                {icon === 'print' ? 'Print Bill' : icon === 'call_split' ? 'Split Bill' : 'Discount'}
-                            </span>
-                        </button>
-                    ))}
+                    <button
+                        onClick={() => handlePrint()}
+                        className="bg-white p-3 rounded-xl border border-gray-200 flex flex-col items-center gap-2 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+                    >
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-white">
+                            <span className="material-symbols-outlined text-gray-600 group-hover:text-emerald-600">print</span>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700">Print Bill</span>
+                    </button>
+                    <button className="bg-white p-3 rounded-xl border border-gray-200 flex flex-col items-center gap-2 hover:border-emerald-500 hover:bg-emerald-50 transition-all group">
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-white">
+                            <span className="material-symbols-outlined text-gray-600 group-hover:text-emerald-600">call_split</span>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700">Split Bill</span>
+                    </button>
+                    <button className="bg-white p-3 rounded-xl border border-gray-200 flex flex-col items-center gap-2 hover:border-emerald-500 hover:bg-emerald-50 transition-all group">
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-white">
+                            <span className="material-symbols-outlined text-gray-600 group-hover:text-emerald-600">percent</span>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700">Discount</span>
+                    </button>
                 </div>
             </main>
+
 
             {/* Bottom Actions */}
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 space-y-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
@@ -153,7 +233,7 @@ export default function WaiterBillPage() {
                     <span className="material-symbols-outlined">send</span>
                     Notify Customer
                 </button>
-                <button 
+                <button
                     onClick={handleCloseTable}
                     className="w-full py-3.5 rounded-xl bg-gray-200 text-gray-800 font-bold flex items-center justify-center gap-2 hover:bg-emerald-500 hover:text-white transition-colors group"
                 >

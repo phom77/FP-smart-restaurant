@@ -5,41 +5,26 @@ exports.getRevenueStats = async (req, res) => {
         const { range = 'today' } = req.query; // today, week, month, year, all
 
         let startDate, endDate, type;
-        const now = new Date();
-        endDate = now; // Default end date is now
 
-        switch (range) {
-            case 'today':
-                startDate = new Date(now);
-                startDate.setHours(0, 0, 0, 0); // Start of today
-                type = 'daily'; // Group by hour isn't supported yet, so maybe just show the day? 
-                // Wait, if it's "Today", we want hourly? Or just single total?
-                // The RPC groups by "YYYY-MM-DD". If start/end is same day, it returns 1 row.
-                // Let's keep it 'daily'. 
-                break;
-            case 'week':
-                startDate = new Date(now);
-                startDate.setDate(now.getDate() - 7);
-                type = 'daily';
-                break;
-            case 'month':
-                startDate = new Date(now);
-                startDate.setDate(now.getDate() - 30);
-                type = 'daily'; // Or weekly? Daily is fine for 30 days.
-                break;
-            case 'year':
-                startDate = new Date(now);
-                startDate.setFullYear(now.getFullYear() - 1);
-                type = 'monthly';
-                break;
-            case 'all':
-                startDate = new Date(0); // Epoch
-                type = 'yearly';
-                break;
-            default: // Custom or fallback
-                startDate = new Date(now);
-                startDate.setDate(now.getDate() - 7);
-                type = 'daily';
+        // Determine Start and End dates based on Vietnam Time
+        // "Today" means 00:00 VN to 23:59 VN
+        if (range === 'all') {
+            startDate = new Date(0); // Epoch
+            endDate = new Date();
+            type = 'yearly';
+        } else {
+            const { getStartOfPeriod, getEndOfPeriod } = require('../utils/timeUtils');
+            startDate = getStartOfPeriod(range);
+            endDate = getEndOfPeriod(); // End of "today" VN
+
+            // Map range to type for database grouping
+            switch (range) {
+                case 'today': type = 'daily'; break;
+                case 'week': type = 'daily'; break;
+                case 'month': type = 'daily'; break;
+                case 'year': type = 'monthly'; break;
+                default: type = 'daily';
+            }
         }
 
         // Call RPC for SQL Aggregation

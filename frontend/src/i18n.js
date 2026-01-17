@@ -24,7 +24,8 @@ i18n
                         no_data: 'No sales data found for this period.',
                     },
                     revenue: {
-                        title: 'Revenue Statistics',
+                        title: 'Dashboard Overview',
+                        subtitle: 'Real-time business performance overview',
                         chart_title: 'Revenue Over Time',
                         top_products: 'Top 10 Products',
                         peak_hours: 'Peak Hours',
@@ -278,7 +279,8 @@ i18n
                         no_data: 'Không có dữ liệu bán hàng trong khoảng thời gian này.',
                     },
                     revenue: {
-                        title: 'Thống kê doanh thu',
+                        title: 'Tổng quan bảng điều khiển',
+                        subtitle: 'Tổng quan về hiệu quả kinh doanh theo thời gian thực',
                         chart_title: 'Doanh thu theo thời gian',
                         top_products: 'Top 10 món bán chạy',
                         peak_hours: 'Giờ cao điểm',
