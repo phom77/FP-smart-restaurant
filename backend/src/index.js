@@ -67,6 +67,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/system', require('./routes/systemRoutes'));
 app.use('/api/super-admin', require('./routes/superAdminRoutes'));
+app.use('/api/coupons', require('./routes/couponRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Hello from Smart Restaurant Backend (Running on Docker WSL)!');
