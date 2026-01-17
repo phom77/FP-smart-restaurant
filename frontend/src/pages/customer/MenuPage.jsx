@@ -30,8 +30,13 @@ export default function MenuPage() {
     // Store table ID from QR code scan
     useEffect(() => {
         const tableFromUrl = searchParams.get('table');
+        const tableNumberFromUrl = searchParams.get('table_number');
         if (tableFromUrl) {
             localStorage.setItem('qr_table_id', tableFromUrl);
+            // Store table_number if provided in URL
+            if (tableNumberFromUrl) {
+                localStorage.setItem('qr_table_number', tableNumberFromUrl);
+            }
         }
     }, [searchParams]);
 
@@ -358,8 +363,8 @@ export default function MenuPage() {
                     <button
                         onClick={() => setShowChefRecommendation(!showChefRecommendation)}
                         className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg hover:scale-105 ${showChefRecommendation
-                                ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         <span>👨‍🍳</span>

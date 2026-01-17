@@ -89,7 +89,7 @@ const TableManagement = () => {
     const handlePrint = async (table) => {
         try {
             const frontendUrl = window.location.origin;
-            const scanUrl = `${frontendUrl}/menu?table=${table.id}&token=${table.qr_code_token}`;
+            const scanUrl = `${frontendUrl}/menu?table=${table.id}&table_number=${encodeURIComponent(table.table_number)}&token=${table.qr_code_token}`;
             const qrImage = await QRCode.toDataURL(scanUrl, { margin: 1, scale: 10 });
 
             const printWindow = window.open('', '_blank');
@@ -526,7 +526,7 @@ const TableManagement = () => {
 
                                 <div className="flex justify-center py-4 bg-white rounded-lg border border-gray-100 mb-3">
                                     <QRCode
-                                        value={`${window.location.origin}/menu?table=${table.id}&token=${table.qr_code_token}`}
+                                        value={`${window.location.origin}/menu?table=${table.id}&table_number=${encodeURIComponent(table.table_number)}&token=${table.qr_code_token}`}
                                         size={120}
                                         style={{ height: "auto", maxWidth: "100%", width: "120px" }}
                                         viewBox={`0 0 256 256`}

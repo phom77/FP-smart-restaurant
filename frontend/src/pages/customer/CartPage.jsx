@@ -32,7 +32,17 @@ export default function CartPage() {
         const fetchTables = async () => {
             try {
                 const response = await api.get('/api/admin/tables');
-                setTables(response.data.data || []);
+                const tablesData = response.data.data || [];
+                setTables(tablesData);
+
+                // If we have qrTableId but no table_number in localStorage, save it now
+                const tableId = localStorage.getItem('qr_table_id');
+                if (tableId && !localStorage.getItem('qr_table_number')) {
+                    const table = tablesData.find(t => t.id === tableId);
+                    if (table) {
+                        localStorage.setItem('qr_table_number', table.table_number);
+                    }
+                }
             } catch (err) {
                 console.error('Error fetching tables:', err);
             }
@@ -41,6 +51,7 @@ export default function CartPage() {
 
         // Check for table parameter from QR code scan (from URL or localStorage)
         const tableFromUrl = searchParams.get('table');
+        const tableNumberFromUrl = searchParams.get('table_number');
         const tableFromStorage = localStorage.getItem('qr_table_id');
 
         // Priority: existingTableId > tableFromUrl > tableFromStorage
@@ -51,6 +62,10 @@ export default function CartPage() {
             setQrTableId(tableFromUrl);
             // Store in localStorage so it persists when navigating from menu to cart
             localStorage.setItem('qr_table_id', tableFromUrl);
+            // Store table_number if provided in URL
+            if (tableNumberFromUrl) {
+                localStorage.setItem('qr_table_number', tableNumberFromUrl);
+            }
         } else if (tableFromStorage) {
             setSelectedTable(tableFromStorage);
             setQrTableId(tableFromStorage);
@@ -145,6 +160,7 @@ export default function CartPage() {
                 localStorage.removeItem('addToOrderId');
                 localStorage.removeItem('addToTableId');
                 localStorage.removeItem('qr_table_id'); // Clear QR table ID
+                localStorage.removeItem('qr_table_number'); // Clear QR table number
 
                 // Clear cart
                 clearCart();
@@ -162,8 +178,7 @@ export default function CartPage() {
 
     // Calculate subtotal
     const subtotal = getCartTotal();
-    const tax = subtotal * 0.1; // 10% tax
-    const total = subtotal + tax;
+    const total = subtotal; // No tax
 
     if (cart.length === 0) {
         return (
@@ -216,7 +231,7 @@ export default function CartPage() {
                     <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl">
                         <p className="font-semibold">📱 Đã quét mã QR</p>
                         <p className="text-sm mt-1">
-                            Bàn {tables.find(t => t.id === qrTableId)?.table_number || qrTableId} đã được chọn tự động
+                            Bàn {localStorage.getItem('qr_table_number') || tables.find(t => t.id === qrTableId)?.table_number || '...'} đã được chọn tự động
                         </p>
                     </div>
                 )}
@@ -280,7 +295,7 @@ export default function CartPage() {
                                         <div className="flex items-center gap-3 mt-4">
                                             <button
                                                 onClick={() => updateQuantity(item.cartId, item.quantity - 1)}
-                                                className="w-8 h-8 bg-gray-200 rounded-lg font-bold hover:bg-gray-300 transition-colors"
+                                                className="w-8 h-8 bg-gray-200 rounded-lg font-bold hover:bg-gray-300 transition-colors flex items-center justify-center"
                                                 disabled={item.quantity <= 1}
                                             >
                                                 −
@@ -288,7 +303,7 @@ export default function CartPage() {
                                             <span className="font-semibold text-lg w-8 text-center">{item.quantity}</span>
                                             <button
                                                 onClick={() => updateQuantity(item.cartId, item.quantity + 1)}
-                                                className="w-8 h-8 bg-emerald-500 text-white rounded-lg font-bold hover:bg-emerald-600 transition-colors"
+                                                className="w-8 h-8 bg-emerald-500 text-white rounded-lg font-bold hover:bg-emerald-600 transition-colors flex items-center justify-center"
                                             >
                                                 +
                                             </button>
@@ -315,17 +330,8 @@ export default function CartPage() {
 
                 {/* Order Summary */}
                 <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Tổng cộng</h2>
                     <div className="space-y-2">
-                        <div className="flex justify-between text-gray-700">
-                            <span>Tạm tính:</span>
-                            <span className="font-semibold">{subtotal.toLocaleString('vi-VN')}đ</span>
-                        </div>
-                        <div className="flex justify-between text-gray-700">
-                            <span>Thuế VAT (10%):</span>
-                            <span className="font-semibold">{tax.toLocaleString('vi-VN')}đ</span>
-                        </div>
-                        <div className="border-t-2 border-gray-200 pt-2 mt-2">
+                        <div className="border-gray-200">
                             <div className="flex justify-between text-xl font-bold text-gray-900">
                                 <span>Tổng cộng:</span>
                                 <span className="text-emerald-600">{total.toLocaleString('vi-VN')}đ</span>

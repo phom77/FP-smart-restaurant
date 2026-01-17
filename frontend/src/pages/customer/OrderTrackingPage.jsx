@@ -37,6 +37,7 @@ export default function OrderTrackingPage() {
             localStorage.removeItem('addToOrderId');
             localStorage.removeItem('addToTableId');
             localStorage.removeItem('qr_table_id'); // ✅ Thêm cả dòng này
+            localStorage.removeItem('qr_table_number'); // ✅ Clear table number too
         }
     }, [order?.status, order?.payment_status]);
 
@@ -194,7 +195,22 @@ export default function OrderTrackingPage() {
                         <div className="text-center py-4">
                             <div className="text-5xl mb-2">🚫</div>
                             <h2 className="text-xl font-bold text-red-600">Đơn hàng đã bị hủy</h2>
-                            <p className="text-gray-500">Vui lòng liên hệ nhân viên để được hỗ trợ.</p>
+                            <p className="text-gray-500 mb-4">Vui lòng liên hệ nhân viên để được hỗ trợ.</p>
+                            <button
+                                onClick={() => {
+                                    // Clear any stored order/table data
+                                    localStorage.removeItem('addToOrderId');
+                                    localStorage.removeItem('addToTableId');
+                                    localStorage.removeItem('qr_table_id');
+                                    localStorage.removeItem('qr_table_number');
+                                    // Navigate back to menu
+                                    navigate('/menu');
+                                }}
+                                className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all inline-flex items-center gap-2"
+                            >
+                                <span className="material-symbols-outlined">restaurant_menu</span>
+                                Về thực đơn
+                            </button>
                         </div>
                     ) : (
                         <>
@@ -241,8 +257,8 @@ export default function OrderTrackingPage() {
                     <h2 className="text-lg font-bold text-gray-800 mb-4">Chi tiết món</h2>
                     <div className="divide-y divide-gray-100">
                         {order.order_items?.map((item) => {
-                            const modifiersTotal = item.order_item_modifiers?.reduce((sum, mod) => sum + (mod.price || 0), 0) || 0;
-                            const itemTotal = (item.price + modifiersTotal) * item.quantity;
+                            const modifiersTotal = item.order_item_modifiers?.reduce((sum, mod) => sum + (parseFloat(mod.price) || 0), 0) || 0;
+                            const itemTotal = (parseFloat(item.unit_price) || 0) * (parseInt(item.quantity) || 0);
 
                             return (
                                 <div key={item.id} className="py-4 first:pt-0 last:pb-0">
@@ -300,9 +316,26 @@ export default function OrderTrackingPage() {
                         <div className="mt-4">
                             {/* Trường hợp 1: Đã thanh toán xong */}
                             {order.payment_status === 'paid' || order.payment_status === 'success' ? (
-                                <div className="w-full py-3 bg-green-100 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-green-200 animate-pulse">
-                                    <span className="material-symbols-outlined">check_circle</span>
-                                    Đã thanh toán thành công
+                                <div className="space-y-3">
+                                    <div className="w-full py-3 bg-green-100 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-green-200 animate-pulse">
+                                        <span className="material-symbols-outlined">check_circle</span>
+                                        Đã thanh toán thành công
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            // Clear any stored order/table data
+                                            localStorage.removeItem('addToOrderId');
+                                            localStorage.removeItem('addToTableId');
+                                            localStorage.removeItem('qr_table_id');
+                                            localStorage.removeItem('qr_table_number');
+                                            // Navigate back to menu
+                                            navigate('/menu');
+                                        }}
+                                        className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <span className="material-symbols-outlined">restaurant_menu</span>
+                                        Về thực đơn
+                                    </button>
                                 </div>
                             ) :
                                 /* Trường hợp 2: Đang chờ nhân viên (Tiền mặt) */
