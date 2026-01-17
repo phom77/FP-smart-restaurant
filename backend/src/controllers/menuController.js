@@ -84,6 +84,7 @@ exports.getMenuItems = async (req, res) => {
         const cacheKey = `menu_${category_id || 'all'}_${search || 'none'}_${sort_by}_${is_available || 'all'}_${chef_recommendation || 'all'}_page${page}_limit${limit}`;
 
         // 3. Check Redis cache first
+        /* 
         try {
             const cachedData = await redisClient.get(cacheKey);
             if (cachedData) {
@@ -93,6 +94,7 @@ exports.getMenuItems = async (req, res) => {
         } catch (redisErr) {
             console.log('Redis lỗi (bỏ qua):', redisErr.message);
         }
+        */
 
         // 4. Query Database with pagination
         let query = supabase
@@ -263,7 +265,7 @@ exports.getMenuItemReviews = async (req, res) => {
 // POST /api/admin/menu-items
 exports.createMenuItem = async (req, res) => {
     try {
-        const { name, description, price, category_id, image_url, is_available } = req.body;
+        const { name, description, price, category_id, image_url, images, is_available } = req.body;
 
         // Basic validation
         if (!name || !price) {
@@ -284,7 +286,7 @@ exports.createMenuItem = async (req, res) => {
         const { data, error } = await supabase
             .from('menu_items')
             .insert([
-                { name, description, price, category_id, image_url, is_available }
+                { name, description, price, category_id, image_url, images, is_available }
             ])
             .select()
             .single();
@@ -292,7 +294,7 @@ exports.createMenuItem = async (req, res) => {
         if (error) throw error;
 
         // Invalidate cache
-        await clearCache('cache:/api/menu*');
+        await clearCache('menu_*');
 
         res.status(201).json({
             success: true,
@@ -308,7 +310,11 @@ exports.createMenuItem = async (req, res) => {
 exports.updateMenuItem = async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
+        const { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation } = req.body;
+
+        const updates = {
+            name, description, price, category_id, image_url, images, is_available, is_chef_recommendation
+        };
 
         // Check for duplicates if name is being updated
         if (updates.name) {
@@ -334,7 +340,7 @@ exports.updateMenuItem = async (req, res) => {
         if (error) throw error;
 
         // Invalidate cache
-        await clearCache('cache:/api/menu*');
+        await clearCache('menu_*');
 
         res.status(200).json({
             success: true,
@@ -359,7 +365,7 @@ exports.deleteMenuItem = async (req, res) => {
         if (error) throw error;
 
         // Invalidate cache
-        await clearCache('cache:/api/menu*');
+        await clearCache('menu_*');
 
         res.status(200).json({
             success: true,

@@ -109,19 +109,19 @@ const DashboardPage = () => {
 
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 w-full md:w-auto">
 
                     <button
                         onClick={handleExport}
-                        className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all flex items-center gap-2"
+                        className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all flex justify-center items-center gap-2"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                         {t('common.export')}
                     </button>
 
-                    <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
+                    <div className="flex flex-wrap items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-200 w-full sm:w-auto">
                         {range === 'custom' && (
-                            <div className="flex items-center gap-2 px-2 border-r border-gray-200 mr-2 animate-in fade-in slide-in-from-left-2 transition-all">
+                            <div className="flex flex-wrap items-center gap-2 px-2 border-r border-gray-200 mr-2 animate-in fade-in slide-in-from-left-2 transition-all">
                                 <div className="flex items-center gap-1">
                                     <span className="text-[10px] uppercase font-bold text-gray-400">{t('revenue.from')}</span>
                                     <input
@@ -129,7 +129,7 @@ const DashboardPage = () => {
                                         value={customStart}
                                         max={getLocalDateString()}
                                         onChange={(e) => setCustomStart(e.target.value)}
-                                        className="bg-transparent border-none text-sm font-bold text-gray-700 focus:ring-0 p-0 cursor-pointer"
+                                        className="bg-transparent border-none text-sm font-bold text-gray-700 focus:ring-0 p-0 cursor-pointer w-[110px]"
                                     />
                                 </div>
                                 <div className="flex items-center gap-1">
@@ -139,16 +139,17 @@ const DashboardPage = () => {
                                         value={customEnd}
                                         max={getLocalDateString()}
                                         onChange={(e) => setCustomEnd(e.target.value)}
-                                        className="bg-transparent border-none text-sm font-bold text-gray-700 focus:ring-0 p-0 cursor-pointer"
+                                        className="bg-transparent border-none text-sm font-bold text-gray-700 focus:ring-0 p-0 cursor-pointer w-[110px]"
                                     />
                                 </div>
                             </div>
                         )}
-                        <div className="relative">
+                        <div className="relative flex-1 sm:flex-none">
                             <select
                                 value={range}
                                 onChange={(e) => setRange(e.target.value)}
-                                className="appearance-none bg-transparent text-gray-700 py-1 px-4 pr-10 rounded-lg font-bold focus:outline-none transition-all cursor-pointer min-w-[140px]"
+                                className="appearance-none bg-transparent text-gray-700 py-2.5 pl-10 pr-10 rounded-lg font-bold focus:outline-none transition-all cursor-pointer w-full sm:min-w-[140px] text-center"
+                                style={{ textAlign: 'center', textAlignLast: 'center' }}
                             >
                                 <option value="today">{t('revenue.today')}</option>
                                 <option value="week">{t('revenue.week')}</option>
