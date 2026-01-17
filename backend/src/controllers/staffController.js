@@ -1,5 +1,8 @@
 const supabase = require('../config/supabaseClient');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { registerSchema } = require('../utils/validation');
+const { sendStaffInvitation } = require('../services/emailService');
 
 // 1. Lấy danh sách nhân viên (Waiter & Kitchen)
 exports.getStaff = async (req, res) => {
@@ -46,20 +49,27 @@ exports.createStaff = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid role' });
         }
 
-        // Check email tồn tại
-        const { data: existingUser } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', email)
-            .single();
+        // 1. Validate Input Strict
+        const { error: validationError } = registerSchema.validate({ 
+            email, password, full_name, phone, role 
+        });
+        if (validationError) {
+            return res.status(400).json({ success: false, message: validationError.details[0].message });
+        }
 
+        // 2. Check email tồn tại
+        const { data: existingUser } = await supabase.from('users').select('id').eq('email', email).single();
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'Email already exists' });
         }
 
+        // 3. Hash Pass & Token
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+        // 4. Insert (is_verified = FALSE)
         const { data: newStaff, error } = await supabase
             .from('users')
             .insert([{
@@ -67,14 +77,24 @@ exports.createStaff = async (req, res) => {
                 password_hash: passwordHash,
                 full_name,
                 role,
-                phone
+                phone,
+                is_verified: false, // CHẶN ĐĂNG NHẬP
+                verification_token: verificationToken,
+                verification_token_expires: tokenExpiry
             }])
             .select('id, email, full_name, role, phone, avatar_url')
             .single();
 
         if (error) throw error;
 
-        res.status(201).json({ success: true, data: newStaff });
+        // 5. Gửi mail
+        await sendStaffInvitation(email, full_name, password, verificationToken);
+
+        res.status(201).json({ 
+            success: true, 
+            message: 'Tạo nhân viên thành công. Đã gửi email xác thực.',
+            data: newStaff 
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

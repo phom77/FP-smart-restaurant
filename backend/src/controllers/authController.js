@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto'); 
 const { sendResetPasswordEmail, sendVerificationEmail } = require('../services/emailService');
+const { registerSchema } = require('../utils/validation');
 
 const signToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -14,11 +15,16 @@ exports.register = async (req, res) => {
   try {
     const { email, password, full_name, phone } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Vui lòng nhập đủ thông tin' });
+    // 1. Validation (Khai báo biến error lần 1)
+    const { error } = registerSchema.validate({ email, password, full_name, phone });
+    if (error) {
+        return res.status(400).json({ 
+            success: false, 
+            message: error.details[0].message 
+        });
     }
 
-    // 1. Check email tồn tại
+    // 2. Check email tồn tại
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
@@ -29,15 +35,16 @@ exports.register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email đã được sử dụng' });
     }
 
-    // 2. Hash password
+    // 3. Hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // 3. Tạo Verification Token (Random string)
+    // 4. Tạo Verification Token
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
-    // 4. Insert User với is_verified = FALSE
-    const { data: newUser, error } = await supabase
+    // 5. Insert User 
+    // SỬA TẠI ĐÂY: Đổi tên 'error' thành 'dbError' để tránh trùng lặp
+    const { data: newUser, error: dbError } = await supabase
       .from('users')
       .insert([{
         email,
@@ -45,18 +52,19 @@ exports.register = async (req, res) => {
         full_name,
         phone,
         role: 'customer',
-        is_verified: false, // 👈 Quan trọng
-        verification_token: verificationToken // 👈 Lưu token để đối chiếu
+        is_verified: false,
+        verification_token: verificationToken
       }])
       .select()
       .single();
 
-    if (error) throw error;
+    // SỬA TẠI ĐÂY: Kiểm tra dbError thay vì error
+    if (dbError) throw dbError;
 
-    // 5. Gửi email xác thực
+    // 6. Gửi email xác thực
     sendVerificationEmail(email, verificationToken).catch(console.error);
 
-    // 6. Trả về thành công NHƯNG KHÔNG CÓ TOKEN (Bắt buộc user phải check mail)
+    // 7. Trả về kết quả
     res.status(201).json({
       success: true,
       message: 'Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản.'
@@ -88,10 +96,10 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Sai email hoặc mật khẩu' });
     }
 
-    if (user.role === 'customer' && !user.is_verified) {
+    if (!user.is_verified) {
         return res.status(403).json({ 
             success: false, 
-            message: 'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email.' 
+            message: 'Tài khoản chưa được xác thực. Vui lòng kiểm tra email để kích hoạt.' 
         });
     }
 

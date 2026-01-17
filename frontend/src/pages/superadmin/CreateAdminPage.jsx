@@ -12,8 +12,25 @@ export default function CreateAdminPage() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', content: '' });
 
+    const validateForm = () => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // Password: 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+        if (!emailRegex.test(formData.email)) {
+            setMessage({ type: 'error', content: 'Email không đúng định dạng.' });
+            return false;
+        }
+        if (!passwordRegex.test(formData.password)) {
+            setMessage({ type: 'error', content: 'Mật khẩu phải >8 ký tự, gồm chữ hoa, thường, số và ký tự đặc biệt.' });
+            return false;
+        }
+        return true;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validateForm()) return;
         setLoading(true);
         setMessage({ type: '', content: '' });
 
@@ -81,10 +98,11 @@ export default function CreateAdminPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu khởi tạo</label>
                             <input
-                                type="text" // Để text cho dễ nhìn khi cấp
+                                type="text"
                                 required
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none font-mono"
-                                placeholder="VD: Restaurant@2024"
+                                placeholder="VD: SmartRes@2024" // Gợi ý pass mạnh
+                                title="Mật khẩu phải >8 ký tự, gồm chữ hoa, thường, số và ký tự đặc biệt"
                                 value={formData.password}
                                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                             />

@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSocket } from '../../contexts/SocketContext';
+import { useAuth } from '../../contexts/AuthContext'; // Import AuthContext
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -8,13 +10,18 @@ export default function KitchenDisplayPage() {
     const [loading, setLoading] = useState(true);
     const [showSummary, setShowSummary] = useState(false);
     const socket = useSocket();
+    const { logout } = useAuth(); // Lấy hàm logout
+    const navigate = useNavigate(); // Hook chuyển trang
 
     // ========== 1. FETCH DỮ LIỆU ==========
     const fetchKitchenOrders = async () => {
         try {
+            setLoading(true); // Set loading nhẹ để người dùng biết đang refresh
             const res = await api.get('/api/kitchen/items');
             if (res.data.success) {
                 setOrders(res.data.data);
+                // Nếu gọi thủ công (nút refresh) thì báo toast
+                if (!loading) toast.success("Đã làm mới dữ liệu");
             }
         } catch (err) {
             console.error("❌ Lỗi tải đơn bếp:", err);
@@ -24,8 +31,22 @@ export default function KitchenDisplayPage() {
         }
     };
 
+    // Chỉ chạy lần đầu
     useEffect(() => {
-        fetchKitchenOrders();
+        // Tách riêng hàm fetch ban đầu để không bị hiện loading spinner mỗi lần refresh
+        const initFetch = async () => {
+             try {
+                const res = await api.get('/api/kitchen/items');
+                if (res.data.success) {
+                    setOrders(res.data.data);
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        initFetch();
     }, []);
 
     // ========== 2. SOCKET REALTIME ==========
@@ -47,8 +68,10 @@ export default function KitchenDisplayPage() {
             
             toast.success(`📢 Có đơn mới: Bàn ${data.table_number || data.table_id}`);
             
-            // Refresh lại danh sách
-            fetchKitchenOrders();
+            // Refresh lại danh sách (gọi API ngầm)
+            api.get('/api/kitchen/items').then(res => {
+                if(res.data.success) setOrders(res.data.data);
+            });
         };
 
         // ✅ B. Khi đồng đội update 1 món (preparing → ready)
@@ -96,6 +119,14 @@ export default function KitchenDisplayPage() {
             console.error("❌ Lỗi cập nhật:", err);
             toast.error("Lỗi cập nhật món");
             fetchKitchenOrders(); // Rollback
+        }
+    };
+    
+    // Xử lý Logout
+    const handleLogout = () => {
+        if(window.confirm('Bạn có chắc muốn đăng xuất?')) {
+            logout();
+            navigate('/login');
         }
     };
 
@@ -164,7 +195,7 @@ export default function KitchenDisplayPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 p-4">
+        <div className="min-h-screen bg-gray-100 p-4 pb-20"> {/* Thêm padding-bottom để không che nút */}
             {/* ========== HEADER ========== */}
             <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
                 <div>
@@ -299,6 +330,33 @@ export default function KitchenDisplayPage() {
                         <p className="text-sm text-gray-400 mt-2">Đơn mới sẽ xuất hiện tự động</p>
                     </div>
                 )}
+            </div>
+
+            {/* ========== FLOATING ACTION BUTTONS (Góc dưới trái) ========== */}
+            <div className="fixed bottom-6 left-6 flex flex-col gap-3 z-40">
+                <button
+                    onClick={fetchKitchenOrders}
+                    className="w-12 h-12 bg-white text-emerald-600 rounded-full shadow-lg border border-gray-100 flex items-center justify-center hover:bg-emerald-50 hover:scale-110 transition-all group relative"
+                    title="Làm mới dữ liệu"
+                >
+                    <span className={`material-symbols-outlined text-2xl ${loading ? 'animate-spin' : ''}`}>refresh</span>
+                    {/* Tooltip */}
+                    <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                        Làm mới
+                    </span>
+                </button>
+
+                <button
+                    onClick={handleLogout}
+                    className="w-12 h-12 bg-white text-red-500 rounded-full shadow-lg border border-gray-100 flex items-center justify-center hover:bg-red-50 hover:scale-110 transition-all group relative"
+                    title="Đăng xuất"
+                >
+                    <span className="material-symbols-outlined text-2xl">logout</span>
+                     {/* Tooltip */}
+                     <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                        Đăng xuất
+                    </span>
+                </button>
             </div>
 
             {/* ========== SUMMARY MODAL ========== */}
