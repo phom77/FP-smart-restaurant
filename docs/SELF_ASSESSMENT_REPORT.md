@@ -90,7 +90,7 @@ Students must input minus points to every uncompleted feature in the SE column.
 |  | Filter menu items by name, category | \-0.25 | x |  | Search and filter menu items |
 |  | Sort menu items by creation time, price, popularity | \-0.25 | x |  | Sortable menu item list |
 |  | Create a new menu item | \-0.25 | x |  | Add item with name, price, description, category, prep time |
-|  | Upload multiple menu item photos | \-0.5 |  |  | Multi-image upload for menu items |
+|  | Upload multiple menu item photos | \-0.5 | x |  | Multi-image upload for menu items |
 |  | Add menu item to category with modifiers | \-0.25 | x |  | Assign categories and create modifier groups (Size, Extras) |
 |  | Menu Item Modifiers | 0.5 | x |  | Modifier groups (Size, Extras) with price adjustments |
 |  | Specify menu item status | \-0.25 | x |  | Available, Unavailable, Sold out |
@@ -113,9 +113,9 @@ Students must input minus points to every uncompleted feature in the SE column.
 |  | › QR Code Download/Print | -0.25 | x |  | Download QR as PNG/PDF for printing |
 |  | › QR Code Regeneration | -0.25 | x |  | Regenerate QR and invalidate old codes |
 |  | Reports |  |  |  |  |
-|  | › View revenue report in time range | \-0.25 |  |  | Daily, weekly, monthly revenue reports |
-|  | › View top revenue by menu item in time range | \-0.25 |  |  | Best-selling items report |
-|  | › Show interactive chart in reports | \-0.25 |  |  | Chart.js/Recharts for analytics dashboard (orders/day, peak hours, popular items) |
+|  | › View revenue report in time range | \-0.25 | x |  | Daily, weekly, monthly revenue reports |
+|  | › View top revenue by menu item in time range | \-0.25 | x |  | Best-selling items report |
+|  | › Show interactive chart in reports | \-0.25 | x |  | Chart.js/Recharts for analytics dashboard (orders/day, peak hours, popular items) |
 | **7** | **Waiter features** |  |  |  |  |
 |  | View pending orders | \-0.25 | x|  | List of new orders waiting for waiter acceptance |
 |  | Accept/Reject order items | \-0.25 | x|  | Waiter can accept or reject individual order items |
