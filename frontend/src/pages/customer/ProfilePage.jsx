@@ -142,42 +142,51 @@ const ProfilePage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-8">Thông tin cá nhân</h1>
+        <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+                {/* Header with Back Button */}
+                <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-8">
+                    <button
+                        onClick={() => navigate('/menu')}
+                        className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white text-gray-700 rounded-lg sm:rounded-xl font-semibold hover:bg-gray-100 transition-all shadow-md hover:shadow-lg border border-gray-200 text-sm sm:text-base active:scale-95"
+                    >
+                        <span>←</span>
+                        <span className="hidden sm:inline">Quay lại menu</span>
+                        <span className="sm:hidden">Menu</span>
+                    </button>
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 flex-1">Thông tin cá nhân</h1>
+                </div>
 
                 {/* Message Alert */}
                 {message.text && (
                     <div
-                        className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg text-sm sm:text-base ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                             }`}
                     >
                         {message.text}
                     </div>
                 )}
 
-                <div className="max-w-4xl mx-auto space-y-6">
+                <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
                     {/* Profile Information Section */}
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                         {/* Profile Card */}
-                        <div className="bg-white shadow rounded-lg p-6">
-                            <h2 className="text-xl font-semibold mb-4">Thông tin tài khoản</h2>
+                        <div className="bg-white shadow rounded-lg sm:rounded-xl p-4 sm:p-6">
+                            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Thông tin tài khoản</h2>
                             <form onSubmit={handleProfileUpdate}>
                                 {/* Avatar */}
-                                <div className="flex items-center mb-6">
+                                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-4 sm:mb-6">
                                     <div className="relative">
-                                        <img
-                                            src={profileData.avatar_url || 'https://via.placeholder.com/100'}
-                                            alt="Avatar"
-                                            className="w-24 h-24 rounded-full object-cover"
-                                        />
+                                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold shadow-lg">
+                                            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase()}
+                                        </div>
                                         <label
                                             htmlFor="avatar-upload"
-                                            className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700"
+                                            className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 sm:p-2 rounded-full cursor-pointer hover:bg-blue-700 shadow-md"
                                         >
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
-                                                className="h-4 w-4"
+                                                className="h-3 w-3 sm:h-4 sm:w-4"
                                                 fill="none"
                                                 viewBox="0 0 24 24"
                                                 stroke="currentColor"
@@ -199,39 +208,39 @@ const ProfilePage = () => {
                                             className="hidden"
                                         />
                                     </div>
-                                    <div className="ml-6">
-                                        <p className="text-sm text-gray-600">Email</p>
-                                        <p className="font-medium">{user?.email}</p>
-                                        <p className="text-sm text-gray-600 mt-1">Vai trò: {user?.role}</p>
+                                    <div className="text-center sm:text-left">
+                                        <p className="text-xs sm:text-sm text-gray-600">Email</p>
+                                        <p className="font-medium text-sm sm:text-base">{user?.email}</p>
+                                        <p className="text-xs sm:text-sm text-gray-600 mt-1">Vai trò: {user?.role}</p>
                                     </div>
                                 </div>
 
                                 {/* Full Name */}
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Họ và tên</label>
+                                <div className="mb-3 sm:mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Họ và tên</label>
                                     <input
                                         type="text"
                                         value={profileData.full_name}
                                         onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                                     />
                                 </div>
 
                                 {/* Phone */}
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Số điện thoại</label>
                                     <input
                                         type="tel"
                                         value={profileData.phone}
                                         onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                                         placeholder="0123456789"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                                     />
                                 </div>
 
                                 <button
                                     type="submit"
-                                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200"
+                                    className="w-full bg-blue-600 text-white py-2.5 sm:py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold text-sm sm:text-base active:scale-95"
                                 >
                                     Cập nhật thông tin
                                 </button>
@@ -240,46 +249,46 @@ const ProfilePage = () => {
 
                         {/* Password Change Card - Only show for users with password (not OAuth) */}
                         {user?.has_password && (
-                            <div className="bg-white shadow rounded-lg p-6">
-                                <h2 className="text-xl font-semibold mb-4">Đổi mật khẩu</h2>
+                            <div className="bg-white shadow rounded-lg sm:rounded-xl p-4 sm:p-6">
+                                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Đổi mật khẩu</h2>
                                 <form onSubmit={handlePasswordChange}>
-                                    <div className="mb-4">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Mật khẩu cũ</label>
+                                    <div className="mb-3 sm:mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Mật khẩu cũ</label>
                                         <input
                                             type="password"
                                             value={passwordData.oldPassword}
                                             onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                                             required
                                         />
                                     </div>
 
-                                    <div className="mb-4">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Mật khẩu mới</label>
+                                    <div className="mb-3 sm:mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Mật khẩu mới</label>
                                         <input
                                             type="password"
                                             value={passwordData.newPassword}
                                             onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                                             required
                                         />
                                         <p className="text-xs text-gray-500 mt-1">Tối thiểu 6 ký tự</p>
                                     </div>
 
                                     <div className="mb-4">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Xác nhận mật khẩu mới</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Xác nhận mật khẩu mới</label>
                                         <input
                                             type="password"
                                             value={passwordData.confirmPassword}
                                             onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                                             required
                                         />
                                     </div>
 
                                     <button
                                         type="submit"
-                                        className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200"
+                                        className="w-full bg-green-600 text-white py-2.5 sm:py-3 px-4 rounded-lg hover:bg-green-700 transition duration-200 font-semibold text-sm sm:text-base active:scale-95"
                                     >
                                         Đổi mật khẩu
                                     </button>

@@ -8,10 +8,10 @@ export default function MenuCard({ item, onClick }) {
 
     return (
         <div
-            className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer border border-gray-100"
+            className="bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer border border-gray-100"
             onClick={() => onClick(item)}
         >
-            <div className="relative w-full h-56 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+            <div className="relative w-full h-40 sm:h-48 lg:h-56 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
                 <img
                     src={item.image_url}
                     alt={item.name}
@@ -22,32 +22,33 @@ export default function MenuCard({ item, onClick }) {
                 />
                 {/* Chef's Choice Badge */}
                 {item.is_chef_recommendation && (
-                    <div className="absolute top-3 left-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+                    <div className="absolute top-2 sm:top-3 left-2 sm:left-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shadow-lg flex items-center gap-1">
                         <span>👨‍🍳</span>
-                        <span>Chef's Choice</span>
+                        <span className="hidden sm:inline">Chef's Choice</span>
+                        <span className="sm:hidden">Chef</span>
                     </div>
                 )}
                 {!item.is_available && (
-                    <div className="absolute top-3 right-3 bg-red-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg">
+                    <div className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-red-600 text-white px-2 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shadow-lg">
                         Hết món
                     </div>
                 )}
             </div>
 
-            <div className="p-5">
-                <h3 className="text-xl font-bold mb-2 text-gray-900 line-clamp-1">
+            <div className="p-3 sm:p-4 lg:p-5">
+                <h3 className="text-base sm:text-lg lg:text-xl font-bold mb-1 sm:mb-2 text-gray-900 line-clamp-1">
                     {item.name}
                 </h3>
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[40px]">
+                <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 line-clamp-2 min-h-[32px] sm:min-h-[40px]">
                     {item.description}
                 </p>
 
-                <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                    <span className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent">
+                <div className="flex justify-between items-center pt-2 sm:pt-3 border-t border-gray-100">
+                    <span className="text-base sm:text-lg lg:text-xl font-bold bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent">
                         {formatPrice(item.price)}
                     </span>
                     {item.is_available && (
-                        <button className="w-10 h-10 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 text-white flex items-center justify-center text-2xl hover:from-emerald-600 hover:to-green-600 transition-all shadow-md hover:shadow-lg transform hover:scale-110">
+                        <button className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 text-white flex items-center justify-center text-xl sm:text-2xl hover:from-emerald-600 hover:to-green-600 transition-all shadow-md hover:shadow-lg transform hover:scale-110 active:scale-95">
                             <span className="mb-0.5">+</span>
                         </button>
                     )}

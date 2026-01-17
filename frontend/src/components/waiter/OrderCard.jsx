@@ -27,36 +27,36 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
     const isServed = order.is_served;
 
     return (
-        <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full relative group ${isWaitingPayment ? 'border-orange-400 ring-2 ring-orange-100' : 'border-gray-100'}`}>
+        <div className={`bg-white rounded-xl sm:rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full relative group ${isWaitingPayment ? 'border-orange-400 ring-2 ring-orange-100' : 'border-gray-100'}`}>
             {/* Header */}
             <div
                 onClick={onViewDetails}
-                className={`p-4 flex justify-between items-center border-b cursor-pointer transition-colors ${isPaid ? 'bg-green-50 border-green-100' :
+                className={`p-3 sm:p-4 flex justify-between items-center border-b cursor-pointer transition-colors ${isPaid ? 'bg-green-50 border-green-100' :
                     isWaitingPayment ? 'bg-orange-50 border-orange-100' : // Màu cam cho chờ thanh toán
                         'bg-gradient-to-r from-blue-50 to-white border-blue-50'
                     }`}
             >
                 <div className="flex items-center gap-2">
-                    <div className={`w-1.5 h-8 rounded-full transition-all ${order.status === 'pending' ? 'bg-yellow-500' :
+                    <div className={`w-1 sm:w-1.5 h-6 sm:h-8 rounded-full transition-all ${order.status === 'pending' ? 'bg-yellow-500' :
                         isPaid ? 'bg-green-500' : 'bg-blue-500'
                         }`}></div>
-                    <span className="font-extrabold text-lg text-gray-800">
+                    <span className="font-extrabold text-base sm:text-lg text-gray-800">
                         {t('waiter.table')} {order.table?.table_number || 'N/A'}
                     </span>
                 </div>
-                <div className="flex items-center gap-2">
-                    {isServed && !isPaid && <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">{t('waiter.served_badge')}</span>}
-                    {isPaid && <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">{t('waiter.paid_badge')}</span>}
-                    {isWaitingPayment && <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded animate-pulse">{t('waiter.bill_request')}</span>}
+                <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
+                    {isServed && !isPaid && <span className="text-[10px] sm:text-xs font-bold text-blue-600 bg-blue-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">{t('waiter.served_badge')}</span>}
+                    {isPaid && <span className="text-[10px] sm:text-xs font-bold text-green-600 bg-green-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">{t('waiter.paid_badge')}</span>}
+                    {isWaitingPayment && <span className="text-[10px] sm:text-xs font-bold text-orange-600 bg-orange-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded animate-pulse">{t('waiter.bill_request')}</span>}
 
-                    <span className="text-xs font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100 font-bold">
+                    <span className="text-[10px] sm:text-xs font-mono text-blue-600 bg-blue-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border border-blue-100 font-bold">
                         #{order.id?.slice(0, 6)}
                     </span>
                 </div>
             </div>
 
             {/* Body: Items & Progress */}
-            <div className="p-5 flex-1">
+            <div className="p-3 sm:p-5 flex-1">
                 {/* Thanh tiến độ bếp */}
                 {order.status === 'processing' && (
                     <div className="mb-3">
@@ -75,15 +75,15 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                     </div>
                 )}
 
-                <ul className="space-y-3">
+                <ul className="space-y-2 sm:space-y-3">
                     {order.items?.map((item, index) => (
-                        <li key={item.id || index} className="flex justify-between items-start text-sm">
+                        <li key={item.id || index} className="flex justify-between items-start text-xs sm:text-sm">
                             <div className="flex-1 pr-2">
-                                <span className="font-bold text-gray-800 mr-2">{item.quantity}x</span>
+                                <span className="font-bold text-gray-800 mr-1 sm:mr-2">{item.quantity}x</span>
                                 <span className="text-gray-700 font-medium">{item.menu_item?.name || 'Unknown'}</span>
 
                                 {/* Hiển thị trạng thái từng món nhỏ */}
-                                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-tighter ${item.status === 'pending' ? 'bg-red-100 text-red-600 border-red-200 animate-pulse' :
+                                <span className={`ml-1 sm:ml-2 text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded border font-bold uppercase tracking-tighter ${item.status === 'pending' ? 'bg-red-100 text-red-600 border-red-200 animate-pulse' :
                                     item.status === 'ready' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                         item.status === 'preparing' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                                             item.status === 'served' ? 'bg-blue-50 text-blue-700 border-blue-200' :
@@ -98,10 +98,10 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
             </div>
 
             {/* Footer: Actions */}
-            <div className="p-5 pt-0 mt-auto">
-                <div className="flex justify-between items-end mb-4 border-t border-dashed border-gray-100 pt-4">
-                    <span className="text-gray-500 font-medium text-xs uppercase tracking-wider">{t('waiter.total')}</span>
-                    <span className="text-2xl font-extrabold text-emerald-600 leading-none">
+            <div className="p-3 sm:p-5 pt-0 mt-auto">
+                <div className="flex justify-between items-end mb-3 sm:mb-4 border-t border-dashed border-gray-100 pt-3 sm:pt-4">
+                    <span className="text-gray-500 font-medium text-[10px] sm:text-xs uppercase tracking-wider">{t('waiter.total')}</span>
+                    <span className="text-xl sm:text-2xl font-extrabold text-emerald-600 leading-none">
                         {formatPrice(order.total_amount)}
                     </span>
                 </div>
@@ -111,15 +111,15 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 onClick={(e) => { e.stopPropagation(); onAccept(order.id); }}
-                                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-1 sm:gap-2"
                             >
-                                <span>{t('waiter.accept')}</span>
+                                <span className="text-sm sm:text-base">{t('waiter.accept')}</span>
                             </button>
                             <button
                                 onClick={(e) => { e.stopPropagation(); onReject(order.id); }}
-                                className="bg-white hover:bg-rose-50 text-rose-500 py-3 rounded-xl font-bold text-sm border border-rose-100 hover:border-rose-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                className="bg-white hover:bg-rose-50 text-rose-500 py-2 sm:py-3 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm border border-rose-100 hover:border-rose-200 transition-all active:scale-95 flex items-center justify-center gap-1 sm:gap-2"
                             >
-                                <span>{t('waiter.reject')}</span>
+                                <span className="text-sm sm:text-base">{t('waiter.reject')}</span>
                             </button>
                         </div>
                     )}
@@ -134,9 +134,9 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                     return (
                                         <button
                                             disabled
-                                            className="w-full py-2 rounded-xl font-bold text-xs border bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed flex items-center justify-center gap-2"
+                                            className="w-full py-2 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-xs border bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed flex items-center justify-center gap-1 sm:gap-2"
                                         >
-                                            <span className="material-symbols-outlined text-sm">timelapse</span>
+                                            <span className="material-symbols-outlined text-xs sm:text-sm">timelapse</span>
                                             {t('waiter.waiting_for_kitchen')}
                                         </button>
                                     );
@@ -147,9 +147,9 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                 return (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onServed && onServed(order.id, isServed); }}
-                                        className="w-full py-2.5 rounded-xl font-bold text-sm border-2 bg-white text-blue-600 border-blue-500 hover:bg-blue-50 cursor-pointer transition-all flex items-center justify-center gap-2"
+                                        className="w-full py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm border-2 bg-white text-blue-600 border-blue-500 hover:bg-blue-50 cursor-pointer transition-all flex items-center justify-center gap-1 sm:gap-2"
                                     >
-                                        <span className="material-symbols-outlined text-sm">room_service</span>
+                                        <span className="material-symbols-outlined text-xs sm:text-sm">room_service</span>
                                         {t('waiter.mark_as_served')}
                                     </button>
                                 );
@@ -159,9 +159,9 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                             {isServed && !isPaid && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onConfirmPayment && onConfirmPayment(order.id); }}
-                                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md border-2 border-blue-600 flex items-center justify-center gap-2 transition-all"
+                                    className="w-full py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-md border-2 border-blue-600 flex items-center justify-center gap-1 sm:gap-2 transition-all"
                                 >
-                                    <span className="material-symbols-outlined text-sm">payments</span>
+                                    <span className="material-symbols-outlined text-xs sm:text-sm">payments</span>
                                     {t('waiter.confirm_payment')}
                                 </button>
                             )}
@@ -175,10 +175,12 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                             e.stopPropagation();
                                             onAccept(order.id); // Sẽ chuyển món pending → preparing
                                         }}
-                                        className="bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-1 transition-all active:scale-95"
+                                        className="bg-emerald-500 hover:bg-emerald-600 text-white py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-sm shadow-md flex items-center justify-center gap-1 transition-all active:scale-95"
                                     >
-                                        <span className="material-symbols-outlined text-sm">check</span>
-                                        <span>Chấp nhận ({order.items.filter(item => item.status === 'pending').length})</span>
+                                        <span className="material-symbols-outlined text-xs sm:text-sm">check</span>
+                                        <span className="hidden sm:inline">Chấp nhận</span>
+                                        <span className="sm:hidden">OK</span>
+                                        <span>({order.items.filter(item => item.status === 'pending').length})</span>
                                     </button>
                                     <button
                                         onClick={(e) => {
@@ -187,10 +189,11 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                             const pendingItemIds = pendingItems.map(item => item.id);
                                             onRejectAdditionalItems && onRejectAdditionalItems(order.id, pendingItemIds);
                                         }}
-                                        className="bg-white hover:bg-rose-50 text-rose-500 py-2.5 rounded-xl font-bold text-sm border-2 border-rose-300 hover:border-rose-400 flex items-center justify-center gap-1 transition-all active:scale-95"
+                                        className="bg-white hover:bg-rose-50 text-rose-500 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-sm border-2 border-rose-300 hover:border-rose-400 flex items-center justify-center gap-1 transition-all active:scale-95"
                                     >
-                                        <span className="material-symbols-outlined text-sm">close</span>
-                                        <span>Từ chối</span>
+                                        <span className="material-symbols-outlined text-xs sm:text-sm">close</span>
+                                        <span className="hidden sm:inline">Từ chối</span>
+                                        <span className="sm:hidden">X</span>
                                     </button>
                                 </div>
                             )}
@@ -200,23 +203,24 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                             {isPaid ? (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onComplete && onComplete(order.id); }}
-                                    className="bg-gray-800 hover:bg-black text-white py-2.5 rounded-xl font-bold text-sm shadow-sm w-full flex items-center justify-center gap-2"
+                                    className="bg-gray-800 hover:bg-black text-white py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-sm w-full flex items-center justify-center gap-1 sm:gap-2"
                                 >
-                                    <span className="material-symbols-outlined text-sm">check_circle</span>
+                                    <span className="material-symbols-outlined text-xs sm:text-sm">check_circle</span>
                                     {t('waiter.close_table')}
                                 </button>
                             ) : (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
-                                    className={`py-2.5 rounded-xl font-bold text-sm w-full flex items-center justify-center gap-2 ${isWaitingPayment
+                                    className={`py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm w-full flex items-center justify-center gap-1 sm:gap-2 ${isWaitingPayment
                                         ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-md animate-bounce-short'
                                         : 'bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50'
                                         }`}
                                 >
                                     {isWaitingPayment ? (
                                         <>
-                                            <span className="material-symbols-outlined text-sm">payments</span>
-                                            {t('waiter.customer_request_payment')}
+                                            <span className="material-symbols-outlined text-xs sm:text-sm">payments</span>
+                                            <span className="hidden sm:inline">{t('waiter.customer_request_payment')}</span>
+                                            <span className="sm:inline md:hidden">Thanh toán</span>
                                         </>
                                     ) : (
                                         t('waiter.payment_details')
