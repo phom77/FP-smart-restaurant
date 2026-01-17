@@ -659,6 +659,119 @@ exports.addItemsToOrder = async (req, res) => {
   return await addItemsToExistingOrder(req, res, orderId, items);
 };
 
+// DELETE /api/orders/:id/items - Reject additional items
+exports.rejectAdditionalItems = async (req, res) => {
+  try {
+    const { id: orderId } = req.params;
+    const { itemIds } = req.body;
+
+    // Validation
+    if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp danh sách món cần từ chối'
+      });
+    }
+
+    // 1. Get items to be rejected (to calculate amount to subtract)
+    const { data: itemsToReject, error: fetchError } = await supabase
+      .from('order_items')
+      .select('id, total_price, order_id, menu_item:menu_items(name)')
+      .in('id', itemIds)
+      .eq('order_id', orderId)
+      .eq('status', 'pending'); // Only allow rejecting pending items
+
+    if (fetchError) throw fetchError;
+
+    if (!itemsToReject || itemsToReject.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không tìm thấy món pending để từ chối'
+      });
+    }
+
+    // 2. Calculate total amount to subtract
+    const amountToSubtract = itemsToReject.reduce((sum, item) =>
+      sum + parseFloat(item.total_price), 0
+    );
+
+    // 3. Delete the rejected items and their modifiers (CASCADE will handle modifiers)
+    const { error: deleteError } = await supabase
+      .from('order_items')
+      .delete()
+      .in('id', itemIds);
+
+    if (deleteError) throw deleteError;
+
+    // 4. Update order total amount
+    const { data: currentOrder, error: fetchOrderError } = await supabase
+      .from('orders')
+      .select('total_amount, table_id')
+      .eq('id', orderId)
+      .single();
+
+    if (fetchOrderError) throw fetchOrderError;
+
+    const newTotalAmount = parseFloat(currentOrder.total_amount) - amountToSubtract;
+
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        total_amount: newTotalAmount,
+        updated_at: new Date()
+      })
+      .eq('id', orderId);
+
+    if (updateError) throw updateError;
+
+    // 5. Emit socket event to notify customer
+    const io = getIO();
+    const { data: tableInfo } = await supabase
+      .from('tables')
+      .select('table_number')
+      .eq('id', currentOrder.table_id)
+      .single();
+
+    // Notify customer at the table
+    if (currentOrder.table_id) {
+      io.to(`table_${currentOrder.table_id}`).emit('additional_items_rejected', {
+        order_id: orderId,
+        rejected_items: itemsToReject.map(item => ({
+          id: item.id,
+          name: item.menu_item?.name
+        })),
+        items_count: itemsToReject.length,
+        amount_refunded: amountToSubtract,
+        new_total: newTotalAmount,
+        message: `${itemsToReject.length} món đã bị từ chối bởi nhân viên`
+      });
+    }
+
+    // Notify waiter room to refresh
+    io.to('waiter').emit('order_status_updated', {
+      order_id: orderId,
+      updated_at: new Date()
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Đã từ chối ${itemsToReject.length} món`,
+      rejected_count: itemsToReject.length,
+      amount_refunded: amountToSubtract,
+      new_total: newTotalAmount
+    });
+
+  } catch (err) {
+    console.error("Reject Additional Items Error:", err);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi từ chối món ăn',
+      error: err.message
+    });
+  }
+};
+
+
 // POST /api/orders/:id/checkout - Thanh toán
 exports.checkoutOrder = async (req, res) => {
   // Logic thanh toán

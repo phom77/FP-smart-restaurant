@@ -162,6 +162,20 @@ const OrderListPage = () => {
         }
     };
 
+    const handleRejectAdditionalItems = async (orderId, itemIds) => {
+        if (!window.confirm(`Bạn có chắc muốn từ chối ${itemIds.length} món này?`)) return;
+        try {
+            await axios.delete(`${API_URL}/api/orders/${orderId}/items`, {
+                ...getAuthHeader(),
+                data: { itemIds }
+            });
+            // Orders will refresh automatically via socket event
+        } catch (err) {
+            alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
+        }
+    };
+
+
     const handleConfirmPayment = async (orderId) => {
         if (!window.confirm("Xác nhận đã thu tiền đơn này?")) return;
         try {
@@ -222,6 +236,7 @@ const OrderListPage = () => {
                                     onComplete={handleComplete}
                                     onServed={handleServed}
                                     onConfirmPayment={handleConfirmPayment}
+                                    onRejectAdditionalItems={handleRejectAdditionalItems}
                                     onViewDetails={() => setSelectedOrder(order)}
                                 />
                             </div>

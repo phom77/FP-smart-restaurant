@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmPayment, onViewDetails }) => {
+const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmPayment, onRejectAdditionalItems, onViewDetails }) => {
     const { t } = useTranslation();
 
     // Format currency an toàn
@@ -166,21 +166,36 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                 </button>
                             )}
 
-                            {/* --- 🟢 NÚT XÁC NHẬN MÓN MỚI (Quick Action) --- */}
-                            {/* Nút xác nhận món mới - CHỈ hiện khi order đang processing */}
+                            {/* --- 🟢 NÚT XÁC NHẬN / TỪ CHỐI MÓN MỚI (Quick Action) --- */}
+                            {/* Nút xác nhận/từ chối món mới - CHỈ hiện khi order đang processing */}
                             {order.status === 'processing' && order.items?.some(item => item.status === 'pending') && (
-                                <button
-                                    onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        onAccept(order.id); // Sẽ chuyển món pending → preparing
-                                    }}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-md mb-2 w-full flex items-center justify-center gap-2 animate-pulse"
-                                >
-                                    <span className="material-symbols-outlined text-sm">restaurant_menu</span>
-                                    Gửi {order.items.filter(item => item.status === 'pending').length} món thêm vào bếp
-                                </button>
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onAccept(order.id); // Sẽ chuyển món pending → preparing
+                                        }}
+                                        className="bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-1 transition-all active:scale-95"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">check</span>
+                                        <span>Chấp nhận ({order.items.filter(item => item.status === 'pending').length})</span>
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const pendingItems = order.items.filter(item => item.status === 'pending');
+                                            const pendingItemIds = pendingItems.map(item => item.id);
+                                            onRejectAdditionalItems && onRejectAdditionalItems(order.id, pendingItemIds);
+                                        }}
+                                        className="bg-white hover:bg-rose-50 text-rose-500 py-2.5 rounded-xl font-bold text-sm border-2 border-rose-300 hover:border-rose-400 flex items-center justify-center gap-1 transition-all active:scale-95"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">close</span>
+                                        <span>Từ chối</span>
+                                    </button>
+                                </div>
                             )}
                             {/* --------------------------------------------- */}
+
 
                             {isPaid ? (
                                 <button
