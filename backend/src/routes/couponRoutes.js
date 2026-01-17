@@ -16,5 +16,8 @@ router.post('/create',
     couponController.createCoupon
 );
 
+router.get('/:id', verifyToken, authorizeRoles('admin', 'super_admin'), couponController.getCouponById);
+router.put('/:id', verifyToken, authorizeRoles('admin', 'super_admin'), couponController.updateCoupon);
+router.delete('/:id', verifyToken, authorizeRoles('admin', 'super_admin'), couponController.deleteCoupon);
 
 module.exports = router;

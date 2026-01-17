@@ -94,3 +94,63 @@ exports.createCoupon = async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
+// 4. Lấy chi tiết 1 Voucher (Dùng cho trang Edit)
+exports.getCouponById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data, error } = await supabase
+            .from('coupons')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        res.json({ success: true, data });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// 5. Cập nhật Voucher
+exports.updateCoupon = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+        
+        // Loại bỏ các field không cho sửa (nếu cần)
+        delete updates.id; 
+        delete updates.created_at;
+
+        const { data, error } = await supabase
+            .from('coupons')
+            .update(updates)
+            .eq('id', id)
+            .select();
+
+        if (error) throw error;
+        res.json({ success: true, data });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// 6. Xóa Voucher
+exports.deleteCoupon = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Kiểm tra xem voucher đã được dùng lần nào chưa
+        // Nếu đã dùng thì chỉ nên ẩn đi (is_active = false) chứ không nên xóa vĩnh viễn
+        // Tuy nhiên ở đây mình làm xóa vĩnh viễn theo yêu cầu, bạn có thể tùy chỉnh logic.
+        const { error } = await supabase
+            .from('coupons')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        res.json({ success: true, message: 'Đã xóa thành công' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Lỗi xóa voucher: Có thể mã này đã được sử dụng trong đơn hàng.' });
+    }
+};
