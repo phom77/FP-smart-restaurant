@@ -128,6 +128,14 @@ export default function LoginPage() {
                      <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5" />
                     Google
                 </button>
+
+                {/* 👉 ĐÃ THÊM LẠI PHẦN ĐĂNG KÝ Ở ĐÂY */}
+                <div className="mt-6 text-center text-sm">
+                    <span className="text-gray-600">Bạn chưa có tài khoản? </span>
+                    <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                        Đăng ký ngay
+                    </Link>
+                </div>
             </div>
         </div>
     );

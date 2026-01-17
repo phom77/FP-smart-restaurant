@@ -70,7 +70,6 @@ const AdminSidebar = () => {
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
                         {t('admin.panel')}
                     </h1>
-                    {/* Close button for mobile */}
                     <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="md:hidden p-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all"
@@ -85,6 +84,18 @@ const AdminSidebar = () => {
                     <Link to="/admin/dashboard" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/dashboard' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
                         <span className="mr-3">📊</span> {t('admin.dashboard')}
                     </Link>
+                    
+                    <Link 
+                        to="/admin/coupons" 
+                        className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${
+                            location.pathname.includes('/admin/coupons') 
+                            ? 'bg-emerald-50 text-emerald-600' 
+                            : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'
+                        }`}
+                    >
+                        <span className="mr-3">🎁</span> Quản lý Voucher
+                    </Link>
+
                     <Link to="/admin/categories" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/categories' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
                         <span className="mr-3">📂</span> {t('admin.categories')}
                     </Link>
