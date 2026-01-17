@@ -79,11 +79,24 @@ export default function OrderTrackingPage() {
             }
         };
 
+        const handleItemsRejected = (data) => {
+            console.log("🚫 Items Rejected:", data);
+
+            // Show notification to customer
+            if (data.message) {
+                alert(`⚠️ ${data.message}\n\nSố món bị từ chối: ${data.items_count}\nSố tiền hoàn: ${data.amount_refunded?.toLocaleString('vi-VN')}đ`);
+            }
+
+            // Refresh order to show updated items and total
+            fetchOrder();
+        };
+
         socket.on('order_status_update', handleOrderUpdate);
         socket.on('item_status_update', handleItemUpdate);
         socket.on('payment_status_update', handlePaymentUpdate);
         socket.on('payment_success', handlePaymentUpdate);
         socket.on('order_paid', handlePaymentUpdate);
+        socket.on('additional_items_rejected', handleItemsRejected);
 
         return () => {
             socket.off('order_status_update', handleOrderUpdate);
@@ -91,6 +104,7 @@ export default function OrderTrackingPage() {
             socket.off('payment_status_update', handlePaymentUpdate);
             socket.off('payment_success', handlePaymentUpdate);
             socket.off('order_paid', handlePaymentUpdate);
+            socket.off('additional_items_rejected', handleItemsRejected);
         };
     }, [socket, order?.table_id, orderId, fetchOrder]);
 

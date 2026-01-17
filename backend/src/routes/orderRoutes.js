@@ -35,6 +35,11 @@ router.put('/:id/served',
 );
 
 router.post('/:id/items', orderController.addItemsToOrder);
+router.delete('/:id/items',
+  verifyToken,
+  authorizeRoles('waiter', 'admin'),
+  orderController.rejectAdditionalItems
+);
 router.post('/add-items', verifyToken, orderController.addItemsToOrder); // Alternative route with orderId in body
 router.post('/:id/checkout', orderController.checkoutOrder);
 

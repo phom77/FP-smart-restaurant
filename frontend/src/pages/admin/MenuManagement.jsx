@@ -16,7 +16,8 @@ const MenuManagement = () => {
         price: '',
         category_id: '',
         image_url: '',
-        is_available: true
+        is_available: true,
+        is_chef_recommendation: false
     });
     const [imageFile, setImageFile] = useState(null);
     const [editingId, setEditingId] = useState(null); // ID being edited
@@ -73,7 +74,8 @@ const MenuManagement = () => {
             price: item.price,
             category_id: item.category_id,
             image_url: item.image_url || '',
-            is_available: item.is_available
+            is_available: item.is_available,
+            is_chef_recommendation: item.is_chef_recommendation || false
         });
         setEditingId(item.id);
         setImageFile(null); // Reset file input
@@ -82,7 +84,7 @@ const MenuManagement = () => {
     };
 
     const resetForm = () => {
-        setNewItem({ name: '', description: '', price: '', category_id: '', image_url: '', is_available: true });
+        setNewItem({ name: '', description: '', price: '', category_id: '', image_url: '', is_available: true, is_chef_recommendation: false });
         setImageFile(null);
         setEditingId(null);
         setError('');
@@ -198,6 +200,20 @@ const MenuManagement = () => {
                         <label className="text-sm font-semibold text-gray-600">{t('menu.available')}</label>
                     </div>
 
+                    {/* Chef Recommendation Toggle */}
+                    <div className="flex items-center space-x-2 border-2 border-gray-200 p-3 rounded-xl bg-white w-full">
+                        <input
+                            type="checkbox"
+                            checked={newItem.is_chef_recommendation}
+                            onChange={e => setNewItem({ ...newItem, is_chef_recommendation: e.target.checked })}
+                            className="w-5 h-5 text-yellow-600 rounded focus:ring-yellow-500"
+                        />
+                        <label className="text-sm font-semibold text-gray-600 flex items-center gap-1">
+                            <span>👨‍🍳</span>
+                            <span>Chef's Choice</span>
+                        </label>
+                    </div>
+
                     <div className="flex items-center gap-4 border-2 border-gray-200 p-2.5 rounded-xl bg-white col-span-1 md:col-span-2 w-full">
                         <span className="text-sm font-semibold text-gray-600 whitespace-nowrap pl-1">{t('menu.image')}:</span>
 
@@ -266,6 +282,7 @@ const MenuManagement = () => {
                             <th className="p-4 border-b text-center text-gray-600 font-semibold w-40">{t('menu.table_category')}</th>
                             <th className="p-4 border-b text-center text-gray-600 font-semibold w-32">{t('menu.table_price')}</th>
                             <th className="p-4 border-b text-center text-gray-600 font-semibold w-32">{t('menu.table_status')}</th>
+                            <th className="p-4 border-b text-center text-gray-600 font-semibold w-32">Chef's Choice</th>
                             <th className="p-4 border-b text-center text-gray-600 font-semibold w-56">{t('menu.table_actions')}</th>
                         </tr>
                     </thead>
@@ -294,6 +311,16 @@ const MenuManagement = () => {
                                     <span className={`px-3 py-1 text-xs font-bold rounded-full ${item.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                         {item.is_available ? t('menu.active') : t('menu.hidden')}
                                     </span>
+                                </td>
+                                <td className="p-4 border-b border-gray-100 text-center">
+                                    {item.is_chef_recommendation ? (
+                                        <span className="px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-yellow-100 to-amber-100 text-amber-700 flex items-center gap-1 justify-center">
+                                            <span>👨‍🍳</span>
+                                            <span>Yes</span>
+                                        </span>
+                                    ) : (
+                                        <span className="text-gray-400 text-xs">-</span>
+                                    )}
                                 </td>
                                 <td className="p-4 border-b border-gray-100">
                                     <div className="flex gap-2 justify-center">

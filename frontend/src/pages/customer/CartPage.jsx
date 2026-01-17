@@ -210,22 +210,6 @@ export default function CartPage() {
                     </div>
                 )}
 
-                {/* Message when no QR code scanned - Prompt user to scan */}
-                {!existingOrderId && !qrTableId && (
-                    <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-2xl shadow-md p-6">
-                        <div className="flex items-start gap-4">
-                            <div className="text-4xl">📱</div>
-                            <div className="flex-1">
-                                <p className="font-bold text-amber-800 text-lg mb-2">
-                                    Vui lòng quét mã QR tại bàn
-                                </p>
-                                <p className="text-amber-700 text-sm">
-                                    Để đặt món, bạn cần quét mã QR được đặt trên bàn. Mã QR sẽ tự động chọn bàn cho bạn.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Info message when table is from QR code */}
                 {qrTableId && !existingOrderId && (

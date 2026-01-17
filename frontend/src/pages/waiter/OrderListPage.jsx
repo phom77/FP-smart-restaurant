@@ -102,9 +102,14 @@ const OrderListPage = () => {
         };
 
         const handlePaymentRequest = (data) => {
-            showNotification('💰 Yêu cầu thanh toán', `Bàn ${data.tableId || data.table_number || '???'} yêu cầu thanh toán`);
+            const invoiceText = data.requestInvoice ? ' - CẦN HÓA ĐƠN VAT ✓' : '';
+            showNotification(
+                '💰 Yêu cầu thanh toán',
+                `Bàn ${data.tableNumber || data.tableId || '???'} yêu cầu thanh toán ${data.method === 'cash' ? 'Tiền mặt' : 'Thẻ'}${invoiceText}`
+            );
             refreshOrders();
         };
+
 
         socket.on('new_order', handleNewOrder);
         socket.on('order_status_updated', refreshOrders);
@@ -156,6 +161,20 @@ const OrderListPage = () => {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
     };
+
+    const handleRejectAdditionalItems = async (orderId, itemIds) => {
+        if (!window.confirm(`Bạn có chắc muốn từ chối ${itemIds.length} món này?`)) return;
+        try {
+            await axios.delete(`${API_URL}/api/orders/${orderId}/items`, {
+                ...getAuthHeader(),
+                data: { itemIds }
+            });
+            // Orders will refresh automatically via socket event
+        } catch (err) {
+            alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
+        }
+    };
+
 
     const handleConfirmPayment = async (orderId) => {
         if (!window.confirm("Xác nhận đã thu tiền đơn này?")) return;
@@ -217,6 +236,7 @@ const OrderListPage = () => {
                                     onComplete={handleComplete}
                                     onServed={handleServed}
                                     onConfirmPayment={handleConfirmPayment}
+                                    onRejectAdditionalItems={handleRejectAdditionalItems}
                                     onViewDetails={() => setSelectedOrder(order)}
                                 />
                             </div>

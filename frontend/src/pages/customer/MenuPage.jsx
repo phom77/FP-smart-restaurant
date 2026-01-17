@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import MenuCard from '../../components/MenuCard';
@@ -20,6 +20,11 @@ export default function MenuPage() {
     const [searchLoading, setSearchLoading] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [showGuestModal, setShowGuestModal] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [showChefRecommendation, setShowChefRecommendation] = useState(false);
+    const observer = useRef();
     const { getCartCount } = useCart();
 
     // Store table ID from QR code scan
@@ -29,6 +34,20 @@ export default function MenuPage() {
             localStorage.setItem('qr_table_id', tableFromUrl);
         }
     }, [searchParams]);
+
+    // Intersection Observer callback for infinite scroll
+    const lastItemRef = useCallback(node => {
+        if (loadingMore) return;
+        if (observer.current) observer.current.disconnect();
+
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore && !debouncedSearch) {
+                setPage(prevPage => prevPage + 1);
+            }
+        });
+
+        if (node) observer.current.observe(node);
+    }, [loadingMore, hasMore, debouncedSearch]);
 
     // Check if user has seen the modal before
     useEffect(() => {
@@ -97,15 +116,20 @@ export default function MenuPage() {
                         results.sort((a, b) => a.price - b.price);
                     } else if (sortBy === 'price_desc') {
                         results.sort((a, b) => b.price - a.price);
+                    } else if (sortBy === 'popularity') {
+                        results.sort((a, b) => (b.order_count || 0) - (a.order_count || 0));
                     } else if (sortBy === 'name') {
                         results.sort((a, b) => a.name.localeCompare(b.name));
                     }
 
                     setMenuItems(results);
                 } else {
-                    // Standard menu fetch without search
+                    // Standard menu fetch without search with pagination
+                    setLoadingMore(true);
                     const params = {
-                        is_available: 'true'
+                        is_available: 'true',
+                        page: page,
+                        limit: 20
                     };
 
                     if (selectedCategory !== 'all') {
@@ -116,10 +140,27 @@ export default function MenuPage() {
                         params.sort_by = 'price_asc';
                     } else if (sortBy === 'price_desc') {
                         params.sort_by = 'price_desc';
+                    } else if (sortBy === 'popularity') {
+                        params.sort_by = 'popularity';
                     }
 
+                    if (showChefRecommendation) {
+                        params.chef_recommendation = 'true';
+                    }
+
+
                     const response = await api.get('/api/menu/items', { params });
-                    setMenuItems(response.data.data || []);
+
+                    // Append items for infinite scroll
+                    if (page === 1) {
+                        setMenuItems(response.data.data || []);
+                    } else {
+                        setMenuItems(prev => [...prev, ...(response.data.data || [])]);
+                    }
+
+                    // Update hasMore flag
+                    setHasMore(response.data.pagination?.hasMore || false);
+                    setLoadingMore(false);
                 }
             } catch (error) {
                 console.error('Error fetching menu items:', error);
@@ -131,7 +172,14 @@ export default function MenuPage() {
         };
 
         fetchMenuItems();
-    }, [selectedCategory, debouncedSearch, sortBy]);
+    }, [selectedCategory, debouncedSearch, sortBy, page, showChefRecommendation]);
+
+    // Reset page when filters change
+    useEffect(() => {
+        setPage(1);
+        setMenuItems([]);
+        setHasMore(true);
+    }, [selectedCategory, sortBy, debouncedSearch, showChefRecommendation]);
 
     const handleItemClick = async (item) => {
         try {
@@ -235,6 +283,23 @@ export default function MenuPage() {
                     </div>
                 </header>
 
+                {/* QR Code Reminder - Show if no table selected */}
+                {!searchParams.get('table') && !localStorage.getItem('qr_table_id') && (
+                    <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-2xl shadow-md p-6">
+                        <div className="flex items-start gap-4">
+                            <div className="text-4xl">📱</div>
+                            <div className="flex-1">
+                                <p className="font-bold text-amber-800 text-lg mb-2">
+                                    Vui lòng quét mã QR tại bàn
+                                </p>
+                                <p className="text-amber-700 text-sm">
+                                    Để đặt món, bạn cần quét mã QR được đặt trên bàn. Mã QR sẽ tự động chọn bàn cho bạn.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Search Bar */}
                 <div className="mb-6">
                     <div className="relative">
@@ -284,9 +349,23 @@ export default function MenuPage() {
                         className="px-4 py-2 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium cursor-pointer focus:outline-none focus:border-emerald-500 transition-all"
                     >
                         <option value="name">Tên (A-Z)</option>
+                        <option value="popularity">Phổ biến nhất</option>
                         <option value="price_asc">Giá tăng dần</option>
                         <option value="price_desc">Giá giảm dần</option>
                     </select>
+
+                    {/* Chef's Choice Filter */}
+                    <button
+                        onClick={() => setShowChefRecommendation(!showChefRecommendation)}
+                        className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg hover:scale-105 ${showChefRecommendation
+                                ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                    >
+                        <span>👨‍🍳</span>
+                        <span>Chef's Choice</span>
+                        {showChefRecommendation && <span className="text-xs">✓</span>}
+                    </button>
                 </div>
 
                 {/* Menu Items Grid */}
@@ -304,14 +383,43 @@ export default function MenuPage() {
                                 <p className="text-gray-500 mt-2">Thử tìm kiếm với từ khóa khác</p>
                             </div>
                         ) : (
-                            menuItems.map(item => (
-                                <MenuCard
-                                    key={item.id}
-                                    item={item}
-                                    onClick={handleItemClick}
-                                />
-                            ))
+                            menuItems.map((item, index) => {
+                                // Attach ref to last item for infinite scroll
+                                if (menuItems.length === index + 1) {
+                                    return (
+                                        <div ref={lastItemRef} key={item.id}>
+                                            <MenuCard
+                                                item={item}
+                                                onClick={handleItemClick}
+                                            />
+                                        </div>
+                                    );
+                                } else {
+                                    return (
+                                        <MenuCard
+                                            key={item.id}
+                                            item={item}
+                                            onClick={handleItemClick}
+                                        />
+                                    );
+                                }
+                            })
                         )}
+                    </div>
+                )}
+
+                {/* Loading More Indicator */}
+                {loadingMore && !loading && (
+                    <div className="text-center py-8">
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
+                        <p className="mt-4 text-gray-600">Đang tải thêm món...</p>
+                    </div>
+                )}
+
+                {/* No More Items */}
+                {!hasMore && menuItems.length > 0 && !debouncedSearch && (
+                    <div className="text-center py-8 text-gray-500">
+                        <p className="text-lg">🎉 Đã hiển thị tất cả món ăn</p>
                     </div>
                 )}
 

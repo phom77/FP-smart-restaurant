@@ -47,7 +47,7 @@ const CheckoutForm = ({ order, onSuccess }) => {
                 setError(result.error.message);
                 setProcessing(false);
             } else if (result.paymentIntent.status === 'succeeded') {
-                
+
                 // --- 🟢 THÊM BƯỚC NÀY: Gọi Backend xác nhận ngay ---
                 await api.post('/api/payment/confirm', {
                     orderId: order.id,
@@ -72,8 +72,8 @@ const CheckoutForm = ({ order, onSuccess }) => {
                 }} />
             </div>
             {error && <div className="text-red-500 text-sm bg-red-50 p-2 rounded">{error}</div>}
-            <button 
-                type="submit" 
+            <button
+                type="submit"
                 disabled={!stripe || processing}
                 className="w-full py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all disabled:opacity-50 flex justify-center items-center gap-2"
             >
@@ -93,8 +93,9 @@ const CheckoutForm = ({ order, onSuccess }) => {
 export default function CustomerCheckoutPage() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { order } = location.state || {}; 
+    const { order } = location.state || {};
     const [paymentMethod, setPaymentMethod] = useState('card');
+    const [requestInvoice, setRequestInvoice] = useState(false);
 
     useEffect(() => {
         if (!order) navigate('/menu');
@@ -117,7 +118,8 @@ export default function CustomerCheckoutPage() {
         try {
             await api.post('/api/payment/create-intent', {
                 orderId: order.id,
-                paymentMethod: 'cash'
+                paymentMethod: 'cash',
+                requestInvoice: requestInvoice
             });
             // Backend đã bắn socket 'payment_request' cho Waiter ở đây
             handleSuccess('cash');
@@ -145,24 +147,38 @@ export default function CustomerCheckoutPage() {
 
                 <h3 className="font-bold text-gray-800 mb-3 ml-1">Phương thức thanh toán</h3>
                 <div className="grid grid-cols-2 gap-3 mb-6">
-                    <button 
+                    <button
                         onClick={() => setPaymentMethod('card')}
-                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-                            paymentMethod === 'card' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-500'
-                        }`}
+                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'card' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-500'
+                            }`}
                     >
                         <span className="material-symbols-outlined text-3xl">credit_card</span>
                         <span className="font-bold text-sm">Thẻ Tín Dụng</span>
                     </button>
-                    <button 
+                    <button
                         onClick={() => setPaymentMethod('cash')}
-                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-                            paymentMethod === 'cash' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-500'
-                        }`}
+                        className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'cash' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-500'
+                            }`}
                     >
                         <span className="material-symbols-outlined text-3xl">payments</span>
                         <span className="font-bold text-sm">Tiền Mặt</span>
                     </button>
+                </div>
+
+                {/* Invoice Request Checkbox */}
+                <div className="bg-white p-4 rounded-xl border-2 border-gray-200 mb-6">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={requestInvoice}
+                            onChange={(e) => setRequestInvoice(e.target.checked)}
+                            className="w-5 h-5 mt-0.5 text-emerald-600 rounded focus:ring-emerald-500"
+                        />
+                        <div className="flex-1">
+                            <span className="font-semibold text-gray-800 block mb-1">Yêu cầu hóa đơn VAT</span>
+                            <span className="text-sm text-gray-500">Nhân viên sẽ xuất hóa đơn VAT cho bạn sau khi thanh toán</span>
+                        </div>
+                    </label>
                 </div>
 
                 {paymentMethod === 'card' ? (
@@ -176,7 +192,7 @@ export default function CustomerCheckoutPage() {
                         </div>
                     )
                 ) : (
-                    <button 
+                    <button
                         onClick={handleCashPayment}
                         className="w-full py-4 bg-gray-800 text-white font-bold rounded-xl shadow-lg hover:bg-gray-900 transition-all flex items-center justify-center gap-2"
                     >

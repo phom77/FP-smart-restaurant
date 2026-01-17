@@ -42,9 +42,9 @@ Students must input minus points to every uncompleted feature in the SE column.
 |  | Filter menu items by |  |  |  | A combination of the criteria |
 |  | › Item name | \-0.25 | x |  | Search menu items by name |
 |  | › Category | \-0.25 | x |  | Filter by food categories (Appetizers, Main Dishes, Drinks, Desserts) |
-|  | Sort menu items by popularity | \-0.25 |  |  | Sort by most ordered items |
-|  | › Chef recommendation | \-0.25 |  |  | Filter/highlight items marked as chef's recommendations |
-|  | Menu item paging | \-0.75 |  |  | Pagination for large menus with infinite scroll. URL updated on search/filter/paging |
+|  | Sort menu items by popularity | \-0.25 | x |  | Sort by most ordered items |
+|  | › Chef recommendation | \-0.25 | x |  | Filter/highlight items marked as chef's recommendations |
+|  | Menu item paging | \-0.75 | x |  | Pagination for large menus with infinite scroll. URL updated on search/filter/paging |
 |  | View menu item details | \-0.25 | x |  | Item detail page with full description, modifiers, allergen info |
 |  | View menu item status | \-0.25 | x |  | Display item availability status (Available, Unavailable, Sold out) |
 |  | Show related menu items | \-0.25 | x |  | Suggest items from same category or popular pairings |
@@ -59,7 +59,7 @@ Students must input minus points to every uncompleted feature in the SE column.
 |  | › Add items to current order | \-0.25 | x |  | Customers can add more items to their unpaid order (single order per table session) |
 |  | › View order status | \-0.25 | x |  | Guest can track order status (Received → Preparing → Ready) |
 |  | › View order details | \-0.25 | x |  | Order confirmation with items, total, table number |
-|  | › Request bill | \-0.25 |  |  | Customer requests bill when ready to pay |
+|  | › Request bill | \-0.25 | x |  | Customer requests bill when ready to pay |
 |  | › Process payment after meal | \-0.25 | x |  | Stripe payment processing after dining |
 | **3** | **Authentication and authorization** |  |  |  |  |
 |  | Use a popular authentication library | \-1 | x |  | Passport.js with JWT strategy |
