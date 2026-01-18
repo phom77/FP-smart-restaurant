@@ -360,8 +360,8 @@ export default function MenuPage() {
                     </div>
                 )}
 
-                {/* QR Code Reminder - Show if no table selected */}
-                {!searchParams.get('table') && !localStorage.getItem('qr_table_id') && (
+                {/* QR Code Reminder - Show if no table selected AND not adding to existing order */}
+                {!searchParams.get('table') && !localStorage.getItem('qr_table_id') && !localStorage.getItem('addToOrderId') && (
                     <div className="mb-4 sm:mb-6 bg-amber-50 border-2 border-amber-300 rounded-xl sm:rounded-2xl shadow-md p-4 sm:p-6">
                         <div className="flex items-start gap-3 sm:gap-4">
                             <div className="text-3xl sm:text-4xl">📱</div>

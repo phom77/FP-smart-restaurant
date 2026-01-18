@@ -34,11 +34,11 @@ export default function WaiterBillPage() {
 
     if (loading || !order) return <div className="p-8">Loading...</div>;
 
-    // Giả lập tính thuế phí (Backend nên trả về cái này)
-    const subtotal = order.total_amount;
-    const serviceCharge = subtotal * 0.05; // 5%
-    const tax = subtotal * 0.08; // 8%
-    const finalTotal = subtotal + serviceCharge + tax;
+    // Use actual tax data from order
+    const subtotal = order.subtotal || order.total_amount;
+    const tax = order.tax_amount || 0;
+    const discount = order.discount_amount || 0;
+    const finalTotal = order.total_amount;
 
     const handlePrint = () => {
         const printWindow = window.open('', '_blank');
@@ -82,13 +82,15 @@ export default function WaiterBillPage() {
                             <span>${subtotal.toLocaleString()}</span>
                         </div>
                         <div class="row">
-                            <span>Service (5%)</span>
-                            <span>${serviceCharge.toLocaleString()}</span>
-                        </div>
-                        <div class="row">
-                            <span>Tax (8%)</span>
+                            <span>Tax (VAT)</span>
                             <span>${tax.toLocaleString()}</span>
                         </div>
+                        ${discount > 0 ? `
+                        <div class="row" style="color: #059669;">
+                            <span>Discount ${order.coupon_code ? '(' + order.coupon_code + ')' : ''}</span>
+                            <span>-${discount.toLocaleString()}</span>
+                        </div>
+                        ` : ''}
                         <div class="row grand-total">
                             <span>TOTAL</span>
                             <span>${finalTotal.toLocaleString()}</span>
@@ -186,13 +188,15 @@ export default function WaiterBillPage() {
                             <span className="font-medium text-gray-900">{subtotal.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-sm text-gray-500">
-                            <span>Service Charge (5%)</span>
-                            <span className="font-medium text-gray-900">{serviceCharge.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between text-sm text-gray-500">
-                            <span>Tax (8%)</span>
+                            <span>Tax (VAT)</span>
                             <span className="font-medium text-gray-900">{tax.toLocaleString()}</span>
                         </div>
+                        {discount > 0 && (
+                            <div className="flex justify-between text-sm text-emerald-600">
+                                <span>Discount {order.coupon_code ? `(${order.coupon_code})` : ''}</span>
+                                <span className="font-medium">-{discount.toLocaleString()}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between items-end pt-3 mt-2 border-t border-gray-200">
                             <span className="font-bold text-gray-900 text-lg">Total</span>
                             <span className="font-extrabold text-gray-900 text-2xl">{finalTotal.toLocaleString()}</span>

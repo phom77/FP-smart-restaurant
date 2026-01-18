@@ -169,6 +169,10 @@ const OrderListPage = () => {
                 ...getAuthHeader(),
                 data: { itemIds }
             });
+            // Close modal if it's open for this order
+            if (selectedOrder?.id === orderId) {
+                setSelectedOrder(null);
+            }
             // Orders will refresh automatically via socket event
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));

@@ -111,10 +111,10 @@ const OrderDetailModal = ({ order, onClose }) => {
                                                 <span>{item.menu_item?.name}</span>
                                                 {/* Status Badge */}
                                                 <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${item.status === 'pending' ? 'bg-red-100 text-red-600 animate-pulse' :
-                                                        item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
-                                                            item.status === 'ready' ? 'bg-green-100 text-green-700' :
-                                                                item.status === 'served' ? 'bg-gray-100 text-gray-500 line-through' :
-                                                                    'bg-gray-100'
+                                                    item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
+                                                        item.status === 'ready' ? 'bg-green-100 text-green-700' :
+                                                            item.status === 'served' ? 'bg-gray-100 text-gray-500 line-through' :
+                                                                'bg-gray-100'
                                                     }`}>
                                                     {item.status === 'pending' ? 'MỚI' : item.status}
                                                 </span>
@@ -148,8 +148,8 @@ const OrderDetailModal = ({ order, onClose }) => {
                 {/* Footer Actions */}
                 <div className="p-5 border-t bg-gray-50 flex flex-col gap-3">
 
-                    {/* --- 🟢 HIỂN THỊ NÚT XÁC NHẬN MÓN MỚI (NẾU CÓ MÓN PENDING) --- */}
-                    {order.items?.some(item => item.status === 'pending') && (
+                    {/* --- 🟢 HIỂN THỊ NÚT XÁC NHẬN MÓN MỚI (NẾU CÓ MÓN PENDING VÀ ORDER CHƯA BỊ HỦY) --- */}
+                    {order.status !== 'cancelled' && order.status !== 'completed' && order.items?.some(item => item.status === 'pending') && (
                         <button
                             onClick={async () => {
                                 try {

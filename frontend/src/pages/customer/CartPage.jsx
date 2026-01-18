@@ -17,6 +17,14 @@ export default function CartPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Voucher states
+    const [voucherCode, setVoucherCode] = useState('');
+    const [appliedVoucher, setAppliedVoucher] = useState(null);
+    const [voucherDiscount, setVoucherDiscount] = useState(0);
+    const [voucherError, setVoucherError] = useState('');
+    const [availableVouchers, setAvailableVouchers] = useState([]);
+    const [showVoucherList, setShowVoucherList] = useState(false);
+
     // Get existing order info from localStorage (set by OrderTrackingPage)
     // Get existing order info from localStorage (set by OrderTrackingPage)
     const [existingOrderId] = useState(() => {
@@ -72,6 +80,21 @@ export default function CartPage() {
         }
     }, [existingTableId, searchParams]);
 
+    // Fetch available vouchers
+    useEffect(() => {
+        const fetchVouchers = async () => {
+            try {
+                const response = await api.get('/api/coupons');
+                if (response.data.success) {
+                    setAvailableVouchers(response.data.data || []);
+                }
+            } catch (err) {
+                console.error('Error fetching vouchers:', err);
+            }
+        };
+        fetchVouchers();
+    }, []);
+
     // ✅ Validate existing order is still valid (not completed/paid)
     useEffect(() => {
         const validateExistingOrder = async () => {
@@ -102,6 +125,48 @@ export default function CartPage() {
         validateExistingOrder();
     }, [existingOrderId]);
 
+    // Handle voucher application
+    const handleApplyVoucher = async () => {
+        setVoucherError('');
+
+        if (!voucherCode.trim()) {
+            setVoucherError('Vui lòng nhập mã giảm giá');
+            return;
+        }
+
+        try {
+            const response = await api.post('/api/coupons/validate', {
+                code: voucherCode.toUpperCase(),
+                cartTotal: subtotal
+            });
+
+            if (response.data.success) {
+                setAppliedVoucher(response.data.data);
+                setVoucherDiscount(response.data.data.discountAmount);
+                setVoucherError('');
+                setShowVoucherList(false);
+            }
+        } catch (err) {
+            setVoucherError(err.response?.data?.message || 'Mã giảm giá không hợp lệ');
+            setAppliedVoucher(null);
+            setVoucherDiscount(0);
+        }
+    };
+
+    // Handle voucher removal
+    const handleRemoveVoucher = () => {
+        setVoucherCode('');
+        setAppliedVoucher(null);
+        setVoucherDiscount(0);
+        setVoucherError('');
+    };
+
+    // Handle voucher selection from list
+    const handleSelectVoucher = (voucher) => {
+        setVoucherCode(voucher.code);
+        setShowVoucherList(false);
+    };
+
     // Handle checkout
     const handleCheckout = async () => {
         setError('');
@@ -112,7 +177,9 @@ export default function CartPage() {
             return;
         }
 
-        if (!selectedTable && !existingOrderId) {
+        // If adding to existing order, we already have table info
+        // If creating new order, need to have scanned QR code
+        if (!existingOrderId && !selectedTable) {
             setError('Vui lòng quét mã QR tại bàn để đặt món');
             return;
         }
@@ -143,7 +210,8 @@ export default function CartPage() {
                 const orderData = {
                     table_id: selectedTable,
                     customer_id: user?.id || null,
-                    items: items
+                    items: items,
+                    coupon_code: appliedVoucher?.code || null
                 };
 
                 response = await api.post('/api/orders', orderData);
@@ -176,9 +244,12 @@ export default function CartPage() {
         }
     };
 
-    // Calculate subtotal
+    // Calculate subtotal and tax
     const subtotal = getCartTotal();
-    const total = subtotal; // No tax
+    const TAX_RATE = 8; // Will be fetched from system settings in production
+    const taxAmount = subtotal * (TAX_RATE / 100);
+    const totalBeforeDiscount = subtotal + taxAmount;
+    const total = totalBeforeDiscount - voucherDiscount;
 
     if (cart.length === 0) {
         return (
@@ -346,8 +417,126 @@ export default function CartPage() {
 
                 {/* Order Summary */}
                 <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                    {/* Voucher Section - Only show when creating new order */}
+                    {!existingOrderId && (
+                        <div className="mb-4 pb-4 border-b border-gray-200">
+                            <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-3">🎟️ Mã giảm giá</h3>
+
+                            {!appliedVoucher ? (
+                                <>
+                                    <div className="flex gap-2 mb-3">
+                                        <input
+                                            type="text"
+                                            value={voucherCode}
+                                            onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                                            placeholder="Nhập mã giảm giá"
+                                            className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
+                                            onKeyPress={(e) => e.key === 'Enter' && handleApplyVoucher()}
+                                        />
+                                        <button
+                                            onClick={handleApplyVoucher}
+                                            className="px-4 sm:px-6 py-2 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 transition-colors text-sm sm:text-base whitespace-nowrap"
+                                        >
+                                            Áp dụng
+                                        </button>
+                                    </div>
+
+                                    {voucherError && (
+                                        <p className="text-red-500 text-xs sm:text-sm mb-2">{voucherError}</p>
+                                    )}
+
+                                    {/* Available Vouchers */}
+                                    {availableVouchers.length > 0 && (
+                                        <div>
+                                            <button
+                                                onClick={() => setShowVoucherList(!showVoucherList)}
+                                                className="text-emerald-600 text-xs sm:text-sm font-semibold hover:underline mb-2"
+                                            >
+                                                {showVoucherList ? '▼' : '▶'} Xem voucher khả dụng ({availableVouchers.length})
+                                            </button>
+
+                                            {showVoucherList && (
+                                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                                    {availableVouchers.map((voucher) => (
+                                                        <div
+                                                            key={voucher.id}
+                                                            onClick={() => handleSelectVoucher(voucher)}
+                                                            className="p-3 border border-emerald-200 rounded-lg cursor-pointer hover:bg-emerald-50 transition-colors"
+                                                        >
+                                                            <div className="flex justify-between items-start">
+                                                                <div className="flex-1">
+                                                                    <p className="font-bold text-emerald-600 text-sm">{voucher.code}</p>
+                                                                    <p className="text-xs text-gray-600 mt-1">{voucher.title}</p>
+                                                                    <p className="text-xs text-gray-500 mt-1">
+                                                                        Đơn tối thiểu: {voucher.min_order_value.toLocaleString('vi-VN')}đ
+                                                                    </p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-sm font-bold text-emerald-600">
+                                                                        {voucher.discount_type === 'fixed'
+                                                                            ? `-${voucher.discount_value.toLocaleString('vi-VN')}đ`
+                                                                            : `-${voucher.discount_value}%`
+                                                                        }
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                            <p className="font-bold text-emerald-700 text-sm sm:text-base">✓ {appliedVoucher.code}</p>
+                                            <p className="text-xs sm:text-sm text-emerald-600 mt-1">{appliedVoucher.title}</p>
+                                            <p className="text-xs sm:text-sm text-emerald-700 font-semibold mt-1">
+                                                Giảm: {voucherDiscount.toLocaleString('vi-VN')}đ
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={handleRemoveVoucher}
+                                            className="text-red-500 hover:text-red-700 font-bold text-lg"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Info message when adding to existing order */}
+                    {existingOrderId && (
+                        <div className="mb-4 pb-4 border-b border-gray-200">
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <p className="text-sm text-blue-700">
+                                    ℹ️ Voucher đã được áp dụng cho đơn hàng này. Giảm giá sẽ tự động cập nhật khi thêm món.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Price Summary */}
                     <div className="space-y-2">
-                        <div className="border-gray-200">
+                        <div className="flex justify-between text-sm sm:text-base text-gray-600">
+                            <span>Tạm tính:</span>
+                            <span className="font-semibold">{subtotal.toLocaleString('vi-VN')}đ</span>
+                        </div>
+                        <div className="flex justify-between text-sm sm:text-base text-gray-600">
+                            <span>Thuế VAT ({TAX_RATE}%):</span>
+                            <span className="font-semibold">{taxAmount.toLocaleString('vi-VN')}đ</span>
+                        </div>
+                        {voucherDiscount > 0 && (
+                            <div className="flex justify-between text-sm sm:text-base text-emerald-600">
+                                <span>Giảm giá:</span>
+                                <span className="font-semibold">-{voucherDiscount.toLocaleString('vi-VN')}đ</span>
+                            </div>
+                        )}
+                        <div className="border-t border-gray-200 pt-2">
                             <div className="flex justify-between text-lg sm:text-xl font-bold text-gray-900">
                                 <span>Tổng cộng:</span>
                                 <span className="text-emerald-600">{total.toLocaleString('vi-VN')}đ</span>
