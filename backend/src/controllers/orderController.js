@@ -2,6 +2,26 @@ const supabase = require('../config/supabaseClient');
 const { getIO } = require('../config/socket');
 const { updateOrderStatusSchema } = require('../utils/validation');
 
+// Utility function to get VAT rate from system settings
+const getVATRate = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'vat_rate')
+      .single();
+
+    if (error || !data) {
+      console.warn('⚠️ Could not fetch VAT rate from system_settings, using default 8%');
+      return 8;
+    }
+    return parseFloat(data.value);
+  } catch (err) {
+    console.error('Error fetching VAT rate:', err);
+    return 8; // Default fallback
+  }
+};
+
 // GET /api/waiter/orders
 exports.getOrders = async (req, res) => {
   try {
@@ -303,8 +323,8 @@ exports.createOrder = async (req, res) => {
     const menuMap = new Map(dbMenuItems.map(i => [i.id, i]));
     const modMap = new Map(dbModifiers.map(m => [m.id, m]));
 
-    // 2. Tính tiền (Logic cũ - Giữ nguyên)
-    let totalAmount = 0;
+    // 2. Tính tiền với thuế VAT
+    let subtotal = 0;
     const orderItemsData = [];
 
     for (const item of items) {
@@ -331,7 +351,7 @@ exports.createOrder = async (req, res) => {
       }
 
       const itemTotalPrice = itemUnitPrice * item.quantity;
-      totalAmount += itemTotalPrice;
+      subtotal += itemTotalPrice;
 
       orderItemsData.push({
         menu_item_id: item.menu_item_id,
@@ -343,13 +363,20 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // 3. Insert Order (Logic cũ - Giữ nguyên)
+    // Calculate tax
+    const vatRate = await getVATRate();
+    const taxAmount = subtotal * (vatRate / 100);
+    const totalAmount = subtotal + taxAmount;
+
+    // 3. Insert Order với thuế
     const { data: newOrder, error: orderInsertError } = await supabase
       .from('orders')
       .insert([{
         table_id,
         customer_id: customer_id || null,
         status: 'pending',
+        subtotal: subtotal,
+        tax_amount: taxAmount,
         total_amount: totalAmount,
         payment_method: 'pay_later',
       }])
@@ -519,7 +546,7 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
     const modMap = new Map(dbModifiers.map(m => [m.id, m]));
 
     // 2. Calculate prices and prepare items
-    let additionalAmount = 0;
+    let additionalSubtotal = 0;
     const orderItemsData = [];
 
     for (const item of items) {
@@ -546,7 +573,7 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       }
 
       const itemTotalPrice = itemUnitPrice * item.quantity;
-      additionalAmount += itemTotalPrice;
+      additionalSubtotal += itemTotalPrice;
 
       orderItemsData.push({
         menu_item_id: item.menu_item_id,
@@ -592,20 +619,25 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       }
     }
 
-    // 4. Update order total amount
+    // 4. Update order total amount with tax recalculation
     const { data: currentOrder, error: fetchOrderError } = await supabase
       .from('orders')
-      .select('total_amount, table_id')
+      .select('subtotal, tax_amount, total_amount, table_id')
       .eq('id', orderId)
       .single();
 
     if (fetchOrderError) throw fetchOrderError;
 
-    const newTotalAmount = parseFloat(currentOrder.total_amount) + additionalAmount;
+    const newSubtotal = parseFloat(currentOrder.subtotal || currentOrder.total_amount) + additionalSubtotal;
+    const vatRate = await getVATRate();
+    const newTaxAmount = newSubtotal * (vatRate / 100);
+    const newTotalAmount = newSubtotal + newTaxAmount;
 
     const { error: updateError } = await supabase
       .from('orders')
       .update({
+        subtotal: newSubtotal,
+        tax_amount: newTaxAmount,
         total_amount: newTotalAmount,
         updated_at: new Date()
       })
@@ -642,7 +674,9 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       message: 'Đã thêm món vào đơn hàng hiện tại',
       order_id: orderId,
       items_added: orderItemsData.length,
-      additional_amount: additionalAmount,
+      additional_subtotal: additionalSubtotal,
+      new_subtotal: newSubtotal,
+      new_tax: newTaxAmount,
       new_total: newTotalAmount
     });
 
@@ -691,7 +725,7 @@ exports.rejectAdditionalItems = async (req, res) => {
     }
 
     // 2. Calculate total amount to subtract
-    const amountToSubtract = itemsToReject.reduce((sum, item) =>
+    const subtotalToSubtract = itemsToReject.reduce((sum, item) =>
       sum + parseFloat(item.total_price), 0
     );
 
@@ -703,20 +737,25 @@ exports.rejectAdditionalItems = async (req, res) => {
 
     if (deleteError) throw deleteError;
 
-    // 4. Update order total amount
+    // 4. Update order total amount with tax recalculation
     const { data: currentOrder, error: fetchOrderError } = await supabase
       .from('orders')
-      .select('total_amount, table_id')
+      .select('subtotal, tax_amount, total_amount, table_id')
       .eq('id', orderId)
       .single();
 
     if (fetchOrderError) throw fetchOrderError;
 
-    const newTotalAmount = parseFloat(currentOrder.total_amount) - amountToSubtract;
+    const newSubtotal = parseFloat(currentOrder.subtotal || currentOrder.total_amount) - subtotalToSubtract;
+    const vatRate = await getVATRate();
+    const newTaxAmount = newSubtotal * (vatRate / 100);
+    const newTotalAmount = newSubtotal + newTaxAmount;
 
     const { error: updateError } = await supabase
       .from('orders')
       .update({
+        subtotal: newSubtotal,
+        tax_amount: newTaxAmount,
         total_amount: newTotalAmount,
         updated_at: new Date()
       })
@@ -757,7 +796,9 @@ exports.rejectAdditionalItems = async (req, res) => {
       success: true,
       message: `Đã từ chối ${itemsToReject.length} món`,
       rejected_count: itemsToReject.length,
-      amount_refunded: amountToSubtract,
+      subtotal_refunded: subtotalToSubtract,
+      new_subtotal: newSubtotal,
+      new_tax: newTaxAmount,
       new_total: newTotalAmount
     });
 

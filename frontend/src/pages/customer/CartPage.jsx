@@ -112,7 +112,9 @@ export default function CartPage() {
             return;
         }
 
-        if (!selectedTable && !existingOrderId) {
+        // If adding to existing order, we already have table info
+        // If creating new order, need to have scanned QR code
+        if (!existingOrderId && !selectedTable) {
             setError('Vui lòng quét mã QR tại bàn để đặt món');
             return;
         }
@@ -176,9 +178,11 @@ export default function CartPage() {
         }
     };
 
-    // Calculate subtotal
+    // Calculate subtotal and tax
     const subtotal = getCartTotal();
-    const total = subtotal; // No tax
+    const TAX_RATE = 8; // Will be fetched from system settings in production
+    const taxAmount = subtotal * (TAX_RATE / 100);
+    const total = subtotal + taxAmount;
 
     if (cart.length === 0) {
         return (
@@ -347,7 +351,15 @@ export default function CartPage() {
                 {/* Order Summary */}
                 <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
                     <div className="space-y-2">
-                        <div className="border-gray-200">
+                        <div className="flex justify-between text-sm sm:text-base text-gray-600">
+                            <span>Tạm tính:</span>
+                            <span className="font-semibold">{subtotal.toLocaleString('vi-VN')}đ</span>
+                        </div>
+                        <div className="flex justify-between text-sm sm:text-base text-gray-600">
+                            <span>Thuế VAT ({TAX_RATE}%):</span>
+                            <span className="font-semibold">{taxAmount.toLocaleString('vi-VN')}đ</span>
+                        </div>
+                        <div className="border-t border-gray-200 pt-2">
                             <div className="flex justify-between text-lg sm:text-xl font-bold text-gray-900">
                                 <span>Tổng cộng:</span>
                                 <span className="text-emerald-600">{total.toLocaleString('vi-VN')}đ</span>
