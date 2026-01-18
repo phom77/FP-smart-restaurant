@@ -132,7 +132,36 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
-    // C. Automate Table Status (Best effort)
+    // C. Refund voucher if order is cancelled
+    if (status === 'cancelled' && updatedOrder.coupon_code) {
+      // Get coupon info
+      const { data: coupon } = await supabase
+        .from('coupons')
+        .select('id, used_count')
+        .eq('code', updatedOrder.coupon_code)
+        .single();
+
+      if (coupon) {
+        // Decrement used_count
+        await supabase
+          .from('coupons')
+          .update({ used_count: Math.max(0, coupon.used_count - 1) })
+          .eq('id', coupon.id);
+
+        // Delete coupon_usage record if customer exists
+        if (updatedOrder.customer_id) {
+          await supabase
+            .from('coupon_usage')
+            .delete()
+            .eq('coupon_id', coupon.id)
+            .eq('order_id', id);
+        }
+
+        console.log(`✅ Refunded voucher ${updatedOrder.coupon_code} for cancelled order #${id}`);
+      }
+    }
+
+    // D. Automate Table Status (Best effort)
     if (updatedOrder.table_id) {
       let newTableStatus = null;
 
@@ -368,64 +397,38 @@ exports.createOrder = async (req, res) => {
     const taxAmount = subtotal * (vatRate / 100);
     let totalBeforeDiscount = subtotal + taxAmount;
 
-    // 2.5. Validate and apply voucher if provided
+    // 2.5. Validate and apply voucher if provided using couponService
     let discountAmount = 0;
     let validatedCouponCode = null;
+    let couponId = null;
 
     if (coupon_code) {
-      const { data: coupon, error: couponError } = await supabase
-        .from('coupons')
-        .select('*')
-        .eq('code', coupon_code)
-        .single();
+      const couponService = require('../services/couponService');
 
-      if (couponError || !coupon) {
-        return res.status(400).json({ success: false, message: 'Mã giảm giá không tồn tại' });
-      }
+      // Use centralized validation service (checks target_type, limit_per_user, etc.)
+      const validationResult = await couponService.verifyCouponCondition(
+        coupon_code,
+        subtotal,
+        customer_id
+      );
 
-      // Validate coupon conditions
-      const now = new Date();
-      if (!coupon.is_active) {
-        return res.status(400).json({ success: false, message: 'Mã giảm giá không còn hiệu lực' });
-      }
-      if (new Date(coupon.start_date) > now) {
-        return res.status(400).json({ success: false, message: 'Mã giảm giá chưa đến ngày hiệu lực' });
-      }
-      if (new Date(coupon.end_date) < now) {
-        return res.status(400).json({ success: false, message: 'Mã giảm giá đã hết hạn' });
-      }
-      if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
-        return res.status(400).json({ success: false, message: 'Mã giảm giá đã hết lượt sử dụng' });
-      }
-      if (subtotal < coupon.min_order_value) {
+      if (!validationResult.isValid) {
         return res.status(400).json({
           success: false,
-          message: `Đơn hàng cần tối thiểu ${coupon.min_order_value.toLocaleString()}đ để dùng mã này`
+          message: validationResult.message
         });
       }
 
-      // Calculate discount
-      if (coupon.discount_type === 'fixed') {
-        discountAmount = parseFloat(coupon.discount_value);
-      } else {
-        discountAmount = (subtotal * parseFloat(coupon.discount_value)) / 100;
-        if (coupon.max_discount_value && discountAmount > parseFloat(coupon.max_discount_value)) {
-          discountAmount = parseFloat(coupon.max_discount_value);
-        }
-      }
-
-      // Ensure discount doesn't exceed total
-      if (discountAmount > totalBeforeDiscount) {
-        discountAmount = totalBeforeDiscount;
-      }
-
+      // Extract validated data
+      discountAmount = validationResult.discountAmount;
       validatedCouponCode = coupon_code;
+      couponId = validationResult.coupon.id;
 
-      // Increment usage count
+      // Increment global usage count
       await supabase
         .from('coupons')
-        .update({ used_count: coupon.used_count + 1 })
-        .eq('id', coupon.id);
+        .update({ used_count: validationResult.coupon.used_count + 1 })
+        .eq('id', couponId);
     }
 
     const totalAmount = totalBeforeDiscount - discountAmount;
@@ -481,6 +484,17 @@ exports.createOrder = async (req, res) => {
 
         if (modInsertError) throw modInsertError;
       }
+    }
+
+    // 4.5. Record coupon usage for per-user limit tracking
+    if (couponId && customer_id) {
+      await supabase
+        .from('coupon_usage')
+        .insert([{
+          coupon_id: couponId,
+          user_id: customer_id,
+          order_id: newOrder.id
+        }]);
     }
 
     // --- 🟢 FIX 2: CẬP NHẬT TRẠNG THÁI BÀN ---
@@ -826,10 +840,10 @@ exports.rejectAdditionalItems = async (req, res) => {
 
     if (deleteError) throw deleteError;
 
-    // 4. Update order total amount with tax recalculation
+    // 4. Update order total amount with tax and voucher recalculation
     const { data: currentOrder, error: fetchOrderError } = await supabase
       .from('orders')
-      .select('subtotal, tax_amount, total_amount, table_id')
+      .select('subtotal, tax_amount, total_amount, table_id, coupon_code, discount_amount')
       .eq('id', orderId)
       .single();
 
@@ -838,13 +852,37 @@ exports.rejectAdditionalItems = async (req, res) => {
     const newSubtotal = parseFloat(currentOrder.subtotal || currentOrder.total_amount) - subtotalToSubtract;
     const vatRate = await getVATRate();
     const newTaxAmount = newSubtotal * (vatRate / 100);
-    const newTotalAmount = newSubtotal + newTaxAmount;
+
+    // Recalculate voucher discount if exists
+    let newDiscountAmount = 0;
+    if (currentOrder.coupon_code) {
+      const { data: coupon } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', currentOrder.coupon_code)
+        .single();
+
+      if (coupon) {
+        // Recalculate discount based on new subtotal
+        if (coupon.discount_type === 'fixed') {
+          newDiscountAmount = parseFloat(coupon.discount_value);
+        } else {
+          newDiscountAmount = (newSubtotal * parseFloat(coupon.discount_value)) / 100;
+          if (coupon.max_discount_value && newDiscountAmount > parseFloat(coupon.max_discount_value)) {
+            newDiscountAmount = parseFloat(coupon.max_discount_value);
+          }
+        }
+      }
+    }
+
+    const newTotalAmount = newSubtotal + newTaxAmount - newDiscountAmount;
 
     const { error: updateError } = await supabase
       .from('orders')
       .update({
         subtotal: newSubtotal,
         tax_amount: newTaxAmount,
+        discount_amount: newDiscountAmount,
         total_amount: newTotalAmount,
         updated_at: new Date()
       })

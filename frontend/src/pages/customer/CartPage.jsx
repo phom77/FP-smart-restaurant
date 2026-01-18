@@ -83,20 +83,28 @@ export default function CartPage() {
         }
     }, [existingTableId, searchParams]);
 
-    // Fetch available vouchers
+    // Fetch available vouchers (filtered by user type)
     useEffect(() => {
         const fetchVouchers = async () => {
             try {
-                const response = await api.get('/api/coupons');
+                const response = await api.get('/api/coupons', {
+                    params: { userId: user?.id }
+                });
                 if (response.data.success) {
-                    setAvailableVouchers(response.data.data || []);
+                    // Sort: usable vouchers first
+                    const sorted = (response.data.data || []).sort((a, b) => {
+                        if (a.canUse && !b.canUse) return -1;
+                        if (!a.canUse && b.canUse) return 1;
+                        return 0;
+                    });
+                    setAvailableVouchers(sorted);
                 }
             } catch (err) {
                 console.error('Error fetching vouchers:', err);
             }
         };
         fetchVouchers();
-    }, []);
+    }, [user]);
 
     // Fetch VAT rate from system settings
     useEffect(() => {
@@ -158,7 +166,8 @@ export default function CartPage() {
         try {
             const response = await api.post('/api/coupons/validate', {
                 code: voucherCode.toUpperCase(),
-                cartTotal: subtotal
+                cartTotal: subtotal,
+                userId: user?.id  // Pass userId for validation
             });
 
             if (response.data.success) {
@@ -184,8 +193,20 @@ export default function CartPage() {
 
     // Handle voucher selection from list
     const handleSelectVoucher = (voucher) => {
+        if (!voucher.canUse) return; // Don't allow selecting unusable vouchers
         setVoucherCode(voucher.code);
         setShowVoucherList(false);
+    };
+
+    // Helper function to get target type label
+    const getTargetTypeLabel = (targetType) => {
+        switch (targetType) {
+            case 'all': return '🌐 Tất cả';
+            case 'guest': return '👤 Khách vãng lai';
+            case 'customer': return '👥 Thành viên';
+            case 'new_user': return '🆕 Khách mới';
+            default: return '';
+        }
     };
 
     // Handle checkout
@@ -304,7 +325,6 @@ export default function CartPage() {
                         onClick={() => navigate('/menu')}
                         className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg sm:rounded-xl font-semibold hover:bg-gray-200 transition-all text-sm sm:text-base w-full sm:w-auto justify-center"
                     >
-                        <span>←</span>
                         <span>Tiếp tục chọn món</span>
                     </button>
                 </header>
@@ -476,23 +496,62 @@ export default function CartPage() {
                                             </button>
 
                                             {showVoucherList && (
-                                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                                <div className="space-y-2 max-h-64 overflow-y-auto">
                                                     {availableVouchers.map((voucher) => (
                                                         <div
                                                             key={voucher.id}
                                                             onClick={() => handleSelectVoucher(voucher)}
-                                                            className="p-3 border border-emerald-200 rounded-lg cursor-pointer hover:bg-emerald-50 transition-colors"
+                                                            className={`p-3 border rounded-lg transition-colors ${voucher.canUse
+                                                                ? 'border-emerald-200 cursor-pointer hover:bg-emerald-50 bg-white'
+                                                                : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
+                                                                }`}
                                                         >
-                                                            <div className="flex justify-between items-start">
+                                                            <div className="flex justify-between items-start gap-2">
                                                                 <div className="flex-1">
-                                                                    <p className="font-bold text-emerald-600 text-sm">{voucher.code}</p>
+                                                                    {/* Code and Icon */}
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-base">
+                                                                            {voucher.canUse ? '✅' : '🔒'}
+                                                                        </span>
+                                                                        <p className={`font-bold text-sm ${voucher.canUse ? 'text-emerald-600' : 'text-gray-500'
+                                                                            }`}>
+                                                                            {voucher.code}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    {/* Title */}
                                                                     <p className="text-xs text-gray-600 mt-1">{voucher.title}</p>
-                                                                    <p className="text-xs text-gray-500 mt-1">
-                                                                        Đơn tối thiểu: {voucher.min_order_value.toLocaleString('vi-VN')}đ
-                                                                    </p>
+
+                                                                    {/* Target Type Badge */}
+                                                                    <div className="flex items-center gap-2 mt-2">
+                                                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                                                            {getTargetTypeLabel(voucher.target_type)}
+                                                                        </span>
+                                                                        <span className="text-xs text-gray-500">
+                                                                            Tối thiểu: {voucher.min_order_value.toLocaleString('vi-VN')}đ
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {/* Reason if cannot use */}
+                                                                    {!voucher.canUse && voucher.reason && (
+                                                                        <p className="text-xs text-red-600 mt-2 flex items-start gap-1">
+                                                                            <span>⚠️</span>
+                                                                            <span>{voucher.reason}</span>
+                                                                        </p>
+                                                                    )}
+
+                                                                    {/* Remaining uses */}
+                                                                    {voucher.canUse && voucher.remainingUses !== null && (
+                                                                        <p className="text-xs text-gray-500 mt-1">
+                                                                            Còn lại: {voucher.remainingUses} lượt
+                                                                        </p>
+                                                                    )}
                                                                 </div>
+
+                                                                {/* Discount Value */}
                                                                 <div className="text-right">
-                                                                    <p className="text-sm font-bold text-emerald-600">
+                                                                    <p className={`text-sm font-bold ${voucher.canUse ? 'text-emerald-600' : 'text-gray-500'
+                                                                        }`}>
                                                                         {voucher.discount_type === 'fixed'
                                                                             ? `-${voucher.discount_value.toLocaleString('vi-VN')}đ`
                                                                             : `-${voucher.discount_value}%`
