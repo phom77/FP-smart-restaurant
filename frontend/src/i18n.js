@@ -580,6 +580,13 @@ i18n
                             update_success: 'Status updated successfully',
                             update_error: 'Error updating status',
                             load_error: 'Error loading users list',
+                            roles: {
+                                super_admin: 'Super Admin',
+                                admin: 'Admin',
+                                waiter: 'Waiter',
+                                kitchen: 'Kitchen',
+                                customer: 'Customer'
+                            }
                         }
                     }
                 }
@@ -1138,19 +1145,26 @@ i18n
                             filter_admin: 'Admin (Chủ quán)',
                             filter_waiter: 'Waiter',
                             filter_customer: 'Customer',
-                            col_info: 'User Info',
-                            col_role: 'Role',
+                            col_info: 'Thông tin người dùng',
+                            col_role: 'Vai trò',
                             col_date: 'Ngày tạo',
                             col_status: 'Trạng thái',
                             col_action: 'Hành động',
-                            status_active: 'Active',
-                            status_banned: 'Banned/Unverified',
+                            status_active: 'Hoạt động',
+                            status_banned: 'Đã khóa/Chưa xác thực',
                             action_ban: 'Khóa (Ban)',
                             action_unban: 'Mở khóa',
                             toggle_confirm: 'Bạn có chắc muốn {{action}} tài khoản này?',
                             update_success: 'Cập nhật trạng thái thành công',
                             update_error: 'Lỗi cập nhật trạng thái',
                             load_error: 'Lỗi tải danh sách users',
+                            roles: {
+                                super_admin: 'Quản trị viên CC',
+                                admin: 'Chủ nhà hàng',
+                                waiter: 'Phục vụ',
+                                kitchen: 'Bếp',
+                                customer: 'Khách hàng'
+                            }
                         }
                     }
                 }

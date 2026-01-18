@@ -54,7 +54,7 @@ export default function UserManagementPage() {
         };
         return (
             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colors[role] || 'bg-gray-100'}`}>
-                {role.toUpperCase().replace('_', ' ')}
+                {t(`superadmin.user.roles.${role}`)}
             </span>
         );
     };
@@ -118,8 +118,8 @@ export default function UserManagementPage() {
                                         <button
                                             onClick={() => handleToggleStatus(user.id, user.is_verified)}
                                             className={`px-3 py-1.5 rounded text-xs font-medium transition ${user.is_verified
-                                                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                                                    : 'bg-green-50 text-green-600 hover:bg-green-100'
+                                                ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                                                : 'bg-green-50 text-green-600 hover:bg-green-100'
                                                 }`}
                                         >
                                             {user.is_verified ? t('superadmin.user.action_ban') : t('superadmin.user.action_unban')}
