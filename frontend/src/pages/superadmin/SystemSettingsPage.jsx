@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next'; // Import i18n
 
 export default function SystemSettingsPage() {
+    const { t } = useTranslation();
     const [settings, setSettings] = useState({
         restaurant_name: '',
         currency: '',
@@ -22,11 +24,11 @@ export default function SystemSettingsPage() {
                     setSettings(prev => ({ ...prev, ...res.data.data }));
                 }
             } catch (err) {
-                toast.error('Không thể tải cấu hình');
+                toast.error(t('superadmin.settings.error_load'));
             }
         };
         fetchSettings();
-    }, []);
+    }, [t]);
 
     const handleChange = (e) => {
         setSettings({ ...settings, [e.target.name]: e.target.value });
@@ -38,10 +40,10 @@ export default function SystemSettingsPage() {
         try {
             const res = await api.put('/api/system/settings', settings);
             if (res.data.success) {
-                toast.success('Cập nhật cấu hình thành công!');
+                toast.success(t('superadmin.settings.success_toast'));
             }
         } catch (err) {
-            toast.error('Lỗi khi lưu cấu hình');
+            toast.error(t('superadmin.settings.error_toast'));
         } finally {
             setLoading(false);
         }
@@ -51,23 +53,23 @@ export default function SystemSettingsPage() {
         <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
                 <div className="mb-8 border-b border-gray-100 pb-4">
-                    <h2 className="text-xl font-bold text-gray-800">Cấu hình Hệ thống</h2>
-                    <p className="text-sm text-gray-500">Các thiết lập này sẽ áp dụng cho toàn bộ ứng dụng và Admin nhà hàng.</p>
+                    <h2 className="text-xl font-bold text-gray-800">{t('superadmin.settings.title')}</h2>
+                    <p className="text-sm text-gray-500">{t('superadmin.settings.subtitle')}</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
                     {/* Thông tin cơ bản */}
                     <section>
                         <h3 className="text-md font-semibold text-blue-600 mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined">storefront</span> Thông tin Nhà hàng
+                            <span className="material-symbols-outlined">storefront</span> {t('superadmin.settings.restaurant_info')}
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Tên Nhà Hàng</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('superadmin.settings.restaurant_name')}</label>
                                 <input name="restaurant_name" value={settings.restaurant_name} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu WiFi</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('superadmin.settings.wifi')}</label>
                                 <input name="wifi_password" value={settings.wifi_password} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none" />
                             </div>
                         </div>
@@ -76,25 +78,25 @@ export default function SystemSettingsPage() {
                     {/* Tài chính & Vận hành */}
                     <section>
                         <h3 className="text-md font-semibold text-blue-600 mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined">payments</span> Tài chính & Vận hành
+                            <span className="material-symbols-outlined">payments</span> {t('superadmin.settings.finance')}
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Đơn vị tiền tệ</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('superadmin.settings.currency')}</label>
                                 <input name="currency" value={settings.currency} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Thuế VAT (%)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('superadmin.settings.vat')}</label>
                                 <input name="vat_rate" type="number" value={settings.vat_rate} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none" />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Giờ mở cửa</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('superadmin.settings.open_time')}</label>
                                 <input name="open_time" type="time" value={settings.open_time} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Giờ đóng cửa</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('superadmin.settings.close_time')}</label>
                                 <input name="close_time" type="time" value={settings.close_time} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none" />
                             </div>
                         </div>
@@ -106,7 +108,7 @@ export default function SystemSettingsPage() {
                             disabled={loading}
                             className="px-8 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 transition shadow-lg disabled:bg-gray-400"
                         >
-                            {loading ? 'Đang lưu...' : 'Lưu Cấu Hình'}
+                            {loading ? t('superadmin.settings.loading_btn') : t('superadmin.settings.save_btn')}
                         </button>
                     </div>
                 </form>

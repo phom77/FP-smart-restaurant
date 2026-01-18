@@ -92,7 +92,7 @@ const AdminSidebar = () => {
                             : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'
                             }`}
                     >
-                        <span className="material-symbols-outlined mr-3">loyalty</span> Quản lý Voucher
+                        <span className="material-symbols-outlined mr-3">loyalty</span> {t('admin.coupons')}
                     </Link>
 
                     <Link to="/admin/categories" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/categories' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>

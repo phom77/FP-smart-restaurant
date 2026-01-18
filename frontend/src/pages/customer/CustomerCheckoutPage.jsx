@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import api from '../../services/api';
@@ -11,6 +12,7 @@ const stripePromise = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null;
 const CheckoutForm = ({ order, onSuccess }) => {
     const stripe = useStripe();
     const elements = useElements();
+    const { t } = useTranslation();
     const [error, setError] = useState(null);
     const [processing, setProcessing] = useState(false);
 
@@ -44,7 +46,7 @@ const CheckoutForm = ({ order, onSuccess }) => {
             });
 
             if (result.error) {
-                setError(result.error.message);
+                setError({ message: result.error.message });
                 setProcessing(false);
             } else if (result.paymentIntent.status === 'succeeded') {
 
@@ -59,7 +61,10 @@ const CheckoutForm = ({ order, onSuccess }) => {
             }
         } catch (err) {
             console.error(err);
-            setError('Lỗi thanh toán: ' + (err.response?.data?.message || err.message));
+            setError({
+                prefixKey: 'customer.checkout.payment_error',
+                message: err.response?.data?.message || err.message
+            });
             setProcessing(false);
         }
     };
@@ -71,7 +76,12 @@ const CheckoutForm = ({ order, onSuccess }) => {
                     style: { base: { fontSize: '16px', color: '#424770', '::placeholder': { color: '#aab7c4' } } },
                 }} />
             </div>
-            {error && <div className="text-red-500 text-sm bg-red-50 p-2 rounded">{error}</div>}
+            {error && (
+                <div className="text-red-500 text-sm bg-red-50 p-2 rounded">
+                    {error.prefixKey ? `${t(error.prefixKey)}: ` : ''}
+                    {error.message}
+                </div>
+            )}
             <button
                 type="submit"
                 disabled={!stripe || processing}
@@ -80,10 +90,10 @@ const CheckoutForm = ({ order, onSuccess }) => {
                 {processing ? (
                     <>
                         <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
-                        Đang xử lý...
+                        {t('customer.cart.processing')}
                     </>
                 ) : (
-                    `Thanh toán ${parseInt(order.total_amount).toLocaleString()}đ`
+                    `${t('customer.checkout.pay_now')} ${parseInt(order.total_amount).toLocaleString()}đ`
                 )}
             </button>
         </form>
@@ -93,6 +103,7 @@ const CheckoutForm = ({ order, onSuccess }) => {
 export default function CustomerCheckoutPage() {
     const location = useLocation();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const { order } = location.state || {};
     const [paymentMethod, setPaymentMethod] = useState('card');
     const [requestInvoice, setRequestInvoice] = useState(false);
@@ -106,9 +117,9 @@ export default function CustomerCheckoutPage() {
     // --- LOGIC ĐIỀU HƯỚNG SAU KHI THÀNH CÔNG ---
     const handleSuccess = (method) => {
         if (method === 'card') {
-            alert("✅ Thanh toán thành công! Cảm ơn quý khách.");
+            alert("✅ " + t('customer.checkout.success_card'));
         } else {
-            alert("🔔 Đã gửi yêu cầu! Nhân viên sẽ đến hỗ trợ thanh toán tiền mặt.");
+            alert("🔔 " + t('customer.checkout.success_cash'));
         }
         // Quay lại trang Tracking để xem trạng thái mới
         navigate(`/orders/${order.id}`);
@@ -124,7 +135,7 @@ export default function CustomerCheckoutPage() {
             // Backend đã bắn socket 'payment_request' cho Waiter ở đây
             handleSuccess('cash');
         } catch (err) {
-            alert("Lỗi gửi yêu cầu: " + err.message);
+            alert(t('customer.checkout.request_error') + ": " + err.message);
         }
     };
 
@@ -135,35 +146,35 @@ export default function CustomerCheckoutPage() {
                     <button onClick={() => navigate(-1)} className="p-2 bg-white rounded-full shadow-sm">
                         <span className="material-symbols-outlined">arrow_back</span>
                     </button>
-                    <h1 className="text-xl font-bold text-gray-800">Thanh toán</h1>
+                    <h1 className="text-xl font-bold text-gray-800">{t('customer.checkout.title')}</h1>
                 </header>
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
                     <div className="space-y-2">
                         <div className="flex justify-between items-center text-sm text-gray-600">
-                            <span className="font-medium">Tạm tính</span>
+                            <span className="font-medium">{t('customer.checkout.subtotal')}</span>
                             <span className="font-semibold">{(order.subtotal || order.total_amount)?.toLocaleString()}đ</span>
                         </div>
                         {order.tax_amount > 0 && (
                             <div className="flex justify-between items-center text-sm text-gray-600">
-                                <span className="font-medium">Thuế VAT</span>
+                                <span className="font-medium">{t('customer.checkout.vat')}</span>
                                 <span className="font-semibold">{order.tax_amount?.toLocaleString()}đ</span>
                             </div>
                         )}
                         {order.discount_amount > 0 && (
                             <div className="flex justify-between items-center text-sm text-emerald-600">
-                                <span className="font-medium">Giảm giá {order.coupon_code ? `(${order.coupon_code})` : ''}</span>
+                                <span className="font-medium">{t('customer.checkout.discount')} {order.coupon_code ? `(${order.coupon_code})` : ''}</span>
                                 <span className="font-semibold">-{order.discount_amount?.toLocaleString()}đ</span>
                             </div>
                         )}
                         <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                            <span className="text-gray-500 font-medium">Tổng cộng</span>
+                            <span className="text-gray-500 font-medium">{t('customer.checkout.total')}</span>
                             <span className="text-2xl font-bold text-gray-900">{parseInt(order.total_amount).toLocaleString()}đ</span>
                         </div>
                     </div>
                 </div>
 
-                <h3 className="font-bold text-gray-800 mb-3 ml-1">Phương thức thanh toán</h3>
+                <h3 className="font-bold text-gray-800 mb-3 ml-1">{t('customer.checkout.payment_method')}</h3>
                 <div className="grid grid-cols-2 gap-3 mb-6">
                     <button
                         onClick={() => setPaymentMethod('card')}
@@ -171,7 +182,7 @@ export default function CustomerCheckoutPage() {
                             }`}
                     >
                         <span className="material-symbols-outlined text-3xl">credit_card</span>
-                        <span className="font-bold text-sm">Thẻ Tín Dụng</span>
+                        <span className="font-bold text-sm">{t('customer.checkout.credit_card')}</span>
                     </button>
                     <button
                         onClick={() => setPaymentMethod('cash')}
@@ -179,7 +190,7 @@ export default function CustomerCheckoutPage() {
                             }`}
                     >
                         <span className="material-symbols-outlined text-3xl">payments</span>
-                        <span className="font-bold text-sm">Tiền Mặt</span>
+                        <span className="font-bold text-sm">{t('customer.checkout.cash')}</span>
                     </button>
                 </div>
 
@@ -193,8 +204,8 @@ export default function CustomerCheckoutPage() {
                             className="w-5 h-5 mt-0.5 text-emerald-600 rounded focus:ring-emerald-500"
                         />
                         <div className="flex-1">
-                            <span className="font-semibold text-gray-800 block mb-1">Yêu cầu hóa đơn VAT</span>
-                            <span className="text-sm text-gray-500">Nhân viên sẽ xuất hóa đơn VAT cho bạn sau khi thanh toán</span>
+                            <span className="font-semibold text-gray-800 block mb-1">{t('customer.checkout.vat_invoice')}</span>
+                            <span className="text-sm text-gray-500">{t('customer.checkout.vat_desc')}</span>
                         </div>
                     </label>
                 </div>
@@ -206,7 +217,7 @@ export default function CustomerCheckoutPage() {
                         </Elements>
                     ) : (
                         <div className="text-center text-red-500 p-4 bg-red-50 rounded-xl border border-red-100">
-                            ⚠️ Lỗi: Chưa cấu hình Stripe Key (VITE_STRIPE_PUBLIC_KEY)
+                            {t('customer.checkout.stripe_error')}
                         </div>
                     )
                 ) : (
@@ -215,7 +226,7 @@ export default function CustomerCheckoutPage() {
                         className="w-full py-4 bg-gray-800 text-white font-bold rounded-xl shadow-lg hover:bg-gray-900 transition-all flex items-center justify-center gap-2"
                     >
                         <span className="material-symbols-outlined">room_service</span>
-                        Gọi nhân viên thanh toán
+                        {t('customer.checkout.call_staff')}
                     </button>
                 )}
             </div>
