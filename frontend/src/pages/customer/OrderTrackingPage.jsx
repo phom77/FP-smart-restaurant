@@ -162,91 +162,98 @@ export default function OrderTrackingPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20">
-            <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+            <div className="max-w-3xl mx-auto px-4 py-6">
                 {/* Header */}
-                <header className="mb-4 sm:mb-6 bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-100">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-0">
-                        <div className="flex-1">
-                            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-                                {t('customer.tracking.order_prefix')} #{order.id?.slice(0, 8)}
-                            </h1>
-                            <p className="text-sm sm:text-base text-gray-500 mt-1">
-                                {t('customer.orders.table')} {order.table?.table_number || 'N/A'} • {new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
+                <header className="mb-6 bg-white rounded-3xl shadow-sm p-6 border border-gray-100 flex flex-col sm:flex-row justify-between items-start gap-4">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold uppercase tracking-wider border border-emerald-100">
+                                {t('customer.tracking.order_prefix')}
+                            </span>
                         </div>
-                        {/* Only show "Add More Items" button if order is not completed and not paid */}
-                        {order.status !== 'completed' &&
-                            order.status !== 'cancelled' &&
-                            order.payment_status !== 'paid' &&
-                            order.payment_status !== 'success' && (
-                                <button
-                                    onClick={() => {
-                                        // Store in localStorage to persist across navigation
-                                        localStorage.setItem('addToOrderId', order.id);
-                                        localStorage.setItem('addToTableId', order.table_id);
-
-                                        navigate('/menu');
-                                    }}
-                                    className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all text-sm sm:text-base w-full sm:w-auto text-center"
-                                >
-                                    {t('customer.tracking.add_more')}
-                                </button>
-                            )}
+                        <h1 className="text-3xl font-bold text-gray-800">#{order.id?.slice(0, 8)}</h1>
+                        <p className="text-gray-500 mt-1 font-medium flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">table_restaurant</span>
+                            {t('customer.orders.table')} {order.table?.table_number || 'N/A'}
+                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                            {new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
                     </div>
+
+                    {/* Only show "Add More Items" button if order is not completed and not paid */}
+                    {order.status !== 'completed' &&
+                        order.status !== 'cancelled' &&
+                        order.payment_status !== 'paid' &&
+                        order.payment_status !== 'success' && (
+                            <button
+                                onClick={() => {
+                                    localStorage.setItem('addToOrderId', order.id);
+                                    localStorage.setItem('addToTableId', order.table_id);
+                                    navigate('/menu');
+                                }}
+                                className="px-5 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-all shadow-lg shadow-gray-200 active:scale-95 flex items-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-xl">add_shopping_cart</span>
+                                {t('customer.tracking.add_more')}
+                            </button>
+                        )}
                 </header>
 
                 {/* Status Timeline */}
-                <div className="mb-4 sm:mb-6 bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-100">
+                <div className="mb-6 bg-white rounded-3xl shadow-sm p-6 sm:p-8 border border-gray-100">
                     {isCancelled ? (
-                        <div className="text-center py-4">
-                            <div className="text-4xl sm:text-5xl mb-2">🚫</div>
-                            <h2 className="text-lg sm:text-xl font-bold text-red-600">{t('customer.tracking.cancelled_title')}</h2>
-                            <p className="text-sm sm:text-base text-gray-500 mb-4">{t('customer.tracking.contact_staff')}</p>
+                        <div className="text-center py-6">
+                            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span className="material-symbols-outlined text-4xl text-red-500">cancel</span>
+                            </div>
+                            <h2 className="text-xl font-bold text-red-600 mb-2">{t('customer.tracking.cancelled_title')}</h2>
+                            <p className="text-gray-500 mb-6 max-w-xs mx-auto">{t('customer.tracking.contact_staff')}</p>
                             <button
                                 onClick={() => {
-                                    // Clear any stored order/table data
                                     localStorage.removeItem('addToOrderId');
                                     localStorage.removeItem('addToTableId');
                                     localStorage.removeItem('qr_table_id');
                                     localStorage.removeItem('qr_table_number');
-                                    // Navigate back to menu
                                     navigate('/menu');
                                 }}
-                                className="px-4 sm:px-6 py-2 sm:py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all inline-flex items-center gap-2 text-sm sm:text-base"
+                                className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all inline-flex items-center gap-2"
                             >
-                                <span className="material-symbols-outlined text-lg sm:text-xl">restaurant_menu</span>
+                                <span className="material-symbols-outlined">restaurant_menu</span>
                                 {t('customer.tracking.back_to_menu')}
                             </button>
                         </div>
                     ) : (
                         <>
-                            <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6">{t('customer.tracking.status')}</h2>
-                            <div className="relative mx-2 sm:mx-4">
+                            <h2 className="text-lg font-bold text-gray-800 mb-8 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-emerald-600">timeline</span>
+                                {t('customer.tracking.status')}
+                            </h2>
+                            <div className="relative px-4">
                                 {/* Progress Line */}
-                                <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full">
+                                <div className="absolute top-5 left-8 right-8 h-1 bg-gray-100 rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                        className="h-full bg-emerald-500 transition-all duration-700 ease-out"
                                         style={{ width: `${(currentStatusIndex / (statusSteps.length - 1)) * 100}%` }}
                                     ></div>
                                 </div>
 
                                 {/* Steps */}
-                                <div className="relative flex justify-between">
+                                <div className="relative flex justify-between z-10">
                                     {statusSteps.map((step, index) => {
                                         const isActive = index <= currentStatusIndex;
                                         const isCurrent = index === currentStatusIndex;
 
                                         return (
-                                            <div key={step.key} className="flex flex-col items-center z-10">
+                                            <div key={step.key} className="flex flex-col items-center">
                                                 <div
-                                                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-base sm:text-lg transition-all duration-300 border-4 ${isActive
-                                                        ? 'bg-emerald-500 text-white border-emerald-100'
+                                                    className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all duration-500 border-4 ${isActive
+                                                        ? 'bg-emerald-500 text-white border-emerald-100 shadow-lg shadow-emerald-200'
                                                         : 'bg-white text-gray-300 border-gray-100'
-                                                        } ${isCurrent ? 'scale-110 ring-2 ring-emerald-500 ring-offset-2' : ''}`}
+                                                        } ${isCurrent ? 'scale-125 ring-4 ring-emerald-50' : ''}`}
                                                 >
                                                     {step.icon}
                                                 </div>
-                                                <p className={`mt-2 text-[10px] sm:text-xs font-bold uppercase text-center ${isActive ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                <p className={`mt-3 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isActive ? 'text-emerald-700' : 'text-gray-400'}`}>
                                                     {step.label}
                                                 </p>
                                             </div>
@@ -259,53 +266,63 @@ export default function OrderTrackingPage() {
                 </div>
 
                 {/* Order Items */}
-                <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-100">
-                    <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-3 sm:mb-4">{t('customer.tracking.items_details')}</h2>
-                    <div className="divide-y divide-gray-100">
+                <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8 border border-gray-100">
+                    <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-emerald-600">receipt_long</span>
+                        {t('customer.tracking.items_details')}
+                    </h2>
+                    <div className="space-y-6">
                         {order.order_items?.map((item) => {
                             const modifiersTotal = item.order_item_modifiers?.reduce((sum, mod) => sum + (parseFloat(mod.price) || 0), 0) || 0;
                             const itemTotal = (parseFloat(item.unit_price) || 0) * (parseInt(item.quantity) || 0);
 
                             return (
-                                <div key={item.id} className="py-3 sm:py-4 first:pt-0 last:pb-0">
-                                    <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0">
-                                        <div className="flex-1">
-                                            <div className="flex items-start gap-2">
-                                                <span className="font-bold text-gray-800 text-sm sm:text-base">{item.quantity}x</span>
-                                                <div className="flex-1">
-                                                    <span className="font-medium text-gray-800 text-sm sm:text-base">{item.menu_item?.name || t('customer.tracking.unknown_item')}</span>
-                                                    {/* Item Status Badge - Mobile inline */}
-                                                    <span className={`inline-block ml-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.status === 'ready' ? 'bg-green-100 text-green-700' :
-                                                        item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
-                                                            'bg-gray-100 text-gray-500'
+                                <div key={item.id} className="flex flex-col sm:flex-row gap-4 pb-6 border-b border-gray-50 last:border-0 last:pb-0">
+                                    <div className="flex-1">
+                                        <div className="flex items-start gap-4">
+                                            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 font-bold text-gray-700 text-sm">
+                                                {item.quantity}x
+                                            </span>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start">
+                                                    <h3 className="font-bold text-gray-800 text-lg">{item.menu_item?.name || t('customer.tracking.unknown_item')}</h3>
+                                                    <p className="font-bold text-emerald-600 ml-4">{itemTotal.toLocaleString('vi-VN')}đ</p>
+                                                </div>
+
+                                                {/* Item Status Badge */}
+                                                <div className="mt-2">
+                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wide ${item.status === 'ready' ? 'bg-green-50 text-green-700 border border-green-100' :
+                                                        item.status === 'preparing' ? 'bg-yellow-50 text-yellow-700 border border-yellow-100' :
+                                                            'bg-gray-100 text-gray-500 border border-gray-200'
                                                         }`}>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
                                                         {item.status === 'pending' ? t('customer.tracking.pending') :
                                                             item.status === 'preparing' ? t('customer.tracking.preparing') :
                                                                 item.status === 'ready' ? t('customer.tracking.ready') : item.status}
                                                     </span>
                                                 </div>
-                                            </div>
 
-                                            {/* Modifiers */}
-                                            {item.order_item_modifiers?.length > 0 && (
-                                                <div className="mt-1 ml-6 sm:ml-8 space-y-0.5">
-                                                    {item.order_item_modifiers.map((mod, idx) => (
-                                                        <p key={idx} className="text-xs sm:text-sm text-gray-500">
-                                                            + {mod.modifier_name}
+                                                {/* Modifiers */}
+                                                {item.order_item_modifiers?.length > 0 && (
+                                                    <div className="mt-2 pl-4 border-l-2 border-gray-100 space-y-1">
+                                                        {item.order_item_modifiers.map((mod, idx) => (
+                                                            <p key={idx} className="text-sm text-gray-500 font-medium">
+                                                                + {mod.modifier_name}
+                                                            </p>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Notes */}
+                                                {item.notes && (
+                                                    <div className="mt-2 bg-amber-50 px-3 py-2 rounded-lg border border-amber-100 inline-block">
+                                                        <p className="text-xs text-amber-800 font-medium flex items-center gap-1">
+                                                            <span className="material-symbols-outlined text-sm">edit_note</span>
+                                                            {item.notes}
                                                         </p>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {/* Notes */}
-                                            {item.notes && (
-                                                <p className="mt-1 ml-6 sm:ml-8 text-xs sm:text-sm text-amber-600 italic">
-                                                    {t('customer.tracking.notes')}: {item.notes}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="text-right ml-6 sm:ml-0">
-                                            <p className="font-bold text-gray-800 text-sm sm:text-base">{itemTotal.toLocaleString('vi-VN')}đ</p>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -314,76 +331,74 @@ export default function OrderTrackingPage() {
                     </div>
 
                     {/* Total & Payment Actions */}
-                    <div className="mt-4 sm:mt-6 pt-4 border-t border-gray-100">
+                    <div className="mt-8 pt-6 border-t border-gray-100 bg-gray-50/50 rounded-2xl p-6 -mx-2 sm:-mx-4">
                         {/* Tax Breakdown */}
-                        <div className="space-y-2 mb-4">
-                            <div className="flex justify-between text-sm sm:text-base text-gray-600">
-                                <span>{t('customer.checkout.subtotal')}:</span>
-                                <span className="font-semibold">{(order.subtotal || order.total_amount)?.toLocaleString('vi-VN')}đ</span>
+                        <div className="space-y-3 mb-6">
+                            <div className="flex justify-between text-gray-600">
+                                <span>{t('customer.checkout.subtotal')}</span>
+                                <span className="font-medium">{(order.subtotal || order.total_amount)?.toLocaleString('vi-VN')}đ</span>
                             </div>
                             {order.tax_amount > 0 && (
-                                <div className="flex justify-between text-sm sm:text-base text-gray-600">
-                                    <span>{t('customer.tracking.tax')}:</span>
-                                    <span className="font-semibold">{order.tax_amount?.toLocaleString('vi-VN')}đ</span>
+                                <div className="flex justify-between text-gray-600">
+                                    <span>{t('customer.tracking.tax')}</span>
+                                    <span className="font-medium">+{order.tax_amount?.toLocaleString('vi-VN')}đ</span>
                                 </div>
                             )}
                             {order.discount_amount > 0 && (
-                                <div className="flex justify-between text-sm sm:text-base text-emerald-600">
-                                    <span>{t('customer.tracking.discount')} {order.coupon_code ? `(${order.coupon_code})` : ''}:</span>
-                                    <span className="font-semibold">-{order.discount_amount?.toLocaleString('vi-VN')}đ</span>
+                                <div className="flex justify-between text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
+                                    <span className="flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-sm">sell</span>
+                                        {t('customer.tracking.discount')} {order.coupon_code ? `(${order.coupon_code})` : ''}
+                                    </span>
+                                    <span className="font-bold">-{order.discount_amount?.toLocaleString('vi-VN')}đ</span>
                                 </div>
                             )}
                         </div>
 
-                        <div className="flex justify-between items-center text-lg sm:text-xl font-bold text-gray-900 pb-4">
-                            <span>{t('customer.tracking.total')}</span>
-                            <span className="text-emerald-600">{order.total_amount?.toLocaleString('vi-VN')}đ</span>
+                        <div className="flex justify-between items-center pb-6 border-b border-gray-200 mb-6">
+                            <span className="text-xl font-bold text-gray-800">{t('customer.tracking.total')}</span>
+                            <span className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                                {order.total_amount?.toLocaleString('vi-VN')}đ
+                            </span>
                         </div>
 
                         {/* --- KHU VỰC NÚT THANH TOÁN --- */}
-                        <div className="mt-4">
+                        <div>
                             {/* Trường hợp 1: Đã thanh toán xong */}
                             {order.payment_status === 'paid' || order.payment_status === 'success' ? (
-                                <div className="space-y-3">
-                                    <div className="w-full py-2 sm:py-3 bg-green-100 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-green-200 animate-pulse text-sm sm:text-base">
-                                        <span className="material-symbols-outlined text-lg sm:text-xl">check_circle</span>
+                                <div className="space-y-4">
+                                    <div className="w-full py-4 bg-green-50 text-green-700 font-bold rounded-2xl flex items-center justify-center gap-2 border border-green-200 shadow-sm">
+                                        <span className="material-symbols-outlined text-2xl">check_circle</span>
                                         {t('customer.tracking.paid_success')}
                                     </div>
                                     <button
                                         onClick={() => {
-                                            // Clear any stored order/table data
                                             localStorage.removeItem('addToOrderId');
                                             localStorage.removeItem('addToTableId');
                                             localStorage.removeItem('qr_table_id');
                                             localStorage.removeItem('qr_table_number');
-                                            // Navigate back to menu
                                             navigate('/menu');
                                         }}
-                                        className="w-full py-2 sm:py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 text-sm sm:text-base active:scale-[0.98]"
+                                        className="w-full py-4 bg-white text-emerald-600 border-2 border-emerald-100 font-bold rounded-2xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2"
                                     >
-                                        <span className="material-symbols-outlined text-lg sm:text-xl">restaurant_menu</span>
+                                        <span className="material-symbols-outlined">restaurant_menu</span>
                                         {t('customer.tracking.back_to_menu')}
                                     </button>
                                 </div>
                             ) :
                                 /* Trường hợp 2: Đang chờ nhân viên (Tiền mặt) */
                                 order.payment_status === 'waiting_payment' ? (
-                                    <div className="w-full py-2 sm:py-3 bg-yellow-100 text-yellow-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-yellow-200 text-sm sm:text-base">
-                                        <span className="material-symbols-outlined text-lg sm:text-xl">hourglass_top</span>
+                                    <div className="w-full py-4 bg-amber-50 text-amber-700 font-bold rounded-2xl flex items-center justify-center gap-2 border border-amber-200 animate-pulse">
+                                        <span className="material-symbols-outlined text-2xl">hourglass_top</span>
                                         {t('customer.tracking.waiting_staff')}
                                     </div>
                                 ) : (() => {
                                     /* Trường hợp 3: Chưa thanh toán -> Kiểm tra điều kiện hiện nút */
 
-                                    // Kiểm tra order đã được accept chưa
                                     const isOrderAccepted = order.status === 'processing';
-
-                                    // Kiểm tra tất cả món đã sẵn sàng chưa (chỉ status = 'ready')
                                     const allItemsReady = order.order_items?.every(item =>
                                         item.status === 'ready'
                                     );
-
-                                    // Chỉ hiện nút khi: order đã accept VÀ tất cả món đã sẵn sàng
                                     const canPay = isOrderAccepted && allItemsReady;
 
                                     if (order.status === 'cancelled') {
@@ -392,9 +407,14 @@ export default function OrderTrackingPage() {
 
                                     if (!canPay) {
                                         return (
-                                            <div className="w-full py-2 sm:py-3 bg-gray-100 text-gray-500 font-bold rounded-xl flex items-center justify-center gap-2 border border-gray-200 text-sm sm:text-base">
-                                                <span className="material-symbols-outlined text-lg sm:text-xl">schedule</span>
-                                                {!isOrderAccepted ? t('customer.tracking.pending') : t('customer.tracking.preparing')}
+                                            <div className="w-full py-4 bg-gray-100 text-gray-500 font-bold rounded-2xl flex items-center justify-center gap-2 border border-gray-200">
+                                                <span className="material-symbols-outlined">schedule</span>
+                                                <span className="text-center">
+                                                    {!isOrderAccepted
+                                                        ? t('customer.tracking.pending')
+                                                        : t('customer.tracking.preparing')
+                                                    }
+                                                </span>
                                             </div>
                                         );
                                     }
@@ -402,9 +422,9 @@ export default function OrderTrackingPage() {
                                     return (
                                         <button
                                             onClick={() => navigate('/checkout', { state: { order } })}
-                                            className="w-full py-2 sm:py-3 bg-gray-900 text-white font-bold rounded-xl shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2 text-sm sm:text-base active:scale-[0.98]"
+                                            className="w-full py-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
                                         >
-                                            <span className="material-symbols-outlined text-lg sm:text-xl">credit_card</span>
+                                            <span className="material-symbols-outlined">credit_card</span>
                                             {t('customer.tracking.pay_now')}
                                         </button>
                                     );

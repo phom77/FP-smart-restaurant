@@ -10,8 +10,10 @@ export default function SuperAdminLayout() {
     const { t, i18n } = useTranslation();
 
     const handleLogout = () => {
-        logout();
-        navigate('/login');
+        if (window.confirm(t('common.logout_confirm'))) {
+            logout();
+            navigate('/login');
+        }
     };
 
     const toggleLanguage = () => {
@@ -28,7 +30,7 @@ export default function SuperAdminLayout() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
-            {/* 1. MOBILE OVERLAY (Màn che đen khi mở menu trên mobile) */}
+            {/* 1. MOBILE OVERLAY */}
             {sidebarOpen && (
                 <div
                     className="fixed inset-0 z-40 bg-black/50 md:hidden"
@@ -36,42 +38,41 @@ export default function SuperAdminLayout() {
                 ></div>
             )}
 
-            {/* 2. SIDEBAR (THANH TASKBAR) */}
+            {/* 2. SIDEBAR */}
             <aside
                 className={`
-                    fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white transition-transform duration-300 ease-in-out
+                    fixed inset-y-0 left-0 z-50 w-64 bg-white text-gray-700 shadow-2xl transition-transform duration-300 ease-in-out
                     ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-                    md:translate-x-0 md:static md:inset-auto
+                    md:translate-x-0 md:static md:inset-auto md:shadow-xl
                 `}
             >
                 <div className="h-full flex flex-col">
                     {/* Logo Area */}
-                    <div className="h-16 flex items-center px-6 border-b border-gray-800">
+                    <div className="h-16 flex items-center px-6 border-b border-gray-100">
                         <div className="flex items-center gap-3">
-                            <span className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-lg">S</span>
-                            <span className="font-bold text-xl tracking-wide">{t('superadmin.sidebar.panel_title')}</span>
+                            <span className="font-bold text-[22px] tracking-wide bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">{t('common.appName')}</span>
                         </div>
-                        {/* Nút đóng menu trên mobile */}
+                        {/* Mobile Close Button */}
                         <button
                             onClick={() => setSidebarOpen(false)}
-                            className="ml-auto md:hidden text-gray-400 hover:text-white"
+                            className="ml-auto md:hidden text-gray-400 hover:text-gray-600"
                         >
                             <span className="material-symbols-outlined">close</span>
                         </button>
                     </div>
 
                     {/* Navigation Links */}
-                    <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+                    <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
                         {navItems.map((item) => (
                             <NavLink
                                 key={item.path}
                                 to={item.path}
-                                onClick={() => setSidebarOpen(false)} // Đóng menu khi click (mobile)
+                                onClick={() => setSidebarOpen(false)}
                                 className={({ isActive }) => `
-                                    flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                                    flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium
                                     ${isActive
-                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50 font-medium'
-                                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'}
+                                        ? 'bg-emerald-50 text-emerald-600 shadow-sm'
+                                        : 'text-gray-600 hover:bg-emerald-50 hover:text-emerald-600'}
                                 `}
                             >
                                 <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
@@ -80,30 +81,22 @@ export default function SuperAdminLayout() {
                         ))}
                     </nav>
 
-                    {/* Footer Sidebar (Language + User Info + Logout) */}
-                    <div className="p-4 border-t border-gray-800 space-y-3">
+                    {/* Footer Sidebar */}
+                    <div className="p-4 border-t border-gray-100 bg-gray-50/50 space-y-3">
                         {/* Language Switcher */}
                         <button
                             onClick={toggleLanguage}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition-colors text-sm font-medium border border-gray-700"
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all text-sm font-medium border border-gray-200 shadow-sm"
                         >
                             <span className="material-symbols-outlined text-[20px]">language</span>
                             {i18n.language === 'vi' ? 'English' : 'Tiếng Việt'}
                         </button>
 
-                        <div className="flex items-center gap-3 px-2">
-                            <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold">
-                                {user?.full_name?.charAt(0) || 'A'}
-                            </div>
-                            <div className="overflow-hidden">
-                                <p className="text-sm font-medium truncate">{user?.full_name || 'Admin'}</p>
-                                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-                            </div>
-                        </div>
+
 
                         <button
                             onClick={handleLogout}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-colors text-sm font-medium"
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors text-sm font-medium"
                         >
                             <span className="material-symbols-outlined text-[20px]">logout</span>
                             {t('superadmin.sidebar.logout')}
@@ -113,16 +106,16 @@ export default function SuperAdminLayout() {
             </aside>
 
             {/* 3. MAIN CONTENT AREA */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                {/* Mobile Header (Chỉ hiện nút Menu trên màn nhỏ) */}
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50">
+                {/* Mobile Header */}
                 <header className="bg-white border-b border-gray-200 h-16 flex items-center px-4 md:hidden shadow-sm sticky top-0 z-30">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="text-gray-600 hover:text-gray-900 focus:outline-none p-2 rounded-md hover:bg-gray-100"
+                        className="text-gray-600 hover:text-gray-900 focus:outline-none p-2 rounded-md hover:bg-gray-100 transition-colors"
                     >
                         <span className="material-symbols-outlined text-2xl">menu</span>
                     </button>
-                    <span className="ml-4 font-bold text-gray-800">{t('superadmin.sidebar.panel_title')}</span>
+                    <span className="ml-4 font-bold text-[22px] tracking-wide bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">{t('common.appName')}</span>
                 </header>
 
                 {/* Page Content */}

@@ -215,7 +215,7 @@ const OrderListPage = () => {
     );
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-lg min-h-[80vh] flex flex-col">
+        <div className="bg-white p-6 rounded-2xl shadow-lg min-h-[88vh] flex flex-col">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
                     <h2 className="text-3xl font-extrabold text-gray-800 tracking-tight">{t('waiter.order_list')}</h2>

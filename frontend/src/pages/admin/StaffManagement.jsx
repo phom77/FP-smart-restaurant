@@ -188,7 +188,8 @@ const StaffManagement = () => {
                                 <tbody className="divide-y divide-gray-50">
                                     {staff.filter(s =>
                                         s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                        s.email.toLowerCase().includes(searchQuery.toLowerCase())
+                                        s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                        (s.phone && s.phone.includes(searchQuery))
                                     ).map((s) => (
                                         <tr key={s.id} className="hover:bg-gray-50/30 transition-colors">
                                             <td className="px-6 py-4">

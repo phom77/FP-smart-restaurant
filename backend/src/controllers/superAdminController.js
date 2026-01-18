@@ -10,8 +10,8 @@ exports.createRestaurantAdmin = async (req, res) => {
         const { email, password, full_name, phone, restaurant_name } = req.body;
 
         // 1. Validate dữ liệu đầu vào nghiêm ngặt
-        const { error: validationError } = registerSchema.validate({ 
-            email, password, full_name, phone, restaurant_name 
+        const { error: validationError } = registerSchema.validate({
+            email, password, full_name, phone, restaurant_name
         });
         if (validationError) {
             return res.status(400).json({ success: false, message: validationError.details[0].message });
@@ -70,17 +70,43 @@ exports.createRestaurantAdmin = async (req, res) => {
 // 2. QUẢN LÝ USER (Xem danh sách)
 exports.getAllUsers = async (req, res) => {
     try {
-        const { role } = req.query; 
-        let query = supabase.from('users').select('id, email, full_name, role, is_verified, created_at, phone');
+        const { role, page = 1, limit = 10, search } = req.query;
+
+        // Calculate pagination range
+        const pageInt = parseInt(page);
+        const limitInt = parseInt(limit);
+        const from = (pageInt - 1) * limitInt;
+        const to = from + limitInt - 1;
+
+        let query = supabase.from('users').select('id, email, full_name, role, is_verified, created_at, phone', { count: 'exact' });
 
         if (role) {
             query = query.eq('role', role);
         }
 
-        const { data, error } = await query.order('created_at', { ascending: false });
+        if (search) {
+            query = query.or(`email.ilike.%${search}%,full_name.ilike.%${search}%,phone.ilike.%${search}%`);
+        }
+
+        const { data, maxLength, count, error } = await query
+            .order('created_at', { ascending: false })
+            .range(from, to);
+
         if (error) throw error;
 
-        res.status(200).json({ success: true, data });
+        // Calculate pagination meta
+        const totalPages = Math.ceil(count / limitInt);
+
+        res.status(200).json({
+            success: true,
+            data,
+            pagination: {
+                page: pageInt,
+                limit: limitInt,
+                total: count,
+                totalPages
+            }
+        });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
@@ -95,7 +121,7 @@ exports.banUser = async (req, res) => {
         // Dùng is_verified để chặn đăng nhập
         const { error } = await supabase
             .from('users')
-            .update({ is_verified: is_active }) 
+            .update({ is_verified: is_active })
             .eq('id', id);
 
         if (error) throw error;
