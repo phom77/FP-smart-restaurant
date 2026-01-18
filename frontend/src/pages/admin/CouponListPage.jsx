@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 export default function CouponListPage() {
     const [coupons, setCoupons] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [selectedCoupon, setSelectedCoupon] = useState(null); // Để hiện Modal xem chi tiết
+    const [selectedCoupon, setSelectedCoupon] = useState(null); 
     const navigate = useNavigate();
 
     const fetchCoupons = async () => {
@@ -22,17 +22,26 @@ export default function CouponListPage() {
 
     useEffect(() => { fetchCoupons(); }, []);
 
-    // Xử lý Xóa
     const handleDelete = async (id) => {
         if (!window.confirm('Bạn có chắc chắn muốn xóa mã này? Hành động này không thể hoàn tác!')) return;
         try {
             const res = await api.delete(`/api/coupons/${id}`);
             if (res.data.success) {
                 toast.success('Đã xóa voucher');
-                fetchCoupons(); // Load lại danh sách
+                fetchCoupons(); 
             }
         } catch (err) {
             toast.error(err.response?.data?.message || 'Không thể xóa mã này');
+        }
+    };
+
+    // Helper để hiển thị tên đối tượng cho đẹp
+    const getTargetLabel = (type) => {
+        switch(type) {
+            case 'new_user': return 'Khách hàng mới';
+            case 'guest': return 'Khách vãng lai';
+            case 'customer': return 'Thành viên';
+            default: return 'Tất cả mọi người';
         }
     };
 
@@ -60,15 +69,16 @@ export default function CouponListPage() {
                             <th className="px-6 py-4">Mã Code</th>
                             <th className="px-6 py-4">Giảm giá</th>
                             <th className="px-6 py-4">Thời gian</th>
+                            <th className="px-6 py-4">Đối tượng</th> {/* Thêm cột này nếu muốn */}
                             <th className="px-6 py-4">Trạng thái</th>
                             <th className="px-6 py-4 text-right">Hành động</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm">
                         {loading ? (
-                            <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500">Đang tải...</td></tr>
+                            <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500">Đang tải...</td></tr>
                         ) : coupons.length === 0 ? (
-                            <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500 italic">Trống.</td></tr>
+                            <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500 italic">Trống.</td></tr>
                         ) : coupons.map((coupon) => (
                             <tr key={coupon.id} className="hover:bg-gray-50 transition">
                                 <td className="px-6 py-4 font-bold text-blue-600">{coupon.code}</td>
@@ -78,6 +88,9 @@ export default function CouponListPage() {
                                 <td className="px-6 py-4 text-xs">
                                     {new Date(coupon.end_date).toLocaleDateString('vi-VN')}
                                 </td>
+                                <td className="px-6 py-4 text-xs text-gray-600">
+                                    {getTargetLabel(coupon.target_type)}
+                                </td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded text-xs font-bold ${coupon.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                         {coupon.is_active ? 'Active' : 'Inactive'}
@@ -85,15 +98,12 @@ export default function CouponListPage() {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
-                                        {/* Nút Xem Chi Tiết */}
                                         <button onClick={() => setSelectedCoupon(coupon)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded" title="Xem chi tiết">
                                             <span className="material-symbols-outlined text-[20px]">visibility</span>
                                         </button>
-                                        {/* Nút Sửa */}
                                         <button onClick={() => navigate(`/admin/coupons/edit/${coupon.id}`)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Chỉnh sửa">
                                             <span className="material-symbols-outlined text-[20px]">edit</span>
                                         </button>
-                                        {/* Nút Xóa */}
                                         <button onClick={() => handleDelete(coupon.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Xóa">
                                             <span className="material-symbols-outlined text-[20px]">delete</span>
                                         </button>
@@ -120,6 +130,26 @@ export default function CouponListPage() {
                                 <span className="text-gray-500 text-sm">Mã Code:</span>
                                 <span className="text-xl font-bold text-blue-600 tracking-wider bg-blue-50 px-3 py-1 rounded">{selectedCoupon.code}</span>
                             </div>
+                            
+                            {/* 🟢 PHẦN MỚI THÊM VÀO VIEW */}
+                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <p className="text-blue-800 font-bold">Đối tượng áp dụng</p>
+                                    <p className="text-gray-700">{getTargetLabel(selectedCoupon.target_type)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-blue-800 font-bold">Giới hạn mỗi người</p>
+                                    <p className="text-gray-700">
+                                        {selectedCoupon.target_type === 'guest' 
+                                            ? 'Không giới hạn (Guest)' 
+                                            : selectedCoupon.limit_per_user 
+                                                ? `${selectedCoupon.limit_per_user} lần/người` 
+                                                : 'Không giới hạn'}
+                                    </p>
+                                </div>
+                            </div>
+                            {/* --------------------------- */}
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-xs text-gray-500">Tên chương trình</p>
@@ -148,7 +178,7 @@ export default function CouponListPage() {
                                     <p className="font-medium">{new Date(selectedCoupon.end_date).toLocaleString('vi-VN')}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-500">Đã sử dụng</p>
+                                    <p className="text-xs text-gray-500">Tổng đã dùng</p>
                                     <p className="font-medium">{selectedCoupon.used_count} / {selectedCoupon.usage_limit || '∞'}</p>
                                 </div>
                                 <div>
