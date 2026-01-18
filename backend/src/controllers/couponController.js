@@ -3,12 +3,30 @@ const supabase = require('../config/supabaseClient');
 // 1. Lấy danh sách Voucher (Cho khách xem)
 exports.getAvailableCoupons = async (req, res) => {
     try {
+        const now = new Date().toISOString();
+
         const { data, error } = await supabase
             .from('coupons')
             .select('*')
             .eq('is_active', true)
-            .gte('end_date', new Date().toISOString()) // Chỉ lấy voucher chưa hết hạn
+            .lte('start_date', now) // Đã bắt đầu (start_date <= now)
+            .gte('end_date', now)   // Chưa hết hạn (end_date >= now)
             .order('min_order_value', { ascending: true });
+
+        if (error) throw error;
+        res.json({ success: true, data });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// 1.1. Lấy TẤT CẢ Voucher (Cho Admin quản lý)
+exports.getAllCouponsForAdmin = async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('coupons')
+            .select('*')
+            .order('created_at', { ascending: false }); // Sắp xếp theo mới nhất
 
         if (error) throw error;
         res.json({ success: true, data });
@@ -33,7 +51,7 @@ exports.validateCoupon = async (req, res) => {
         }
 
         // --- CÁC ĐIỀU KIỆN KIỂM TRA ---
-        
+
         // 1. Kiểm tra ngày hiệu lực
         const now = new Date();
         if (new Date(coupon.start_date) > now) {
@@ -50,9 +68,9 @@ exports.validateCoupon = async (req, res) => {
 
         // 3. Kiểm tra đơn tối thiểu
         if (cartTotal < coupon.min_order_value) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Đơn hàng cần tối thiểu ${coupon.min_order_value.toLocaleString()}đ để dùng mã này` 
+            return res.status(400).json({
+                success: false,
+                message: `Đơn hàng cần tối thiểu ${coupon.min_order_value.toLocaleString()}đ để dùng mã này`
             });
         }
 
@@ -71,12 +89,12 @@ exports.validateCoupon = async (req, res) => {
         // Đảm bảo không giảm quá giá trị đơn hàng
         if (discountAmount > cartTotal) discountAmount = cartTotal;
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             data: {
                 ...coupon,
                 discountAmount
-            } 
+            }
         });
 
     } catch (err) {
@@ -117,9 +135,9 @@ exports.updateCoupon = async (req, res) => {
     try {
         const { id } = req.params;
         const updates = req.body;
-        
+
         // Loại bỏ các field không cho sửa (nếu cần)
-        delete updates.id; 
+        delete updates.id;
         delete updates.created_at;
 
         const { data, error } = await supabase
