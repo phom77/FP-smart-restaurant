@@ -24,12 +24,12 @@ exports.verifyCouponCondition = async (code, cartTotal, userId) => {
         if (!coupon.is_active) return { isValid: false, message: 'Mã giảm giá đang tạm khóa' };
         if (new Date(coupon.start_date) > now) return { isValid: false, message: 'Mã chưa đến ngày hiệu lực' };
         if (new Date(coupon.end_date) < now) return { isValid: false, message: 'Mã giảm giá đã hết hạn' };
-        
+
         // Kiểm tra giới hạn tổng toàn hệ thống (VD: Chỉ có 100 mã toàn sàn)
         if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
             return { isValid: false, message: 'Mã đã hết lượt sử dụng trên toàn hệ thống' };
         }
-        
+
         // Kiểm tra đơn tối thiểu
         if (cartTotal < coupon.min_order_value) {
             return { isValid: false, message: `Đơn hàng cần tối thiểu ${coupon.min_order_value.toLocaleString()}đ` };
@@ -37,7 +37,7 @@ exports.verifyCouponCondition = async (code, cartTotal, userId) => {
 
         // 3. Kiểm tra ĐỐI TƯỢNG (Target Type)
         // ---------------------------------------------------------
-        
+
         // Trường hợp A: Dành riêng cho GUEST (Khách vãng lai)
         if (coupon.target_type === 'guest') {
             if (userId) {
@@ -63,7 +63,7 @@ exports.verifyCouponCondition = async (code, cartTotal, userId) => {
                 .select('*', { count: 'exact', head: true })
                 .eq('customer_id', userId)
                 .eq('status', 'completed');
-            
+
             if (count > 0) {
                 return { isValid: false, message: 'Mã này chỉ áp dụng cho đơn hàng đầu tiên.' };
             }
@@ -71,14 +71,9 @@ exports.verifyCouponCondition = async (code, cartTotal, userId) => {
 
         // 4. Kiểm tra GIỚI HẠN CÁ NHÂN (Limit Per User)
         // ---------------------------------------------------------
-        // (Chỉ kiểm tra được nếu là Customer đã đăng nhập)
-        if (coupon.target_type !== 'guest' && coupon.limit_per_user && coupon.limit_per_user > 0) {
-            
-            if (!userId) {
-                // Nếu voucher yêu cầu limit mà khách chưa login -> Bắt login
-                return { isValid: false, message: 'Vui lòng đăng nhập để sử dụng mã giới hạn số lần dùng này.' };
-            }
-
+        // Chỉ kiểm tra cho user đã đăng nhập
+        // Guest sử dụng voucher 'all' sẽ không bị giới hạn (vì không thể track)
+        if (userId && coupon.limit_per_user && coupon.limit_per_user > 0) {
             const { count: usageCount } = await supabase
                 .from('coupon_usage')
                 .select('*', { count: 'exact', head: true })
