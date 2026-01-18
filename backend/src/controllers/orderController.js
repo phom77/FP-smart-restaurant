@@ -255,7 +255,7 @@ exports.updateOrderServedStatus = async (req, res) => {
 };
 
 exports.createOrder = async (req, res) => {
-  const { table_id, items, customer_id, notes } = req.body;
+  const { table_id, items, customer_id, notes, coupon_code } = req.body;
 
   if (!items || items.length === 0) {
     return res.status(400).json({ success: false, message: 'Giỏ hàng trống' });
@@ -366,9 +366,71 @@ exports.createOrder = async (req, res) => {
     // Calculate tax
     const vatRate = await getVATRate();
     const taxAmount = subtotal * (vatRate / 100);
-    const totalAmount = subtotal + taxAmount;
+    let totalBeforeDiscount = subtotal + taxAmount;
 
-    // 3. Insert Order với thuế
+    // 2.5. Validate and apply voucher if provided
+    let discountAmount = 0;
+    let validatedCouponCode = null;
+
+    if (coupon_code) {
+      const { data: coupon, error: couponError } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', coupon_code)
+        .single();
+
+      if (couponError || !coupon) {
+        return res.status(400).json({ success: false, message: 'Mã giảm giá không tồn tại' });
+      }
+
+      // Validate coupon conditions
+      const now = new Date();
+      if (!coupon.is_active) {
+        return res.status(400).json({ success: false, message: 'Mã giảm giá không còn hiệu lực' });
+      }
+      if (new Date(coupon.start_date) > now) {
+        return res.status(400).json({ success: false, message: 'Mã giảm giá chưa đến ngày hiệu lực' });
+      }
+      if (new Date(coupon.end_date) < now) {
+        return res.status(400).json({ success: false, message: 'Mã giảm giá đã hết hạn' });
+      }
+      if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+        return res.status(400).json({ success: false, message: 'Mã giảm giá đã hết lượt sử dụng' });
+      }
+      if (subtotal < coupon.min_order_value) {
+        return res.status(400).json({
+          success: false,
+          message: `Đơn hàng cần tối thiểu ${coupon.min_order_value.toLocaleString()}đ để dùng mã này`
+        });
+      }
+
+      // Calculate discount
+      if (coupon.discount_type === 'fixed') {
+        discountAmount = parseFloat(coupon.discount_value);
+      } else {
+        discountAmount = (subtotal * parseFloat(coupon.discount_value)) / 100;
+        if (coupon.max_discount_value && discountAmount > parseFloat(coupon.max_discount_value)) {
+          discountAmount = parseFloat(coupon.max_discount_value);
+        }
+      }
+
+      // Ensure discount doesn't exceed total
+      if (discountAmount > totalBeforeDiscount) {
+        discountAmount = totalBeforeDiscount;
+      }
+
+      validatedCouponCode = coupon_code;
+
+      // Increment usage count
+      await supabase
+        .from('coupons')
+        .update({ used_count: coupon.used_count + 1 })
+        .eq('id', coupon.id);
+    }
+
+    const totalAmount = totalBeforeDiscount - discountAmount;
+
+    // 3. Insert Order với thuế và voucher
     const { data: newOrder, error: orderInsertError } = await supabase
       .from('orders')
       .insert([{
@@ -377,6 +439,8 @@ exports.createOrder = async (req, res) => {
         status: 'pending',
         subtotal: subtotal,
         tax_amount: taxAmount,
+        discount_amount: discountAmount,
+        coupon_code: validatedCouponCode,
         total_amount: totalAmount,
         payment_method: 'pay_later',
       }])
@@ -619,10 +683,10 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       }
     }
 
-    // 4. Update order total amount with tax recalculation
+    // 4. Update order total amount with tax recalculation and voucher preservation
     const { data: currentOrder, error: fetchOrderError } = await supabase
       .from('orders')
-      .select('subtotal, tax_amount, total_amount, table_id')
+      .select('subtotal, tax_amount, total_amount, table_id, coupon_code, discount_amount')
       .eq('id', orderId)
       .single();
 
@@ -631,13 +695,37 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
     const newSubtotal = parseFloat(currentOrder.subtotal || currentOrder.total_amount) + additionalSubtotal;
     const vatRate = await getVATRate();
     const newTaxAmount = newSubtotal * (vatRate / 100);
-    const newTotalAmount = newSubtotal + newTaxAmount;
+
+    // Recalculate discount if voucher exists
+    let newDiscountAmount = 0;
+    if (currentOrder.coupon_code) {
+      const { data: coupon, error: couponError } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', currentOrder.coupon_code)
+        .single();
+
+      if (!couponError && coupon) {
+        // Recalculate discount based on new subtotal
+        if (coupon.discount_type === 'fixed') {
+          newDiscountAmount = parseFloat(coupon.discount_value);
+        } else {
+          newDiscountAmount = (newSubtotal * parseFloat(coupon.discount_value)) / 100;
+          if (coupon.max_discount_value && newDiscountAmount > parseFloat(coupon.max_discount_value)) {
+            newDiscountAmount = parseFloat(coupon.max_discount_value);
+          }
+        }
+      }
+    }
+
+    const newTotalAmount = newSubtotal + newTaxAmount - newDiscountAmount;
 
     const { error: updateError } = await supabase
       .from('orders')
       .update({
         subtotal: newSubtotal,
         tax_amount: newTaxAmount,
+        discount_amount: newDiscountAmount,
         total_amount: newTotalAmount,
         updated_at: new Date()
       })
@@ -677,6 +765,7 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       additional_subtotal: additionalSubtotal,
       new_subtotal: newSubtotal,
       new_tax: newTaxAmount,
+      new_discount: newDiscountAmount,
       new_total: newTotalAmount
     });
 

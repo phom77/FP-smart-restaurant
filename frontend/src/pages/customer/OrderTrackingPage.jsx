@@ -321,6 +321,12 @@ export default function OrderTrackingPage() {
                                     <span className="font-semibold">{order.tax_amount?.toLocaleString('vi-VN')}đ</span>
                                 </div>
                             )}
+                            {order.discount_amount > 0 && (
+                                <div className="flex justify-between text-sm sm:text-base text-emerald-600">
+                                    <span>Giảm giá {order.coupon_code ? `(${order.coupon_code})` : ''}:</span>
+                                    <span className="font-semibold">-{order.discount_amount?.toLocaleString('vi-VN')}đ</span>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex justify-between items-center text-lg sm:text-xl font-bold text-gray-900 pb-4">
