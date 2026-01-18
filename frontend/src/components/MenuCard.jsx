@@ -1,4 +1,34 @@
+import { useState } from 'react';
+
 export default function MenuCard({ item, onClick }) {
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+    // Get all available images (prioritize images array, fallback to image_url)
+    const allImages = item.images && item.images.length > 0
+        ? item.images
+        : item.image_url
+            ? [item.image_url]
+            : ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400'];
+
+    const hasMultipleImages = allImages.length > 1;
+
+
+
+    const handlePrevImage = (e) => {
+        e.stopPropagation();
+        setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+    };
+
+    const handleNextImage = (e) => {
+        e.stopPropagation();
+        setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
+    };
+
+    const handleDotClick = (e, index) => {
+        e.stopPropagation();
+        setCurrentImageIndex(index);
+    };
+
     const formatPrice = (price) => {
         return new Intl.NumberFormat('vi-VN', {
             style: 'currency',
@@ -12,24 +42,43 @@ export default function MenuCard({ item, onClick }) {
             onClick={() => onClick(item)}
         >
             <div className="relative w-full h-40 sm:h-48 lg:h-56 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+                {/* Image Display */}
                 <img
-                    src={item.image_url}
-                    alt={item.name}
+                    src={allImages[currentImageIndex]}
+                    alt={`${item.name} - Image ${currentImageIndex + 1}`}
                     className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
                     onError={(e) => {
                         e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400';
                     }}
                 />
+
+                {/* Navigation Dots - Only show if multiple images */}
+                {hasMultipleImages && (
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                        {allImages.map((_, index) => (
+                            <button
+                                key={index}
+                                onClick={(e) => handleDotClick(e, index)}
+                                className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${index === currentImageIndex
+                                    ? 'bg-white w-4 sm:w-6'
+                                    : 'bg-white/50 hover:bg-white/75'
+                                    }`}
+                                aria-label={`Go to image ${index + 1}`}
+                            />
+                        ))}
+                    </div>
+                )}
+
                 {/* Chef's Choice Badge */}
                 {item.is_chef_recommendation && (
-                    <div className="absolute top-2 sm:top-3 left-2 sm:left-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shadow-lg flex items-center gap-1">
+                    <div className="absolute top-2 sm:top-3 left-2 sm:left-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shadow-lg flex items-center gap-1 z-10">
                         <span>👨‍🍳</span>
                         <span className="hidden sm:inline">Chef's Choice</span>
                         <span className="sm:hidden">Chef</span>
                     </div>
                 )}
                 {!item.is_available && (
-                    <div className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-red-600 text-white px-2 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shadow-lg">
+                    <div className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-red-600 text-white px-2 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shadow-lg z-10">
                         Hết món
                     </div>
                 )}

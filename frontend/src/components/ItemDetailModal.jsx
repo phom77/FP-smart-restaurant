@@ -8,6 +8,16 @@ export default function ItemDetailModal({ item, onClose }) {
     const [quantity, setQuantity] = useState(1);
     const [selectedModifiers, setSelectedModifiers] = useState({});
     const [notes, setNotes] = useState('');
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+    // Get all available images (prioritize images array, fallback to image_url)
+    const allImages = item.images && item.images.length > 0
+        ? item.images
+        : item.image_url
+            ? [item.image_url]
+            : ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'];
+
+    const hasMultipleImages = allImages.length > 1;
 
     useEffect(() => {
         // Initialize selected modifiers with defaults
@@ -20,6 +30,8 @@ export default function ItemDetailModal({ item, onClose }) {
             });
             setSelectedModifiers(defaults);
         }
+        // Reset image index when item changes
+        setCurrentImageIndex(0);
     }, [item]);
 
     const handleModifierChange = (groupId, modifierId, isMultiple) => {
@@ -80,6 +92,14 @@ export default function ItemDetailModal({ item, onClose }) {
         }).format(price);
     };
 
+    const handlePrevImage = () => {
+        setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+    };
+
+    const handleNextImage = () => {
+        setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
+    };
+
     return (
         <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fadeIn"
@@ -96,16 +116,66 @@ export default function ItemDetailModal({ item, onClose }) {
                     &times;
                 </button>
 
-                <div className="w-full h-48 sm:h-64 lg:h-80 overflow-hidden rounded-t-2xl sm:rounded-t-3xl bg-gradient-to-br from-gray-100 to-gray-200">
-                    <img
-                        src={item.image_url}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                            e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
-                        }}
-                    />
+                {/* Image Carousel */}
+                <div className="relative">
+                    <div className="w-full h-48 sm:h-64 lg:h-80 overflow-hidden rounded-t-2xl sm:rounded-t-3xl bg-gradient-to-br from-gray-100 to-gray-200">
+                        <img
+                            src={allImages[currentImageIndex]}
+                            alt={`${item.name} - Image ${currentImageIndex + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
+                            }}
+                        />
+                    </div>
+
+                    {/* Navigation Arrows - Only show if multiple images */}
+                    {hasMultipleImages && (
+                        <>
+                            <button
+                                onClick={handlePrevImage}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-xl transition-all shadow-lg hover:scale-110 z-10"
+                                aria-label="Previous image"
+                            >
+                                ←
+                            </button>
+                            <button
+                                onClick={handleNextImage}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-xl transition-all shadow-lg hover:scale-110 z-10"
+                                aria-label="Next image"
+                            >
+                                →
+                            </button>
+                        </>
+                    )}
+
+                    {/* Thumbnail Navigation - Only show if multiple images */}
+                    {hasMultipleImages && (
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 max-w-[90%] overflow-x-auto px-2 py-1 bg-black/40 rounded-lg backdrop-blur-sm z-10">
+                            {allImages.map((image, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => setCurrentImageIndex(index)}
+                                    className={`flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden border-2 transition-all ${index === currentImageIndex
+                                            ? 'border-white scale-110 shadow-lg'
+                                            : 'border-white/50 hover:border-white/75 opacity-70 hover:opacity-100'
+                                        }`}
+                                    aria-label={`View image ${index + 1}`}
+                                >
+                                    <img
+                                        src={image}
+                                        alt={`Thumbnail ${index + 1}`}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100';
+                                        }}
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
+
 
                 <div className="p-4 sm:p-6 lg:p-8">
                     <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 text-gray-900">
