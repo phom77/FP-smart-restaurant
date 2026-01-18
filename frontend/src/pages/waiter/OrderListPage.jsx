@@ -69,6 +69,15 @@ const OrderListPage = () => {
             fetchOrders();
         };
 
+        // ✅ Xử lý khi kết nối lại (Reconnection Handling)
+        const handleConnect = () => {
+            console.log("🔌 Socket reconnected. Re-joining 'waiter' room...");
+            socket.emit('join_room', 'waiter');
+            refreshOrders();
+        };
+
+        socket.on('connect', handleConnect);
+
         // Helper notification function
         const showNotification = (title, body) => {
             if (!("Notification" in window)) return;
@@ -107,7 +116,10 @@ const OrderListPage = () => {
                 '💰 Yêu cầu thanh toán',
                 `Bàn ${data.tableNumber || data.tableId || '???'} yêu cầu thanh toán ${data.method === 'cash' ? 'Tiền mặt' : 'Thẻ'}${invoiceText}`
             );
-            refreshOrders();
+            // Delay nhẹ để đảm bảo DB đã cập nhật xong (tránh race condition)
+            setTimeout(() => {
+                refreshOrders();
+            }, 500);
         };
 
 
@@ -119,6 +131,7 @@ const OrderListPage = () => {
         socket.on('order_served_update', refreshOrders);
 
         return () => {
+            socket.off('connect', handleConnect);
             socket.off('new_order', handleNewOrder);
             socket.off('order_status_updated', refreshOrders);
             socket.off('item_status_update', handleItemUpdate);
@@ -131,6 +144,7 @@ const OrderListPage = () => {
     const handleAccept = async (orderId) => {
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'processing' }, getAuthHeader());
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
@@ -140,6 +154,7 @@ const OrderListPage = () => {
         if (!window.confirm(t('waiter.reject_confirm'))) return;
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'cancelled' }, getAuthHeader());
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
@@ -149,6 +164,7 @@ const OrderListPage = () => {
         if (!window.confirm(t('waiter.complete_confirm'))) return;
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'completed' }, getAuthHeader());
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
@@ -157,6 +173,7 @@ const OrderListPage = () => {
     const handleServed = async (orderId, currentStatus) => {
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/served`, { is_served: !currentStatus }, getAuthHeader());
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
@@ -173,7 +190,7 @@ const OrderListPage = () => {
             if (selectedOrder?.id === orderId) {
                 setSelectedOrder(null);
             }
-            // Orders will refresh automatically via socket event
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
@@ -184,6 +201,7 @@ const OrderListPage = () => {
         if (!window.confirm("Xác nhận đã thu tiền đơn này?")) return;
         try {
             await axios.post(`${API_URL}/api/payment/confirm-cash`, { orderId }, getAuthHeader());
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
@@ -211,7 +229,7 @@ const OrderListPage = () => {
                     >
                         <option value="pending">{t('waiter.status.pending')}</option>
                         <option value="processing">{t('waiter.status.processing')}</option>
-                        <option value="served">{t('waiter.status.served') || 'Đã phục vụ'}</option>
+                        <option value="served">{t('waiter.status.served')}</option>
                         <option value="completed">{t('waiter.status.completed')}</option>
                         <option value="cancelled">{t('waiter.status.cancelled')}</option>
                         <option value="all">{t('waiter.all_orders')}</option>
@@ -227,7 +245,7 @@ const OrderListPage = () => {
             <div className="flex-1">
                 {orders.length === 0 ? (
                     <div className="text-center py-20 text-gray-400 font-medium">
-                        {t('waiter.no_orders', { status: statusFilter === 'all' ? t('waiter.all_orders') : (statusFilter === 'served' ? 'Đã phục vụ' : t(`waiter.status.${statusFilter}`)) })}
+                        {t('waiter.no_orders', { status: statusFilter === 'all' ? t('waiter.all_orders') : t(`waiter.status.${statusFilter}`) })}
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -319,6 +337,7 @@ const OrderListPage = () => {
                 <OrderDetailModal
                     order={selectedOrder}
                     onClose={() => setSelectedOrder(null)}
+                    onOrderUpdated={fetchOrders} // ✅ Truyền callback làm mới
                 />
             )}
         </div>

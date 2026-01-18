@@ -83,10 +83,10 @@ const WaiterSidebar = () => {
 
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                     <Link to="/waiter/orders" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/waiter/orders' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">📋</span> {t('waiter.order_list')}
+                        <span className="material-symbols-outlined mr-3">list_alt</span> {t('waiter.order_list')}
                     </Link>
                     <Link to="/waiter/map" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/waiter/map' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">🗺️</span> {t('waiter.table_map')}
+                        <span className="material-symbols-outlined mr-3">table_restaurant</span> {t('waiter.table_map')}
                     </Link>
                 </nav>
 
@@ -95,13 +95,13 @@ const WaiterSidebar = () => {
                         onClick={toggleLanguage}
                         className="w-full mb-3 px-4 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                     >
-                        {i18n.language === 'vi' ? '🇺🇸 English' : '🇻🇳 Tiếng Việt'}
+                        {i18n.language === 'vi' ? 'English' : 'Tiếng Việt'}
                     </button>
                     <button
                         onClick={handleLogout}
                         className="w-full px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                     >
-                        🚪 {t('admin.logout')}
+                        <span className="material-symbols-outlined">logout</span> {t('admin.logout')}
                     </button>
                 </div>
             </div>

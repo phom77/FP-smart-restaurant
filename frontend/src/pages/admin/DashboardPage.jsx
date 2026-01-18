@@ -119,9 +119,9 @@ const DashboardPage = () => {
                         {t('common.export')}
                     </button>
 
-                    <div className="flex flex-wrap items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-200 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-0 bg-gray-50 rounded-xl border border-gray-200 w-full sm:w-auto overflow-hidden h-[46px]">
                         {range === 'custom' && (
-                            <div className="flex flex-wrap items-center gap-2 px-2 border-r border-gray-200 mr-2 animate-in fade-in slide-in-from-left-2 transition-all">
+                            <div className="flex flex-wrap items-center gap-2 px-3 border-r border-gray-200 mr-0 h-full animate-in fade-in slide-in-from-left-2 transition-all">
                                 <div className="flex items-center gap-1">
                                     <span className="text-[10px] uppercase font-bold text-gray-400">{t('revenue.from')}</span>
                                     <input
@@ -144,11 +144,11 @@ const DashboardPage = () => {
                                 </div>
                             </div>
                         )}
-                        <div className="relative flex-1 sm:flex-none">
+                        <div className="relative flex-1 sm:flex-none h-full bg-white">
                             <select
                                 value={range}
                                 onChange={(e) => setRange(e.target.value)}
-                                className="appearance-none bg-transparent text-gray-700 py-2.5 pl-10 pr-10 rounded-lg font-bold focus:outline-none transition-all cursor-pointer w-full sm:min-w-[140px] text-center"
+                                className="appearance-none bg-transparent text-gray-700 h-full pl-5 pr-10 font-bold focus:outline-none transition-all cursor-pointer w-full sm:min-w-[140px] text-center border-l border-gray-100"
                                 style={{ textAlign: 'center', textAlignLast: 'center' }}
                             >
                                 <option value="today">{t('revenue.today')}</option>

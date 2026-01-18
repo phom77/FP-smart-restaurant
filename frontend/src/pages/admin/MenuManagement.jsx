@@ -421,7 +421,6 @@ const MenuManagement = () => {
                                 <td className="p-4 border-b border-gray-100 text-center">
                                     {item.is_chef_recommendation ? (
                                         <span className="px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-yellow-100 to-amber-100 text-amber-700 flex items-center gap-1 justify-center">
-                                            <span>👨‍🍳</span>
                                             <span>{t('common.yes')}</span>
                                         </span>
                                     ) : (
