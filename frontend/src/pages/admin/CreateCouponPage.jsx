@@ -7,36 +7,45 @@ export default function CreateCouponPage() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     
-    // State quản lý dữ liệu form (map đúng với tên cột trong Database)
     const [formData, setFormData] = useState({
         code: '',
         title: '',
         description: '',
-        discount_type: 'fixed', // 'fixed' hoặc 'percent'
+        discount_type: 'fixed',
         discount_value: '',
         min_order_value: 0,
-        max_discount_value: '', // Chỉ dùng khi type là percent
+        max_discount_value: '',
         start_date: '',
         end_date: '',
-        usage_limit: '', // Để trống là không giới hạn
-        is_active: true
+        usage_limit: '',
+        is_active: true,
+        target_type: 'all',
+        limit_per_user: 1
     });
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
         
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : 
-                    name === 'code' ? value.toUpperCase().replace(/\s/g, '') : // Code viết hoa, không dấu cách
-                    value
-        }));
+        setFormData(prev => {
+            const newData = {
+                ...prev,
+                [name]: type === 'checkbox' ? checked : 
+                        name === 'code' ? value.toUpperCase().replace(/\s/g, '') :
+                        value
+            };
+
+            // ✅ LOGIC FIX: Nếu chọn 'guest', xóa limit_per_user
+            if (name === 'target_type' && value === 'guest') {
+                newData.limit_per_user = '';
+            }
+            
+            return newData;
+        });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // Validate cơ bản
         if (!formData.code || !formData.title || !formData.discount_value || !formData.start_date || !formData.end_date) {
             return toast.error('Vui lòng điền đầy đủ các trường bắt buộc (*)');
         }
@@ -47,7 +56,6 @@ export default function CreateCouponPage() {
 
         setLoading(true);
         try {
-            // Chuẩn bị payload (ép kiểu số)
             const payload = {
                 ...formData,
                 discount_value: parseFloat(formData.discount_value),
@@ -55,13 +63,21 @@ export default function CreateCouponPage() {
                 max_discount_value: formData.discount_type === 'percent' && formData.max_discount_value 
                     ? parseFloat(formData.max_discount_value) 
                     : null,
-                usage_limit: formData.usage_limit ? parseInt(formData.usage_limit) : null
+                usage_limit: formData.usage_limit ? parseInt(formData.usage_limit) : null,
+                // ✅ FIX: Nếu guest → null, ngược lại parse number
+                limit_per_user: formData.target_type === 'guest' 
+                    ? null 
+                    : (parseInt(formData.limit_per_user) || null),
+                target_type: formData.target_type,
+                // ✅ FIX: Convert datetime-local sang ISO string
+                start_date: new Date(formData.start_date).toISOString(),
+                end_date: new Date(formData.end_date).toISOString()
             };
 
             const res = await api.post('/api/coupons/create', payload);
             if (res.data.success) {
                 toast.success('🎉 Tạo mã giảm giá thành công!');
-                navigate('/admin/coupons'); // Chuyển về trang danh sách (nếu có) hoặc về Dashboard
+                navigate('/admin/coupons');
             }
         } catch (err) {
             toast.error(err.response?.data?.message || 'Lỗi khi tạo mã giảm giá');
@@ -82,7 +98,7 @@ export default function CreateCouponPage() {
                         onClick={() => navigate(-1)}
                         className="text-gray-500 hover:text-gray-700 font-medium text-sm flex items-center gap-1"
                     >
-                        Quay lại
+                        <span className="material-symbols-outlined text-sm">arrow_back</span> Quay lại
                     </button>
                 </div>
 
@@ -163,7 +179,6 @@ export default function CreateCouponPage() {
                                 />
                             </div>
 
-                            {/* Chỉ hiện ô này nếu chọn loại là Phần trăm */}
                             {formData.discount_type === 'percent' && (
                                 <div className="animate-fade-in">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Giảm tối đa (VNĐ)</label>
@@ -234,16 +249,74 @@ export default function CreateCouponPage() {
                             </div>
                         </div>
 
-                        <div className="mt-4 flex items-center">
+                        {/* ✅ TARGET TYPE & USER LIMIT */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-gray-100">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Đối tượng áp dụng</label>
+                                <select 
+                                    name="target_type" 
+                                    value={formData.target_type} 
+                                    onChange={handleChange} 
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none bg-white focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="all">Tất cả (Ai cũng dùng được)</option>
+                                    <option value="guest">Chỉ khách vãng lai (Guest)</option>
+                                    <option value="customer">Chỉ thành viên (Logged in)</option>
+                                    <option value="new_user">Chỉ thành viên mới (Lần đầu)</option>
+                                </select>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    {formData.target_type === 'guest' && 'Chặn nếu khách đã đăng nhập.'}
+                                    {formData.target_type === 'customer' && 'Yêu cầu khách phải đăng nhập.'}
+                                    {formData.target_type === 'new_user' && 'Yêu cầu đăng nhập & chưa có đơn hàng nào.'}
+                                    {formData.target_type === 'all' && 'Khách nào cũng dùng được.'}
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <label className={`block text-sm font-medium mb-1 ${formData.target_type === 'guest' ? 'text-gray-400' : 'text-gray-700'}`}>
+                                    Giới hạn mỗi người
+                                </label>
+                                <div className="flex items-center">
+                                    <input 
+                                        type="number" 
+                                        name="limit_per_user" 
+                                        value={formData.limit_per_user} 
+                                        onChange={handleChange} 
+                                        disabled={formData.target_type === 'guest'}
+                                        className={`w-full px-4 py-2 border rounded-lg text-center font-bold focus:ring-2 focus:ring-blue-500 ${
+                                            formData.target_type === 'guest' 
+                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200' 
+                                                : 'bg-white border-gray-300'
+                                        }`}
+                                        min="1" 
+                                        placeholder={formData.target_type === 'guest' ? "Không khả dụng" : "1"}
+                                    />
+                                    <span className={`ml-2 text-sm whitespace-nowrap ${formData.target_type === 'guest' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                        Lần / Tài khoản
+                                    </span>
+                                </div>
+                                {formData.target_type === 'guest' ? (
+                                    <p className="text-xs text-orange-500 mt-1 italic">
+                                        Không thể theo dõi lịch sử của khách vãng lai.
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        (Chỉ có tác dụng với khách đã đăng nhập)
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="mt-4 flex items-center p-4 bg-gray-50 rounded-lg">
                             <input
                                 type="checkbox"
                                 id="is_active"
                                 name="is_active"
                                 checked={formData.is_active}
                                 onChange={handleChange}
-                                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
                             />
-                            <label htmlFor="is_active" className="ml-2 text-sm text-gray-700 font-medium cursor-pointer">
+                            <label htmlFor="is_active" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer select-none">
                                 Kích hoạt voucher ngay sau khi tạo
                             </label>
                         </div>

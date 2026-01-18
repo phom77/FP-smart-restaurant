@@ -21,8 +21,28 @@ export default function EditCouponPage() {
         start_date: '',
         end_date: '',
         usage_limit: '',
-        is_active: true
+        is_active: true,
+        target_type: 'all',    // Khởi tạo mặc định
+        limit_per_user: 1      // Khởi tạo mặc định
     });
+
+    // Helper format ngày cho input datetime-local (Fix lỗi lệch múi giờ +7)
+    const formatDateForInput = (isoString) => {
+        if (!isoString) return '';
+        
+        // Parse ISO string sang Date object (UTC)
+        const date = new Date(isoString);
+        
+        // Lấy các thành phần theo LOCAL timezone (Vietnam = UTC+7)
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        
+        // Format: YYYY-MM-DDTHH:mm (chuẩn datetime-local)
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
 
     // Load dữ liệu cũ khi vào trang
     useEffect(() => {
@@ -32,23 +52,15 @@ export default function EditCouponPage() {
                 if (res.data.success) {
                     const data = res.data.data;
                     
-                    // Helper format ngày cho input datetime-local (YYYY-MM-DDTHH:mm)
-                    const formatDate = (dateString) => {
-                        if (!dateString) return '';
-                        const date = new Date(dateString);
-                        // Cần trừ đi Timezone offset hoặc dùng toISOString().slice(0, 16) nếu server trả về UTC chuẩn
-                        // Cách đơn giản nhất để hiện đúng giờ local trên input:
-                        return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-                    };
-                    
                     setFormData({
                         ...data,
-                        start_date: formatDate(data.start_date),
-                        end_date: formatDate(data.end_date),
+                        start_date: formatDateForInput(data.start_date),
+                        end_date: formatDateForInput(data.end_date),
                         max_discount_value: data.max_discount_value || '',
                         usage_limit: data.usage_limit || '',
-                        // discount_value có thể trả về string hoặc number, ép về string để hiện trên input
-                        discount_value: data.discount_value
+                        discount_value: data.discount_value,
+                        target_type: data.target_type || 'all',
+                        limit_per_user: data.limit_per_user || ''
                     });
                 }
             } catch (err) {
@@ -63,10 +75,20 @@ export default function EditCouponPage() {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+        
+        setFormData(prev => {
+            const newData = {
+                ...prev,
+                [name]: type === 'checkbox' ? checked : value
+            };
+
+            // LOGIC FIX: Nếu chọn 'guest', lập tức xóa limit_per_user vì Guest không định danh được
+            if (name === 'target_type' && value === 'guest') {
+                newData.limit_per_user = ''; 
+            }
+            
+            return newData;
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -86,7 +108,14 @@ export default function EditCouponPage() {
                 max_discount_value: formData.discount_type === 'percent' && formData.max_discount_value 
                     ? parseFloat(formData.max_discount_value) 
                     : null,
-                usage_limit: formData.usage_limit ? parseInt(formData.usage_limit) : null
+                usage_limit: formData.usage_limit ? parseInt(formData.usage_limit) : null,
+                limit_per_user: formData.target_type === 'guest' 
+                    ? null 
+                    : (parseInt(formData.limit_per_user) || null),
+                target_type: formData.target_type,
+                // ✅ Convert sang ISO string (tự động thêm timezone offset)
+                start_date: new Date(formData.start_date).toISOString(),
+                end_date: new Date(formData.end_date).toISOString()
             };
 
             // Gọi API PUT để cập nhật
@@ -127,7 +156,6 @@ export default function EditCouponPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Mã Voucher</label>
-                                {/* Input Code bị Disabled vì không nên sửa mã Code (ảnh hưởng lịch sử đơn hàng) */}
                                 <input
                                     type="text"
                                     name="code"
@@ -206,6 +234,7 @@ export default function EditCouponPage() {
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                         min="0"
                                     />
+                                    <p className="text-xs text-orange-500 mt-1">Để trống nếu không giới hạn</p>
                                 </div>
                             )}
                         </div>
@@ -227,7 +256,7 @@ export default function EditCouponPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Giới hạn số lượng</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Giới hạn số lượng (Tổng)</label>
                                 <input
                                     type="number"
                                     name="usage_limit"
@@ -263,7 +292,66 @@ export default function EditCouponPage() {
                             </div>
                         </div>
 
-                        <div className="mt-4 flex items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        {/* --- PHẦN TARGET TYPE & USER LIMIT --- */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-gray-100">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Đối tượng áp dụng</label>
+                                <select 
+                                    name="target_type" 
+                                    value={formData.target_type} 
+                                    onChange={handleChange} 
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none bg-white focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="all">Tất cả (Ai cũng dùng được)</option>
+                                    <option value="guest">Chỉ khách vãng lai (Guest)</option>
+                                    <option value="customer">Chỉ thành viên (Logged in)</option>
+                                    <option value="new_user">Chỉ thành viên mới (Lần đầu)</option>
+                                </select>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    {formData.target_type === 'guest' && 'Chặn nếu khách đã đăng nhập.'}
+                                    {formData.target_type === 'customer' && 'Yêu cầu khách phải đăng nhập.'}
+                                    {formData.target_type === 'new_user' && 'Yêu cầu đăng nhập & chưa có đơn hàng nào.'}
+                                    {formData.target_type === 'all' && 'Khách nào cũng dùng được.'}
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <label className={`block text-sm font-medium mb-1 ${formData.target_type === 'guest' ? 'text-gray-400' : 'text-gray-700'}`}>
+                                    Giới hạn mỗi người
+                                </label>
+                                <div className="flex items-center">
+                                    <input 
+                                        type="number" 
+                                        name="limit_per_user" 
+                                        value={formData.limit_per_user} 
+                                        onChange={handleChange} 
+                                        // 🛑 DISABLE NẾU LÀ GUEST
+                                        disabled={formData.target_type === 'guest'}
+                                        className={`w-full px-4 py-2 border rounded-lg text-center font-bold focus:ring-2 focus:ring-blue-500 ${
+                                            formData.target_type === 'guest' 
+                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200' 
+                                                : 'bg-white border-gray-300'
+                                        }`}
+                                        min="1" 
+                                        placeholder={formData.target_type === 'guest' ? "Không khả dụng" : "1"}
+                                    />
+                                    <span className={`ml-2 text-sm whitespace-nowrap ${formData.target_type === 'guest' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                        Lần / Tài khoản
+                                    </span>
+                                </div>
+                                {formData.target_type === 'guest' ? (
+                                    <p className="text-xs text-orange-500 mt-1 italic">
+                                        Không thể theo dõi lịch sử của khách vãng lai.
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        (Yêu cầu khách phải đăng nhập để đếm)
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="mt-4 flex items-center p-4 bg-gray-50 rounded-lg">
                             <input
                                 type="checkbox"
                                 id="is_active"
