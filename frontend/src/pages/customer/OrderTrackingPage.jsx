@@ -366,9 +366,34 @@ export default function OrderTrackingPage() {
                                         <span className="material-symbols-outlined text-lg sm:text-xl">hourglass_top</span>
                                         Đang chờ nhân viên xác nhận...
                                     </div>
-                                ) : (
-                                    /* Trường hợp 3: Chưa thanh toán -> Hiện nút */
-                                    order.status !== 'cancelled' && (
+                                ) : (() => {
+                                    /* Trường hợp 3: Chưa thanh toán -> Kiểm tra điều kiện hiện nút */
+
+                                    // Kiểm tra order đã được accept chưa
+                                    const isOrderAccepted = order.status === 'processing';
+
+                                    // Kiểm tra tất cả món đã sẵn sàng chưa (chỉ status = 'ready')
+                                    const allItemsReady = order.order_items?.every(item =>
+                                        item.status === 'ready'
+                                    );
+
+                                    // Chỉ hiện nút khi: order đã accept VÀ tất cả món đã sẵn sàng
+                                    const canPay = isOrderAccepted && allItemsReady;
+
+                                    if (order.status === 'cancelled') {
+                                        return null;
+                                    }
+
+                                    if (!canPay) {
+                                        return (
+                                            <div className="w-full py-2 sm:py-3 bg-gray-100 text-gray-500 font-bold rounded-xl flex items-center justify-center gap-2 border border-gray-200 text-sm sm:text-base">
+                                                <span className="material-symbols-outlined text-lg sm:text-xl">schedule</span>
+                                                {!isOrderAccepted ? 'Đang chờ xác nhận...' : 'Đang chuẩn bị món...'}
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
                                         <button
                                             onClick={() => navigate('/checkout', { state: { order } })}
                                             className="w-full py-2 sm:py-3 bg-gray-900 text-white font-bold rounded-xl shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2 text-sm sm:text-base active:scale-[0.98]"
@@ -376,8 +401,8 @@ export default function OrderTrackingPage() {
                                             <span className="material-symbols-outlined text-lg sm:text-xl">credit_card</span>
                                             Thanh toán ngay
                                         </button>
-                                    )
-                                )}
+                                    );
+                                })()}
                         </div>
                     </div>
                 </div>

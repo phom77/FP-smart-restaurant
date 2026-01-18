@@ -111,11 +111,12 @@ const OrderListPage = () => {
         };
 
         const handlePaymentRequest = (data) => {
-            const invoiceText = data.requestInvoice ? ' - CẦN HÓA ĐƠN VAT ✓' : '';
-            showNotification(
-                '💰 Yêu cầu thanh toán',
-                `Bàn ${data.tableNumber || data.tableId || '???'} yêu cầu thanh toán ${data.method === 'cash' ? 'Tiền mặt' : 'Thẻ'}${invoiceText}`
-            );
+            // Removed desktop notification - using persistent UI badge instead
+            // const invoiceText = data.requestInvoice ? ' - CẦN HÓA ĐƠN VAT ✓' : '';
+            // showNotification(
+            //     '💰 Yêu cầu thanh toán',
+            //     `Bàn ${data.tableNumber || data.tableId || '???'} yêu cầu thanh toán ${data.method === 'cash' ? 'Tiền mặt' : 'Thẻ'}${invoiceText}`
+            // );
             // Delay nhẹ để đảm bảo DB đã cập nhật xong (tránh race condition)
             setTimeout(() => {
                 refreshOrders();

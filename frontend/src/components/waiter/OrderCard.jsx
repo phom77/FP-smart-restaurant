@@ -46,9 +46,9 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
                     {isServed && !isPaid && <span className="text-[10px] sm:text-xs font-bold text-blue-600 bg-blue-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">{t('waiter.served_badge')}</span>}
+                    {order.needs_invoice && !isPaid && <span className="text-[10px] sm:text-xs font-bold text-orange-600 bg-orange-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded animate-pulse">BILL?</span>}
                     {isPaid && <span className="text-[10px] sm:text-xs font-bold text-green-600 bg-green-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">{t('waiter.paid_badge')}</span>}
                     {order.status === 'cancelled' && <span className="text-[10px] sm:text-xs font-bold text-rose-600 bg-rose-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">{t('waiter.rejected_badge')}</span>}
-                    {isWaitingPayment && <span className="text-[10px] sm:text-xs font-bold text-orange-600 bg-orange-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded animate-pulse">{t('waiter.bill_request')}</span>}
 
                     <span className="text-[10px] sm:text-xs font-mono text-blue-600 bg-blue-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border border-blue-100 font-bold">
                         #{order.id?.slice(0, 6)}

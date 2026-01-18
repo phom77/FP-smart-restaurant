@@ -26,7 +26,8 @@ exports.createPaymentIntent = async (req, res) => {
 
             // Update DB
             await supabase.from('orders').update({
-                payment_status: 'waiting_payment'
+                payment_status: 'waiting_payment',
+                needs_invoice: requestInvoice
             }).eq('id', orderId);
 
             const io = getIO();
