@@ -82,38 +82,37 @@ const AdminSidebar = () => {
 
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                     <Link to="/admin/dashboard" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/dashboard' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">📊</span> {t('admin.dashboard')}
+                        <span className="material-symbols-outlined mr-3">analytics</span> {t('admin.dashboard')}
                     </Link>
-                    
-                    <Link 
-                        to="/admin/coupons" 
-                        className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${
-                            location.pathname.includes('/admin/coupons') 
-                            ? 'bg-emerald-50 text-emerald-600' 
+
+                    <Link
+                        to="/admin/coupons"
+                        className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname.includes('/admin/coupons')
+                            ? 'bg-emerald-50 text-emerald-600'
                             : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'
-                        }`}
+                            }`}
                     >
-                        <span className="mr-3">🎁</span> Quản lý Voucher
+                        <span className="material-symbols-outlined mr-3">loyalty</span> Quản lý Voucher
                     </Link>
 
                     <Link to="/admin/categories" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/categories' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">📂</span> {t('admin.categories')}
+                        <span className="material-symbols-outlined mr-3">category</span> {t('admin.categories')}
                     </Link>
                     <Link to="/admin/menu" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/menu' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">🍔</span> {t('admin.menu')}
+                        <span className="material-symbols-outlined mr-3">restaurant_menu</span> {t('admin.menu')}
                     </Link>
 
                     <Link to="/admin/tables" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/tables' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">🪑</span> {t('admin.tables')}
+                        <span className="material-symbols-outlined mr-3">table_restaurant</span> {t('admin.tables')}
                     </Link>
                     <Link to="/admin/staff" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/admin/staff' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="mr-3">👥</span> {t('admin.staff')}
+                        <span className="material-symbols-outlined mr-3">badge</span> {t('admin.staff')}
                     </Link>
 
                     <div className="my-4 border-t border-gray-100"></div>
 
                     <Link to="/menu" className="flex items-center px-4 py-3 text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-all font-medium">
-                        <span className="mr-3">👀</span> {t('admin.public_menu')}
+                        <span className="material-symbols-outlined mr-3">visibility</span> {t('admin.public_menu')}
                     </Link>
                 </nav>
 
@@ -122,13 +121,13 @@ const AdminSidebar = () => {
                         onClick={toggleLanguage}
                         className="w-full mb-3 px-4 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                     >
-                        {i18n.language === 'vi' ? '🇺🇸 English' : '🇻🇳 Tiếng Việt'}
+                        {i18n.language === 'vi' ? 'English' : 'Tiếng Việt'}
                     </button>
                     <button
                         onClick={handleLogout}
                         className="w-full px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                     >
-                        🚪 {t('admin.logout')}
+                        <span className="material-symbols-outlined">logout</span> {t('admin.logout')}
                     </button>
                 </div>
             </div>

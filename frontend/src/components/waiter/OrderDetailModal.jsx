@@ -2,12 +2,13 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 
-const OrderDetailModal = ({ order, onClose }) => {
+const OrderDetailModal = ({ order, onClose, onOrderUpdated }) => {
     const { t } = useTranslation();
 
     if (!order) return null;
 
     const handlePrint = () => {
+        // ... (existing print logic)
         const printContent = document.getElementById('invoice-preview').innerHTML;
 
         // Create a hidden iframe
@@ -56,8 +57,8 @@ const OrderDetailModal = ({ order, onClose }) => {
         if (!window.confirm(`Xác nhận đã thu ${parseInt(order.total_amount).toLocaleString()}đ tiền mặt?`)) return;
         try {
             await api.post('/api/payment/confirm-cash', { orderId: order.id });
+            onOrderUpdated && onOrderUpdated(); // ✅ Refresh danh sách bên ngoài
             onClose(); // Đóng modal
-            // Socket sẽ tự refresh danh sách bên dưới
         } catch (err) {
             alert("Lỗi: " + err.message);
         }
@@ -80,6 +81,7 @@ const OrderDetailModal = ({ order, onClose }) => {
                 <div className="p-6 overflow-y-auto flex-1">
                     {/* Invoice Preview Area */}
                     <div id="invoice-preview" className="border border-gray-100 p-4 rounded-xl bg-gray-50/50">
+                        {/* ... (invoice content kept same) ... */}
                         <div className="text-center mb-6">
                             <h2 className="text-2xl font-bold uppercase tracking-widest text-gray-800">RESTAURANT</h2>
                             <p className="text-sm text-gray-500">123 Food Street, Tasty City</p>
@@ -116,7 +118,7 @@ const OrderDetailModal = ({ order, onClose }) => {
                                                             item.status === 'served' ? 'bg-gray-100 text-gray-500 line-through' :
                                                                 'bg-gray-100'
                                                     }`}>
-                                                    {item.status === 'pending' ? 'MỚI' : item.status}
+                                                    {item.status === 'pending' ? t('waiter.new_badge') : item.status}
                                                 </span>
                                             </div>
                                             {item.modifiers?.length > 0 && (
@@ -154,6 +156,7 @@ const OrderDetailModal = ({ order, onClose }) => {
                             onClick={async () => {
                                 try {
                                     await api.put(`/api/orders/${order.id}/status`, { status: 'processing' });
+                                    onOrderUpdated && onOrderUpdated(); // ✅ Refresh danh sách
                                     onClose();
                                 } catch (err) {
                                     alert("Lỗi: " + (err.response?.data?.message || err.message));
@@ -161,7 +164,6 @@ const OrderDetailModal = ({ order, onClose }) => {
                             }}
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 animate-pulse"
                         >
-                            <span className="material-symbols-outlined">restaurant_menu</span>
                             Xác nhận món mới ({order.items.filter(i => i.status === 'pending').length})
                         </button>
                     )}
@@ -172,7 +174,6 @@ const OrderDetailModal = ({ order, onClose }) => {
                             onClick={handleConfirmCash}
                             className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 animate-pulse"
                         >
-                            <span className="material-symbols-outlined">payments</span>
                             Xác nhận đã thu tiền mặt
                         </button>
                     )}
@@ -180,7 +181,6 @@ const OrderDetailModal = ({ order, onClose }) => {
 
                     <div className="flex gap-3">
                         <button onClick={handlePrint} className="flex-1 bg-gray-800 text-white py-3 rounded-xl font-bold shadow hover:bg-gray-900 transition-all flex items-center justify-center gap-2">
-                            <span className="material-symbols-outlined">print</span>
                             {t('waiter.print_invoice')}
                         </button>
                         <button onClick={onClose} className="px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded-xl font-bold hover:bg-gray-50 transition-all">

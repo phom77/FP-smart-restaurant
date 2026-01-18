@@ -47,6 +47,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                 <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
                     {isServed && !isPaid && <span className="text-[10px] sm:text-xs font-bold text-blue-600 bg-blue-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">{t('waiter.served_badge')}</span>}
                     {isPaid && <span className="text-[10px] sm:text-xs font-bold text-green-600 bg-green-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">{t('waiter.paid_badge')}</span>}
+                    {order.status === 'cancelled' && <span className="text-[10px] sm:text-xs font-bold text-rose-600 bg-rose-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">{t('waiter.rejected_badge')}</span>}
                     {isWaitingPayment && <span className="text-[10px] sm:text-xs font-bold text-orange-600 bg-orange-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded animate-pulse">{t('waiter.bill_request')}</span>}
 
                     <span className="text-[10px] sm:text-xs font-mono text-blue-600 bg-blue-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border border-blue-100 font-bold">
@@ -89,7 +90,7 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                             item.status === 'served' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                                                 'bg-gray-50 text-gray-500 border-gray-100'
                                     }`}>
-                                    {item.status === 'pending' ? 'MỚI' : t(`waiter.status.${item.status}`)}
+                                    {item.status === 'pending' ? t('waiter.new_badge') : t(`waiter.status.${item.status}`)}
                                 </span>
                             </div>
                         </li>
@@ -149,14 +150,13 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                         onClick={(e) => { e.stopPropagation(); onServed && onServed(order.id, isServed); }}
                                         className="w-full py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm border-2 bg-white text-blue-600 border-blue-500 hover:bg-blue-50 cursor-pointer transition-all flex items-center justify-center gap-1 sm:gap-2"
                                     >
-                                        <span className="material-symbols-outlined text-xs sm:text-sm">room_service</span>
                                         {t('waiter.mark_as_served')}
                                     </button>
                                 );
                             })()}
 
-                            {/* Nút xác nhận thanh toán cho món đã Served */}
-                            {isServed && !isPaid && (
+                            {/* Nút xác nhận thanh toán cho món đã Served (Ẩn nếu khách đang yêu cầu thanh toán - đợi xử lý bên Order List) */}
+                            {isServed && !isPaid && !isWaitingPayment && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onConfirmPayment && onConfirmPayment(order.id); }}
                                     className="w-full py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-md border-2 border-blue-600 flex items-center justify-center gap-1 sm:gap-2 transition-all"
