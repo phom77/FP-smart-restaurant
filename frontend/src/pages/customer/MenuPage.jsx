@@ -229,7 +229,6 @@ export default function MenuPage() {
                                     onClick={() => navigate('/my-orders')}
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
                                 >
-                                    <span>📋</span>
                                     <span>Đơn của tôi</span>
                                 </button>
                             )}
@@ -240,7 +239,6 @@ export default function MenuPage() {
                                     onClick={() => navigate('/profile')}
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
                                 >
-                                    <span>👤</span>
                                     <span>Tài khoản</span>
                                 </button>
                             )}
@@ -257,7 +255,6 @@ export default function MenuPage() {
                                     }}
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
                                 >
-                                    <span>🚪</span>
                                     <span>Đăng xuất</span>
                                 </button>
                             )}
@@ -323,14 +320,12 @@ export default function MenuPage() {
                                     onClick={() => { navigate('/my-orders'); setShowMobileMenu(false); }}
                                     className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-semibold text-sm active:scale-95 transition-all"
                                 >
-                                    <span>📋</span>
                                     <span>Đơn của tôi</span>
                                 </button>
                                 <button
                                     onClick={() => { navigate('/profile'); setShowMobileMenu(false); }}
                                     className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg font-semibold text-sm active:scale-95 transition-all"
                                 >
-                                    <span>👤</span>
                                     <span>Tài khoản</span>
                                 </button>
                                 <button
@@ -343,7 +338,6 @@ export default function MenuPage() {
                                     }}
                                     className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold text-sm active:scale-95 transition-all"
                                 >
-                                    <span>🚪</span>
                                     <span>Đăng xuất</span>
                                 </button>
                             </>

@@ -144,30 +144,28 @@ const ProfilePage = () => {
     return (
         <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-                {/* Header with Back Button */}
-                <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-8">
-                    <button
-                        onClick={() => navigate('/menu')}
-                        className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white text-gray-700 rounded-lg sm:rounded-xl font-semibold hover:bg-gray-100 transition-all shadow-md hover:shadow-lg border border-gray-200 text-sm sm:text-base active:scale-95"
-                    >
-                        <span>←</span>
-                        <span className="hidden sm:inline">Quay lại menu</span>
-                        <span className="sm:hidden">Menu</span>
-                    </button>
-                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 flex-1">Thông tin cá nhân</h1>
-                </div>
-
-                {/* Message Alert */}
-                {message.text && (
-                    <div
-                        className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg text-sm sm:text-base ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}
-                    >
-                        {message.text}
-                    </div>
-                )}
-
                 <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+                    {/* Header with Back Button */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Thông tin cá nhân</h1>
+                        <button
+                            onClick={() => navigate('/menu')}
+                            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white text-gray-700 rounded-lg sm:rounded-xl font-semibold hover:bg-gray-100 transition-all shadow-md hover:shadow-lg border border-gray-200 text-sm sm:text-base active:scale-95"
+                        >
+                            <span>Quay lại menu</span>
+                        </button>
+                    </div>
+
+                    {/* Message Alert */}
+                    {message.text && (
+                        <div
+                            className={`p-3 sm:p-4 rounded-lg text-sm sm:text-base ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}
+                        >
+                            {message.text}
+                        </div>
+                    )}
+
                     {/* Profile Information Section */}
                     <div className="space-y-4 sm:space-y-6">
                         {/* Profile Card */}

@@ -145,14 +145,14 @@ export default function ItemDetailModal({ item, onClose }) {
                                 className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-xl transition-all shadow-lg hover:scale-110 z-10"
                                 aria-label="Previous image"
                             >
-                                ←
+                                &lt;
                             </button>
                             <button
                                 onClick={handleNextImage}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-xl transition-all shadow-lg hover:scale-110 z-10"
                                 aria-label="Next image"
                             >
-                                →
+                                &gt;
                             </button>
                         </>
                     )}
