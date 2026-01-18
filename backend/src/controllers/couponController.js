@@ -4,11 +4,14 @@ const couponService = require('../services/couponService'); // <--- Import Servi
 // 1. Lấy danh sách Voucher (Cho khách xem)
 exports.getAvailableCoupons = async (req, res) => {
     try {
+        const now = new Date().toISOString();
+
         const { data, error } = await supabase
             .from('coupons')
             .select('*')
             .eq('is_active', true)
-            .gte('end_date', new Date().toISOString())
+            .lte('start_date', now) // Đã bắt đầu (start_date <= now)
+            .gte('end_date', now)   // Chưa hết hạn (end_date >= now)
             .order('min_order_value', { ascending: true });
 
         if (error) throw error;
@@ -18,7 +21,22 @@ exports.getAvailableCoupons = async (req, res) => {
     }
 };
 
-// 2. Validate Voucher (Đã Refactor dùng Service)
+// 1.1. Lấy TẤT CẢ Voucher (Cho Admin quản lý)
+exports.getAllCouponsForAdmin = async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('coupons')
+            .select('*')
+            .order('created_at', { ascending: false }); // Sắp xếp theo mới nhất
+
+        if (error) throw error;
+        res.json({ success: true, data });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// 2. Validate Voucher (Khi khách chọn)
 exports.validateCoupon = async (req, res) => {
     const { code, cartTotal, userId } = req.body; 
 

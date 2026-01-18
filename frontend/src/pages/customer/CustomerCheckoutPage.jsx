@@ -139,9 +139,27 @@ export default function CustomerCheckoutPage() {
                 </header>
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-500 font-medium">Tổng cộng</span>
-                        <span className="text-2xl font-bold text-gray-900">{parseInt(order.total_amount).toLocaleString()}đ</span>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center text-sm text-gray-600">
+                            <span className="font-medium">Tạm tính</span>
+                            <span className="font-semibold">{(order.subtotal || order.total_amount)?.toLocaleString()}đ</span>
+                        </div>
+                        {order.tax_amount > 0 && (
+                            <div className="flex justify-between items-center text-sm text-gray-600">
+                                <span className="font-medium">Thuế VAT</span>
+                                <span className="font-semibold">{order.tax_amount?.toLocaleString()}đ</span>
+                            </div>
+                        )}
+                        {order.discount_amount > 0 && (
+                            <div className="flex justify-between items-center text-sm text-emerald-600">
+                                <span className="font-medium">Giảm giá {order.coupon_code ? `(${order.coupon_code})` : ''}</span>
+                                <span className="font-semibold">-{order.discount_amount?.toLocaleString()}đ</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                            <span className="text-gray-500 font-medium">Tổng cộng</span>
+                            <span className="text-2xl font-bold text-gray-900">{parseInt(order.total_amount).toLocaleString()}đ</span>
+                        </div>
                     </div>
                 </div>
 

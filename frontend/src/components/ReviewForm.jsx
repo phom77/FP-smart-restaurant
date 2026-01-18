@@ -51,7 +51,7 @@ export default function ReviewForm({ menuItemId, onSuccess }) {
                 onClick={() => setRating(star)}
                 onMouseEnter={() => setHoverRating(star)}
                 onMouseLeave={() => setHoverRating(0)}
-                className="text-3xl transition-all hover:scale-110 focus:outline-none"
+                className="text-sm sm:text-base transition-all hover:scale-110 focus:outline-none flex-shrink-0"
             >
                 {star <= (hoverRating || rating) ? '⭐' : '☆'}
             </button>
@@ -70,7 +70,7 @@ export default function ReviewForm({ menuItemId, onSuccess }) {
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         Đánh giá <span className="text-red-500">*</span>
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 sm:gap-2 items-center">
                         {renderStars()}
                     </div>
                     {rating > 0 && (

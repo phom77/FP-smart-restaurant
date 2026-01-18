@@ -24,6 +24,7 @@ router.delete('/categories/:id', categoryController.deleteCategory);
 
 // --- UPLOAD ---
 router.post('/upload/image', uploadController.uploadMiddleware, uploadController.uploadImage);
+router.post('/upload/images', uploadController.uploadMiddlewareArray, uploadController.uploadImages);
 
 // --- STAFF MANAGEMENT ---
 router.get('/staff', staffController.getStaff);

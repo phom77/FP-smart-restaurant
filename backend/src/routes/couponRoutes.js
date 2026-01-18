@@ -6,13 +6,21 @@ const { verifyToken } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 
 
+
 router.get('/', couponController.getAvailableCoupons);
+
+// Admin: Lấy TẤT CẢ voucher (không filter)
+router.get('/admin/all',
+    verifyToken,
+    authorizeRoles('admin', 'super_admin'),
+    couponController.getAllCouponsForAdmin
+);
 
 router.post('/validate', couponController.validateCoupon);
 
-router.post('/create', 
-    verifyToken, 
-    authorizeRoles('admin', 'super_admin'), 
+router.post('/create',
+    verifyToken,
+    authorizeRoles('admin', 'super_admin'),
     couponController.createCoupon
 );
 

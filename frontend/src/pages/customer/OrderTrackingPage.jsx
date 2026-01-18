@@ -309,7 +309,27 @@ export default function OrderTrackingPage() {
 
                     {/* Total & Payment Actions */}
                     <div className="mt-4 sm:mt-6 pt-4 border-t border-gray-100">
-                        <div className="flex justify-between items-center text-lg sm:text-xl font-bold text-gray-900">
+                        {/* Tax Breakdown */}
+                        <div className="space-y-2 mb-4">
+                            <div className="flex justify-between text-sm sm:text-base text-gray-600">
+                                <span>Tạm tính:</span>
+                                <span className="font-semibold">{(order.subtotal || order.total_amount)?.toLocaleString('vi-VN')}đ</span>
+                            </div>
+                            {order.tax_amount > 0 && (
+                                <div className="flex justify-between text-sm sm:text-base text-gray-600">
+                                    <span>Thuế VAT:</span>
+                                    <span className="font-semibold">{order.tax_amount?.toLocaleString('vi-VN')}đ</span>
+                                </div>
+                            )}
+                            {order.discount_amount > 0 && (
+                                <div className="flex justify-between text-sm sm:text-base text-emerald-600">
+                                    <span>Giảm giá {order.coupon_code ? `(${order.coupon_code})` : ''}:</span>
+                                    <span className="font-semibold">-{order.discount_amount?.toLocaleString('vi-VN')}đ</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-between items-center text-lg sm:text-xl font-bold text-gray-900 pb-4">
                             <span>Tổng tiền</span>
                             <span className="text-emerald-600">{order.total_amount?.toLocaleString('vi-VN')}đ</span>
                         </div>
