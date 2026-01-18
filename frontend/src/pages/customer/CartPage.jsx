@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { saveGuestOrder } from '../../utils/guestOrders';
@@ -9,19 +10,20 @@ export default function CartPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
+    const { t, i18n } = useTranslation();
     const { user } = useAuth();
     const { cart, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart();
     const [tables, setTables] = useState([]);
     const [selectedTable, setSelectedTable] = useState('');
     const [qrTableId, setQrTableId] = useState(null); // Track if table came from QR
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState(null);
 
     // Voucher states
     const [voucherCode, setVoucherCode] = useState('');
     const [appliedVoucher, setAppliedVoucher] = useState(null);
     const [voucherDiscount, setVoucherDiscount] = useState(0);
-    const [voucherError, setVoucherError] = useState('');
+    const [voucherError, setVoucherError] = useState(null);
     const [availableVouchers, setAvailableVouchers] = useState([]);
     const [showVoucherList, setShowVoucherList] = useState(false);
 
@@ -156,10 +158,10 @@ export default function CartPage() {
 
     // Handle voucher application
     const handleApplyVoucher = async () => {
-        setVoucherError('');
+        setVoucherError(null);
 
         if (!voucherCode.trim()) {
-            setVoucherError('Vui lòng nhập mã giảm giá');
+            setVoucherError({ key: 'customer.cart.enter_voucher_error' });
             return;
         }
 
@@ -173,11 +175,14 @@ export default function CartPage() {
             if (response.data.success) {
                 setAppliedVoucher(response.data.data);
                 setVoucherDiscount(response.data.data.discountAmount);
-                setVoucherError('');
+                setVoucherError(null);
                 setShowVoucherList(false);
             }
         } catch (err) {
-            setVoucherError(err.response?.data?.message || 'Mã giảm giá không hợp lệ');
+            setVoucherError(err.response?.data?.message
+                ? { message: err.response.data.message }
+                : { key: 'customer.cart.invalid_voucher' }
+            );
             setAppliedVoucher(null);
             setVoucherDiscount(0);
         }
@@ -188,7 +193,7 @@ export default function CartPage() {
         setVoucherCode('');
         setAppliedVoucher(null);
         setVoucherDiscount(0);
-        setVoucherError('');
+        setVoucherError(null);
     };
 
     // Handle voucher selection from list
@@ -201,28 +206,28 @@ export default function CartPage() {
     // Helper function to get target type label
     const getTargetTypeLabel = (targetType) => {
         switch (targetType) {
-            case 'all': return '🌐 Tất cả';
-            case 'guest': return '👤 Khách vãng lai';
-            case 'customer': return '👥 Thành viên';
-            case 'new_user': return '🆕 Khách mới';
+            case 'all': return `🌐 ${t('customer.cart.all')}`;
+            case 'guest': return `👤 ${t('customer.cart.guest')}`;
+            case 'customer': return `👥 ${t('customer.cart.member')}`;
+            case 'new_user': return `🆕 ${t('customer.cart.new_user')}`;
             default: return '';
         }
     };
 
     // Handle checkout
     const handleCheckout = async () => {
-        setError('');
+        setError(null);
 
         // Validation
         if (cart.length === 0) {
-            setError('Giỏ hàng trống. Vui lòng thêm món ăn.');
+            setError({ key: 'customer.cart.checkout_error_empty' });
             return;
         }
 
         // If adding to existing order, we already have table info
         // If creating new order, need to have scanned QR code
         if (!existingOrderId && !selectedTable) {
-            setError('Vui lòng quét mã QR tại bàn để đặt món');
+            setError({ key: 'customer.cart.checkout_error_qr' });
             return;
         }
 
@@ -280,7 +285,10 @@ export default function CartPage() {
             }
         } catch (err) {
             console.error('Checkout error:', err);
-            setError(err.response?.data?.message || 'Đặt món thất bại. Vui lòng thử lại.');
+            setError(err.response?.data?.message
+                ? { message: err.response.data.message }
+                : { key: 'customer.cart.toast_checkout_failed' }
+            );
         } finally {
             setLoading(false);
         }
@@ -297,13 +305,13 @@ export default function CartPage() {
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
                 <div className="text-center bg-white rounded-2xl shadow-lg p-6 sm:p-12 max-w-md w-full">
                     <div className="text-5xl sm:text-6xl mb-4">🛒</div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Giỏ hàng trống</h2>
-                    <p className="text-sm sm:text-base text-gray-600 mb-6">Hãy thêm món ăn vào giỏ hàng</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">{t('customer.cart.empty_title')}</h2>
+                    <p className="text-sm sm:text-base text-gray-600 mb-6">{t('customer.cart.empty_desc')}</p>
                     <button
                         onClick={() => navigate('/menu')}
                         className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-green-600 transition-all shadow-md hover:shadow-lg w-full sm:w-auto"
                     >
-                        Xem thực đơn
+                        {t('customer.cart.view_menu')}
                     </button>
                 </div>
             </div>
@@ -317,22 +325,26 @@ export default function CartPage() {
                 <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6 bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                            Giỏ hàng
+                            {t('customer.cart.title')}
                         </h1>
-                        <p className="text-sm sm:text-base text-gray-600 mt-1">{cart.length} món</p>
+                        <p className="text-sm sm:text-base text-gray-600 mt-1">{cart.length} {t('customer.cart.items_count')}</p>
                     </div>
-                    <button
-                        onClick={() => navigate('/menu')}
-                        className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg sm:rounded-xl font-semibold hover:bg-gray-200 transition-all text-sm sm:text-base w-full sm:w-auto justify-center"
-                    >
-                        <span>Tiếp tục chọn món</span>
-                    </button>
+                    <div className="flex gap-2">
+                        {/* Desktop Language Switcher */}
+
+                        <button
+                            onClick={() => navigate('/menu')}
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg sm:rounded-xl font-semibold hover:bg-gray-200 transition-all text-sm sm:text-base w-full sm:w-auto justify-center h-[40px] sm:h-[44px]"
+                        >
+                            <span>{t('customer.cart.continue_shopping')}</span>
+                        </button>
+                    </div>
                 </header>
 
                 {/* Error Message */}
                 {error && (
                     <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl">
-                        {error}
+                        {error.key ? t(error.key) : error.message}
                     </div>
                 )}
 
@@ -340,9 +352,9 @@ export default function CartPage() {
                 {/* Info message when table is from QR code */}
                 {qrTableId && !existingOrderId && (
                     <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl">
-                        <p className="font-semibold">📱 Đã quét mã QR</p>
+                        <p className="font-semibold">📱 {t('customer.cart.qr_scanned')}</p>
                         <p className="text-sm mt-1">
-                            Bàn {localStorage.getItem('qr_table_number') || tables.find(t => t.id === qrTableId)?.table_number || '...'} đã được chọn tự động
+                            {t('customer.cart.table_selected', { table: localStorage.getItem('qr_table_number') || tables.find(t => t.id === qrTableId)?.table_number || '...' })}
                         </p>
                     </div>
                 )}
@@ -351,8 +363,8 @@ export default function CartPage() {
                 {existingOrderId && (
                     <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-200 text-blue-700 px-3 sm:px-4 py-3 rounded-lg sm:rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
                         <div className="flex-1">
-                            <p className="font-semibold text-sm sm:text-base">📝 Đang thêm món vào đơn hàng hiện tại</p>
-                            <p className="text-xs sm:text-sm mt-1">Món mới sẽ được thêm vào order #{existingOrderId.slice(0, 8)}</p>
+                            <p className="font-semibold text-sm sm:text-base">📝 {t('customer.cart.adding_to_existing')}</p>
+                            <p className="text-xs sm:text-sm mt-1">{t('customer.cart.adding_to_order_id', { id: existingOrderId.slice(0, 8) })}</p>
                         </div>
                         <button
                             onClick={() => {
@@ -362,7 +374,7 @@ export default function CartPage() {
                             }}
                             className="bg-white border border-blue-300 text-blue-700 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold hover:bg-blue-50 shadow-sm transition-all w-full sm:w-auto text-center"
                         >
-                            Hủy & Tạo đơn mới
+                            {t('customer.cart.cancel_and_new')}
                         </button>
                     </div>
                 )}
@@ -401,7 +413,7 @@ export default function CartPage() {
                                                     onClick={() => removeFromCart(item.cartId)}
                                                     className="mt-1 text-red-500 hover:text-red-700 text-xs font-semibold"
                                                 >
-                                                    Xóa
+                                                    {t('customer.cart.remove')}
                                                 </button>
                                             </div>
                                         </div>
@@ -409,7 +421,7 @@ export default function CartPage() {
                                         {/* Modifiers */}
                                         {item.modifiers && item.modifiers.length > 0 && (
                                             <div className="mt-2">
-                                                <p className="text-xs sm:text-sm text-gray-600">Tùy chọn:</p>
+                                                <p className="text-xs sm:text-sm text-gray-600">{t('customer.cart.options')}:</p>
                                                 {item.modifiers.map((mod, idx) => (
                                                     <p key={idx} className="text-xs sm:text-sm text-gray-700">
                                                         • {mod.name} (+{mod.price_adjustment.toLocaleString('vi-VN')}đ)
@@ -446,7 +458,7 @@ export default function CartPage() {
                                             onClick={() => removeFromCart(item.cartId)}
                                             className="mt-2 text-red-500 hover:text-red-700 text-sm font-semibold"
                                         >
-                                            Xóa
+                                            {t('customer.cart.remove')}
                                         </button>
                                     </div>
                                 </div>
@@ -460,7 +472,7 @@ export default function CartPage() {
                     {/* Voucher Section - Only show when creating new order */}
                     {!existingOrderId && (
                         <div className="mb-4 pb-4 border-b border-gray-200">
-                            <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-3">🎟️ Mã giảm giá</h3>
+                            <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-3">🎟️ {t('customer.cart.voucher_title')}</h3>
 
                             {!appliedVoucher ? (
                                 <>
@@ -469,7 +481,7 @@ export default function CartPage() {
                                             type="text"
                                             value={voucherCode}
                                             onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                                            placeholder="Nhập mã giảm giá"
+                                            placeholder={t('customer.cart.voucher_placeholder')}
                                             className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
                                             onKeyPress={(e) => e.key === 'Enter' && handleApplyVoucher()}
                                         />
@@ -477,12 +489,14 @@ export default function CartPage() {
                                             onClick={handleApplyVoucher}
                                             className="px-4 sm:px-6 py-2 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 transition-colors text-sm sm:text-base whitespace-nowrap"
                                         >
-                                            Áp dụng
+                                            {t('customer.cart.apply')}
                                         </button>
                                     </div>
 
                                     {voucherError && (
-                                        <p className="text-red-500 text-xs sm:text-sm mb-2">{voucherError}</p>
+                                        <p className="text-red-500 text-xs sm:text-sm mb-2">
+                                            {voucherError.key ? t(voucherError.key) : voucherError.message}
+                                        </p>
                                     )}
 
                                     {/* Available Vouchers */}
@@ -492,7 +506,7 @@ export default function CartPage() {
                                                 onClick={() => setShowVoucherList(!showVoucherList)}
                                                 className="text-emerald-600 text-xs sm:text-sm font-semibold hover:underline mb-2"
                                             >
-                                                {showVoucherList ? '▼' : '▶'} Xem voucher khả dụng ({availableVouchers.length})
+                                                {showVoucherList ? '▼' : '▶'} {t('customer.cart.view_vouchers')} ({availableVouchers.length})
                                             </button>
 
                                             {showVoucherList && (
@@ -528,7 +542,7 @@ export default function CartPage() {
                                                                             {getTargetTypeLabel(voucher.target_type)}
                                                                         </span>
                                                                         <span className="text-xs text-gray-500">
-                                                                            Tối thiểu: {voucher.min_order_value.toLocaleString('vi-VN')}đ
+                                                                            {t('customer.cart.min_order')}: {voucher.min_order_value.toLocaleString('vi-VN')}đ
                                                                         </span>
                                                                     </div>
 
@@ -543,7 +557,7 @@ export default function CartPage() {
                                                                     {/* Remaining uses */}
                                                                     {voucher.canUse && voucher.remainingUses !== null && (
                                                                         <p className="text-xs text-gray-500 mt-1">
-                                                                            Còn lại: {voucher.remainingUses} lượt
+                                                                            {t('customer.cart.remaining')}: {voucher.remainingUses} {t('customer.cart.uses')}
                                                                         </p>
                                                                     )}
                                                                 </div>
@@ -573,7 +587,7 @@ export default function CartPage() {
                                             <p className="font-bold text-emerald-700 text-sm sm:text-base">✓ {appliedVoucher.code}</p>
                                             <p className="text-xs sm:text-sm text-emerald-600 mt-1">{appliedVoucher.title}</p>
                                             <p className="text-xs sm:text-sm text-emerald-700 font-semibold mt-1">
-                                                Giảm: {voucherDiscount.toLocaleString('vi-VN')}đ
+                                                {t('customer.cart.discount_label')}: {voucherDiscount.toLocaleString('vi-VN')}đ
                                             </p>
                                         </div>
                                         <button
@@ -593,7 +607,7 @@ export default function CartPage() {
                         <div className="mb-4 pb-4 border-b border-gray-200">
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                                 <p className="text-sm text-blue-700">
-                                    ℹ️ Voucher đã được áp dụng cho đơn hàng này. Giảm giá sẽ tự động cập nhật khi thêm món.
+                                    ℹ️ {t('customer.cart.voucher_applied_msg')}
                                 </p>
                             </div>
                         </div>
@@ -602,22 +616,22 @@ export default function CartPage() {
                     {/* Price Summary */}
                     <div className="space-y-2">
                         <div className="flex justify-between text-sm sm:text-base text-gray-600">
-                            <span>Tạm tính:</span>
+                            <span>{t('customer.cart.subtotal')}:</span>
                             <span className="font-semibold">{subtotal.toLocaleString('vi-VN')}đ</span>
                         </div>
                         <div className="flex justify-between text-sm sm:text-base text-gray-600">
-                            <span>Thuế VAT ({vatRate}%):</span>
+                            <span>{t('customer.cart.vat')} ({vatRate}%):</span>
                             <span className="font-semibold">{taxAmount.toLocaleString('vi-VN')}đ</span>
                         </div>
                         {voucherDiscount > 0 && (
                             <div className="flex justify-between text-sm sm:text-base text-emerald-600">
-                                <span>Giảm giá:</span>
+                                <span>{t('customer.cart.discount')}:</span>
                                 <span className="font-semibold">-{voucherDiscount.toLocaleString('vi-VN')}đ</span>
                             </div>
                         )}
                         <div className="border-t border-gray-200 pt-2">
                             <div className="flex justify-between text-lg sm:text-xl font-bold text-gray-900">
-                                <span>Tổng cộng:</span>
+                                <span>{t('customer.cart.total')}:</span>
                                 <span className="text-emerald-600">{total.toLocaleString('vi-VN')}đ</span>
                             </div>
                         </div>
@@ -630,7 +644,7 @@ export default function CartPage() {
                     disabled={loading || !selectedTable}
                     className="w-full py-3 sm:py-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-base sm:text-lg font-bold rounded-xl hover:from-emerald-600 hover:to-green-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                 >
-                    {loading ? 'Đang xử lý...' : 'Đặt món'}
+                    {loading ? t('customer.cart.processing') : t('customer.cart.checkout')}
                 </button>
             </div>
         </div>

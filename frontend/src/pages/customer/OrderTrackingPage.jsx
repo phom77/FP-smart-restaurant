@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useSocket } from '../../contexts/SocketContext';
 import api from '../../services/api';
 
@@ -7,6 +8,7 @@ export default function OrderTrackingPage() {
     const { orderId } = useParams();
     const navigate = useNavigate();
     const socket = useSocket();
+    const { t } = useTranslation();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -19,7 +21,7 @@ export default function OrderTrackingPage() {
             }
         } catch (err) {
             console.error('Error fetching order:', err);
-            setError('Không thể tải thông tin đơn hàng');
+            setError(t('customer.orders.error_fetch'));
         } finally {
             setLoading(false);
         }
@@ -85,7 +87,11 @@ export default function OrderTrackingPage() {
 
             // Show notification to customer
             if (data.message) {
-                alert(`⚠️ ${data.message}\n\nSố món bị từ chối: ${data.items_count}\nSố tiền hoàn: ${data.amount_refunded?.toLocaleString('vi-VN')}đ`);
+                alert(t('customer.tracking.items_rejected_msg', {
+                    message: data.message,
+                    count: data.items_count,
+                    amount: data.amount_refunded?.toLocaleString('vi-VN')
+                }));
             }
 
             // Refresh order to show updated items and total
@@ -111,9 +117,9 @@ export default function OrderTrackingPage() {
 
     // 3. Cấu hình Timeline (3 Bước chuẩn Backend)
     const statusSteps = [
-        { key: 'pending', label: 'Chờ xác nhận', icon: '📝', color: 'blue' },
-        { key: 'processing', label: 'Đang phục vụ', icon: '👨‍🍳', color: 'yellow' },
-        { key: 'completed', label: 'Hoàn thành', icon: '🎉', color: 'green' }
+        { key: 'pending', label: t('customer.tracking.pending'), icon: '📝', color: 'blue' },
+        { key: 'processing', label: t('customer.tracking.preparing'), icon: '👨‍🍳', color: 'yellow' },
+        { key: 'completed', label: t('customer.tracking.completed'), icon: '🎉', color: 'green' }
     ];
 
     // Helper map status
@@ -145,9 +151,9 @@ export default function OrderTrackingPage() {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
                 <div className="text-center bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-md w-full">
                     <div className="text-3xl sm:text-4xl mb-4">😕</div>
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">Không tìm thấy đơn hàng</h2>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">{t('customer.orders.empty_title')}</h2>
                     <button onClick={() => navigate('/menu')} className="mt-4 px-6 py-2 bg-emerald-500 text-white rounded-lg w-full sm:w-auto">
-                        Về thực đơn
+                        {t('customer.orders.back_to_menu')}
                     </button>
                 </div>
             </div>
@@ -162,10 +168,10 @@ export default function OrderTrackingPage() {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-0">
                         <div className="flex-1">
                             <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-                                Đơn #{order.id?.slice(0, 8)}
+                                {t('customer.tracking.order_prefix')} #{order.id?.slice(0, 8)}
                             </h1>
                             <p className="text-sm sm:text-base text-gray-500 mt-1">
-                                Bàn {order.table?.table_number || 'N/A'} • {new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                {t('customer.orders.table')} {order.table?.table_number || 'N/A'} • {new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                         </div>
                         {/* Only show "Add More Items" button if order is not completed and not paid */}
@@ -183,7 +189,7 @@ export default function OrderTrackingPage() {
                                     }}
                                     className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all text-sm sm:text-base w-full sm:w-auto text-center"
                                 >
-                                    Thêm món
+                                    {t('customer.tracking.add_more')}
                                 </button>
                             )}
                     </div>
@@ -194,8 +200,8 @@ export default function OrderTrackingPage() {
                     {isCancelled ? (
                         <div className="text-center py-4">
                             <div className="text-4xl sm:text-5xl mb-2">🚫</div>
-                            <h2 className="text-lg sm:text-xl font-bold text-red-600">Đơn hàng đã bị hủy</h2>
-                            <p className="text-sm sm:text-base text-gray-500 mb-4">Vui lòng liên hệ nhân viên để được hỗ trợ.</p>
+                            <h2 className="text-lg sm:text-xl font-bold text-red-600">{t('customer.tracking.cancelled_title')}</h2>
+                            <p className="text-sm sm:text-base text-gray-500 mb-4">{t('customer.tracking.contact_staff')}</p>
                             <button
                                 onClick={() => {
                                     // Clear any stored order/table data
@@ -209,12 +215,12 @@ export default function OrderTrackingPage() {
                                 className="px-4 sm:px-6 py-2 sm:py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all inline-flex items-center gap-2 text-sm sm:text-base"
                             >
                                 <span className="material-symbols-outlined text-lg sm:text-xl">restaurant_menu</span>
-                                Về thực đơn
+                                {t('customer.tracking.back_to_menu')}
                             </button>
                         </div>
                     ) : (
                         <>
-                            <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6">Trạng thái</h2>
+                            <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6">{t('customer.tracking.status')}</h2>
                             <div className="relative mx-2 sm:mx-4">
                                 {/* Progress Line */}
                                 <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full">
@@ -254,7 +260,7 @@ export default function OrderTrackingPage() {
 
                 {/* Order Items */}
                 <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-100">
-                    <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-3 sm:mb-4">Chi tiết món</h2>
+                    <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-3 sm:mb-4">{t('customer.tracking.items_details')}</h2>
                     <div className="divide-y divide-gray-100">
                         {order.order_items?.map((item) => {
                             const modifiersTotal = item.order_item_modifiers?.reduce((sum, mod) => sum + (parseFloat(mod.price) || 0), 0) || 0;
@@ -267,15 +273,15 @@ export default function OrderTrackingPage() {
                                             <div className="flex items-start gap-2">
                                                 <span className="font-bold text-gray-800 text-sm sm:text-base">{item.quantity}x</span>
                                                 <div className="flex-1">
-                                                    <span className="font-medium text-gray-800 text-sm sm:text-base">{item.menu_item?.name || 'Món không xác định'}</span>
+                                                    <span className="font-medium text-gray-800 text-sm sm:text-base">{item.menu_item?.name || t('customer.tracking.unknown_item')}</span>
                                                     {/* Item Status Badge - Mobile inline */}
                                                     <span className={`inline-block ml-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.status === 'ready' ? 'bg-green-100 text-green-700' :
                                                         item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
                                                             'bg-gray-100 text-gray-500'
                                                         }`}>
-                                                        {item.status === 'pending' ? 'Chờ' :
-                                                            item.status === 'preparing' ? 'Đang nấu' :
-                                                                item.status === 'ready' ? 'Xong' : item.status}
+                                                        {item.status === 'pending' ? t('customer.tracking.pending') :
+                                                            item.status === 'preparing' ? t('customer.tracking.preparing') :
+                                                                item.status === 'ready' ? t('customer.tracking.ready') : item.status}
                                                     </span>
                                                 </div>
                                             </div>
@@ -294,7 +300,7 @@ export default function OrderTrackingPage() {
                                             {/* Notes */}
                                             {item.notes && (
                                                 <p className="mt-1 ml-6 sm:ml-8 text-xs sm:text-sm text-amber-600 italic">
-                                                    Ghi chú: {item.notes}
+                                                    {t('customer.tracking.notes')}: {item.notes}
                                                 </p>
                                             )}
                                         </div>
@@ -312,25 +318,25 @@ export default function OrderTrackingPage() {
                         {/* Tax Breakdown */}
                         <div className="space-y-2 mb-4">
                             <div className="flex justify-between text-sm sm:text-base text-gray-600">
-                                <span>Tạm tính:</span>
+                                <span>{t('customer.checkout.subtotal')}:</span>
                                 <span className="font-semibold">{(order.subtotal || order.total_amount)?.toLocaleString('vi-VN')}đ</span>
                             </div>
                             {order.tax_amount > 0 && (
                                 <div className="flex justify-between text-sm sm:text-base text-gray-600">
-                                    <span>Thuế VAT:</span>
+                                    <span>{t('customer.tracking.tax')}:</span>
                                     <span className="font-semibold">{order.tax_amount?.toLocaleString('vi-VN')}đ</span>
                                 </div>
                             )}
                             {order.discount_amount > 0 && (
                                 <div className="flex justify-between text-sm sm:text-base text-emerald-600">
-                                    <span>Giảm giá {order.coupon_code ? `(${order.coupon_code})` : ''}:</span>
+                                    <span>{t('customer.tracking.discount')} {order.coupon_code ? `(${order.coupon_code})` : ''}:</span>
                                     <span className="font-semibold">-{order.discount_amount?.toLocaleString('vi-VN')}đ</span>
                                 </div>
                             )}
                         </div>
 
                         <div className="flex justify-between items-center text-lg sm:text-xl font-bold text-gray-900 pb-4">
-                            <span>Tổng tiền</span>
+                            <span>{t('customer.tracking.total')}</span>
                             <span className="text-emerald-600">{order.total_amount?.toLocaleString('vi-VN')}đ</span>
                         </div>
 
@@ -341,7 +347,7 @@ export default function OrderTrackingPage() {
                                 <div className="space-y-3">
                                     <div className="w-full py-2 sm:py-3 bg-green-100 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-green-200 animate-pulse text-sm sm:text-base">
                                         <span className="material-symbols-outlined text-lg sm:text-xl">check_circle</span>
-                                        Đã thanh toán thành công
+                                        {t('customer.tracking.paid_success')}
                                     </div>
                                     <button
                                         onClick={() => {
@@ -356,7 +362,7 @@ export default function OrderTrackingPage() {
                                         className="w-full py-2 sm:py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 text-sm sm:text-base active:scale-[0.98]"
                                     >
                                         <span className="material-symbols-outlined text-lg sm:text-xl">restaurant_menu</span>
-                                        Về thực đơn
+                                        {t('customer.tracking.back_to_menu')}
                                     </button>
                                 </div>
                             ) :
@@ -364,7 +370,7 @@ export default function OrderTrackingPage() {
                                 order.payment_status === 'waiting_payment' ? (
                                     <div className="w-full py-2 sm:py-3 bg-yellow-100 text-yellow-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-yellow-200 text-sm sm:text-base">
                                         <span className="material-symbols-outlined text-lg sm:text-xl">hourglass_top</span>
-                                        Đang chờ nhân viên xác nhận...
+                                        {t('customer.tracking.waiting_staff')}
                                     </div>
                                 ) : (() => {
                                     /* Trường hợp 3: Chưa thanh toán -> Kiểm tra điều kiện hiện nút */
@@ -388,7 +394,7 @@ export default function OrderTrackingPage() {
                                         return (
                                             <div className="w-full py-2 sm:py-3 bg-gray-100 text-gray-500 font-bold rounded-xl flex items-center justify-center gap-2 border border-gray-200 text-sm sm:text-base">
                                                 <span className="material-symbols-outlined text-lg sm:text-xl">schedule</span>
-                                                {!isOrderAccepted ? 'Đang chờ xác nhận...' : 'Đang chuẩn bị món...'}
+                                                {!isOrderAccepted ? t('customer.tracking.pending') : t('customer.tracking.preparing')}
                                             </div>
                                         );
                                     }
@@ -399,7 +405,7 @@ export default function OrderTrackingPage() {
                                             className="w-full py-2 sm:py-3 bg-gray-900 text-white font-bold rounded-xl shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2 text-sm sm:text-base active:scale-[0.98]"
                                         >
                                             <span className="material-symbols-outlined text-lg sm:text-xl">credit_card</span>
-                                            Thanh toán ngay
+                                            {t('customer.tracking.pay_now')}
                                         </button>
                                     );
                                 })()}

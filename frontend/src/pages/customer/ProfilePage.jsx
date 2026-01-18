@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ProfilePage = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState({ type: '', text: '' });
@@ -71,13 +73,13 @@ const ProfilePage = () => {
             );
 
             if (response.data.success) {
-                setMessage({ type: 'success', text: 'Cập nhật thông tin thành công!' });
+                setMessage({ type: 'success', text: t('customer.profile.update_success') });
                 setUser(response.data.user);
             }
         } catch (error) {
             setMessage({
                 type: 'error',
-                text: error.response?.data?.message || 'Lỗi khi cập nhật thông tin'
+                text: error.response?.data?.message || t('customer.profile.update_error')
             });
         }
     };
@@ -88,13 +90,13 @@ const ProfilePage = () => {
 
         // Validate passwords match
         if (passwordData.newPassword !== passwordData.confirmPassword) {
-            setMessage({ type: 'error', text: 'Mật khẩu mới không khớp' });
+            setMessage({ type: 'error', text: t('customer.profile.password_mismatch') });
             return;
         }
 
         // Validate password length
         if (passwordData.newPassword.length < 6) {
-            setMessage({ type: 'error', text: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
+            setMessage({ type: 'error', text: t('customer.profile.password_length') });
             return;
         }
 
@@ -110,13 +112,13 @@ const ProfilePage = () => {
             );
 
             if (response.data.success) {
-                setMessage({ type: 'success', text: 'Đổi mật khẩu thành công!' });
+                setMessage({ type: 'success', text: t('customer.profile.password_success') });
                 setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
             }
         } catch (error) {
             setMessage({
                 type: 'error',
-                text: error.response?.data?.message || 'Lỗi khi đổi mật khẩu'
+                text: error.response?.data?.message || t('customer.profile.password_error')
             });
         }
     };
@@ -147,12 +149,12 @@ const ProfilePage = () => {
                 <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
                     {/* Header with Back Button */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-                        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Thông tin cá nhân</h1>
+                        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{t('customer.profile.title')}</h1>
                         <button
                             onClick={() => navigate('/menu')}
                             className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white text-gray-700 rounded-lg sm:rounded-xl font-semibold hover:bg-gray-100 transition-all shadow-md hover:shadow-lg border border-gray-200 text-sm sm:text-base active:scale-95"
                         >
-                            <span>Quay lại menu</span>
+                            <span>{t('customer.orders.back_to_menu')}</span>
                         </button>
                     </div>
 
@@ -170,7 +172,7 @@ const ProfilePage = () => {
                     <div className="space-y-4 sm:space-y-6">
                         {/* Profile Card */}
                         <div className="bg-white shadow rounded-lg sm:rounded-xl p-4 sm:p-6">
-                            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Thông tin tài khoản</h2>
+                            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">{t('customer.profile.account_info')}</h2>
                             <form onSubmit={handleProfileUpdate}>
                                 {/* Avatar */}
                                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-4 sm:mb-6">
@@ -209,13 +211,13 @@ const ProfilePage = () => {
                                     <div className="text-center sm:text-left">
                                         <p className="text-xs sm:text-sm text-gray-600">Email</p>
                                         <p className="font-medium text-sm sm:text-base">{user?.email}</p>
-                                        <p className="text-xs sm:text-sm text-gray-600 mt-1">Vai trò: {user?.role}</p>
+                                        <p className="text-xs sm:text-sm text-gray-600 mt-1">{t('customer.profile.role')}: {user?.role}</p>
                                     </div>
                                 </div>
 
                                 {/* Full Name */}
                                 <div className="mb-3 sm:mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Họ và tên</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t('customer.profile.fullname')}</label>
                                     <input
                                         type="text"
                                         value={profileData.full_name}
@@ -226,7 +228,7 @@ const ProfilePage = () => {
 
                                 {/* Phone */}
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Số điện thoại</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t('customer.profile.phone')}</label>
                                     <input
                                         type="tel"
                                         value={profileData.phone}
@@ -240,7 +242,7 @@ const ProfilePage = () => {
                                     type="submit"
                                     className="w-full bg-blue-600 text-white py-2.5 sm:py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold text-sm sm:text-base active:scale-95"
                                 >
-                                    Cập nhật thông tin
+                                    {t('customer.profile.update_btn')}
                                 </button>
                             </form>
                         </div>
@@ -248,10 +250,10 @@ const ProfilePage = () => {
                         {/* Password Change Card - Only show for users with password (not OAuth) */}
                         {user?.has_password && (
                             <div className="bg-white shadow rounded-lg sm:rounded-xl p-4 sm:p-6">
-                                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Đổi mật khẩu</h2>
+                                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">{t('customer.profile.change_password')}</h2>
                                 <form onSubmit={handlePasswordChange}>
                                     <div className="mb-3 sm:mb-4">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Mật khẩu cũ</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t('customer.profile.old_password')}</label>
                                         <input
                                             type="password"
                                             value={passwordData.oldPassword}
@@ -262,7 +264,7 @@ const ProfilePage = () => {
                                     </div>
 
                                     <div className="mb-3 sm:mb-4">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Mật khẩu mới</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t('customer.profile.new_password')}</label>
                                         <input
                                             type="password"
                                             value={passwordData.newPassword}
@@ -270,11 +272,11 @@ const ProfilePage = () => {
                                             className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                                             required
                                         />
-                                        <p className="text-xs text-gray-500 mt-1">Tối thiểu 6 ký tự</p>
+                                        <p className="text-xs text-gray-500 mt-1">{t('customer.profile.min_length')}</p>
                                     </div>
 
                                     <div className="mb-4">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Xác nhận mật khẩu mới</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">{t('customer.profile.confirm_password')}</label>
                                         <input
                                             type="password"
                                             value={passwordData.confirmPassword}
@@ -288,7 +290,7 @@ const ProfilePage = () => {
                                         type="submit"
                                         className="w-full bg-green-600 text-white py-2.5 sm:py-3 px-4 rounded-lg hover:bg-green-700 transition duration-200 font-semibold text-sm sm:text-base active:scale-95"
                                     >
-                                        Đổi mật khẩu
+                                        {t('customer.profile.change_password_btn')}
                                     </button>
                                 </form>
                             </div>

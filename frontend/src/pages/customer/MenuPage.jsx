@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import MenuCard from '../../components/MenuCard';
 import ItemDetailModal from '../../components/ItemDetailModal';
@@ -9,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 export default function MenuPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const { t, i18n } = useTranslation();
     const { user } = useAuth();
     const [categories, setCategories] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
@@ -197,6 +199,11 @@ export default function MenuPage() {
         }
     };
 
+    const toggleLanguage = () => {
+        const newLang = i18n.language === 'vi' ? 'en' : 'vi';
+        i18n.changeLanguage(newLang);
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6">
@@ -204,12 +211,21 @@ export default function MenuPage() {
                 <header className="flex justify-between items-center mb-4 sm:mb-8 bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
                     <div className="flex-1">
                         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                            Thực đơn
+                            {t('customer.menu.title')}
                         </h1>
-                        <p className="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">Khám phá món ăn ngon</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">{t('customer.menu.subtitle')}</p>
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-4">
+                        {/* Language Switcher (Desktop) */}
+                        <button
+                            onClick={toggleLanguage}
+                            className="hidden sm:flex items-center px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl font-medium transition-colors shadow-sm gap-2"
+                        >
+                            <span className="material-symbols-outlined text-lg">language</span>
+                            {i18n.language === 'vi' ? 'English' : 'Tiếng Việt'}
+                        </button>
+
                         {/* Desktop Navigation Buttons */}
                         <div className="hidden lg:flex items-center gap-3">
                             {/* Admin Back Button - Only show for admin */}
@@ -219,7 +235,7 @@ export default function MenuPage() {
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
                                 >
                                     <span>←</span>
-                                    <span>Quay về Admin</span>
+                                    <span>{t('customer.menu.back_to_admin')}</span>
                                 </button>
                             )}
 
@@ -229,7 +245,7 @@ export default function MenuPage() {
                                     onClick={() => navigate('/my-orders')}
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
                                 >
-                                    <span>Đơn của tôi</span>
+                                    <span>{t('customer.menu.my_orders')}</span>
                                 </button>
                             )}
 
@@ -239,7 +255,7 @@ export default function MenuPage() {
                                     onClick={() => navigate('/profile')}
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
                                 >
-                                    <span>Tài khoản</span>
+                                    <span>{t('customer.menu.profile')}</span>
                                 </button>
                             )}
 
@@ -247,7 +263,7 @@ export default function MenuPage() {
                             {user && (
                                 <button
                                     onClick={() => {
-                                        if (window.confirm('Bạn có chắc muốn đăng xuất?')) {
+                                        if (window.confirm(t('customer.menu.confirm_logout'))) {
                                             localStorage.removeItem('token');
                                             localStorage.removeItem('user');
                                             window.location.href = '/menu';
@@ -255,7 +271,7 @@ export default function MenuPage() {
                                     }}
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
                                 >
-                                    <span>Đăng xuất</span>
+                                    <span>{t('customer.menu.logout')}</span>
                                 </button>
                             )}
 
@@ -266,7 +282,7 @@ export default function MenuPage() {
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 transition-all shadow-md hover:shadow-lg hover:scale-105"
                                 >
                                     <span>🔐</span>
-                                    <span>Đăng nhập</span>
+                                    <span>{t('customer.menu.login')}</span>
                                 </button>
                             )}
                         </div>
@@ -311,7 +327,7 @@ export default function MenuPage() {
                                 className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold text-sm active:scale-95 transition-all"
                             >
                                 <span>←</span>
-                                <span>Quay về Admin</span>
+                                <span>{t('customer.menu.back_to_admin')}</span>
                             </button>
                         )}
                         {user && (
@@ -320,17 +336,17 @@ export default function MenuPage() {
                                     onClick={() => { navigate('/my-orders'); setShowMobileMenu(false); }}
                                     className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-semibold text-sm active:scale-95 transition-all"
                                 >
-                                    <span>Đơn của tôi</span>
+                                    <span>{t('customer.menu.my_orders')}</span>
                                 </button>
                                 <button
                                     onClick={() => { navigate('/profile'); setShowMobileMenu(false); }}
                                     className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg font-semibold text-sm active:scale-95 transition-all"
                                 >
-                                    <span>Tài khoản</span>
+                                    <span>{t('customer.menu.profile')}</span>
                                 </button>
                                 <button
                                     onClick={() => {
-                                        if (window.confirm('Bạn có chắc muốn đăng xuất?')) {
+                                        if (window.confirm(t('customer.menu.confirm_logout'))) {
                                             localStorage.removeItem('token');
                                             localStorage.removeItem('user');
                                             window.location.href = '/menu';
@@ -338,7 +354,7 @@ export default function MenuPage() {
                                     }}
                                     className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold text-sm active:scale-95 transition-all"
                                 >
-                                    <span>Đăng xuất</span>
+                                    <span>{t('customer.menu.logout')}</span>
                                 </button>
                             </>
                         )}
@@ -348,9 +364,20 @@ export default function MenuPage() {
                                 className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-semibold text-sm active:scale-95 transition-all"
                             >
                                 <span>🔐</span>
-                                <span>Đăng nhập</span>
+                                <span>{t('customer.menu.login')}</span>
                             </button>
                         )}
+
+                        {/* Mobile Language Switcher */}
+                        <div className="pt-2 mt-2 border-t border-gray-100">
+                            <button
+                                onClick={toggleLanguage}
+                                className="w-full flex items-center gap-3 px-4 py-3 bg-indigo-50 text-indigo-600 rounded-lg font-semibold text-sm active:scale-95 transition-all"
+                            >
+                                <span className="text-xl">🌐</span>
+                                <span>{i18n.language === 'vi' ? 'English' : 'Tiếng Việt'}</span>
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -361,10 +388,10 @@ export default function MenuPage() {
                             <div className="text-3xl sm:text-4xl">📱</div>
                             <div className="flex-1">
                                 <p className="font-bold text-amber-800 text-sm sm:text-lg mb-1 sm:mb-2">
-                                    Vui lòng quét mã QR tại bàn
+                                    {t('customer.menu.scan_qr_title')}
                                 </p>
                                 <p className="text-amber-700 text-xs sm:text-sm">
-                                    Để đặt món, bạn cần quét mã QR được đặt trên bàn. Mã QR sẽ tự động chọn bàn cho bạn.
+                                    {t('customer.menu.scan_qr_desc')}
                                 </p>
                             </div>
                         </div>
@@ -376,7 +403,7 @@ export default function MenuPage() {
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder="🔍 Tìm món ăn yêu thích..."
+                            placeholder={`🔍 ${t('customer.menu.search_placeholder')}`}
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-white border-2 border-gray-200 rounded-xl sm:rounded-2xl text-sm sm:text-base focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all shadow-md"
@@ -393,7 +420,7 @@ export default function MenuPage() {
                             }`}
                         onClick={() => setSelectedCategory('all')}
                     >
-                        ✨ Tất cả
+                        ✨ {t('customer.menu.all')}
                     </button>
                     {categories.map(cat => (
                         <button
@@ -412,17 +439,17 @@ export default function MenuPage() {
                 {/* Sort Options */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 sm:mb-8 bg-white rounded-xl sm:rounded-2xl shadow-md p-3 sm:p-4">
                     <label className="font-semibold text-gray-700 flex items-center gap-2 text-sm sm:text-base">
-                        <span>📊</span> Sắp xếp:
+                        <span>📊</span> {t('customer.menu.sort')}:
                     </label>
                     <select
                         value={sortBy}
                         onChange={e => setSortBy(e.target.value)}
                         className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-gray-50 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium cursor-pointer focus:outline-none focus:border-emerald-500 transition-all w-full sm:w-auto"
                     >
-                        <option value="name">Tên (A-Z)</option>
-                        <option value="popularity">Phổ biến nhất</option>
-                        <option value="price_asc">Giá tăng dần</option>
-                        <option value="price_desc">Giá giảm dần</option>
+                        <option value="name">{t('customer.menu.sort_name')}</option>
+                        <option value="popularity">{t('customer.menu.sort_popularity')}</option>
+                        <option value="price_asc">{t('customer.menu.sort_price_asc')}</option>
+                        <option value="price_desc">{t('customer.menu.sort_price_desc')}</option>
                     </select>
 
                     {/* Chef's Choice Filter */}
@@ -434,7 +461,7 @@ export default function MenuPage() {
                             }`}
                     >
                         <span>👨‍🍳</span>
-                        <span>Chef's Choice</span>
+                        <span>{t('customer.menu.chefs_choice')}</span>
                         {showChefRecommendation && <span className="text-xs">✓</span>}
                     </button>
                 </div>
@@ -443,15 +470,15 @@ export default function MenuPage() {
                 {loading ? (
                     <div className="text-center py-20">
                         <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
-                        <p className="mt-4 text-lg text-gray-600 font-medium">Đang tải món ăn...</p>
+                        <p className="mt-4 text-lg text-gray-600 font-medium">{t('customer.menu.loading')}</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {menuItems.length === 0 ? (
                             <div className="col-span-full text-center py-20 bg-white rounded-2xl shadow-lg">
                                 <div className="text-6xl mb-4">🔍</div>
-                                <p className="text-xl text-gray-600 font-medium">Không tìm thấy món ăn nào</p>
-                                <p className="text-gray-500 mt-2">Thử tìm kiếm với từ khóa khác</p>
+                                <p className="text-xl text-gray-600 font-medium">{t('customer.menu.no_results')}</p>
+                                <p className="text-gray-500 mt-2">{t('customer.menu.try_search_again')}</p>
                             </div>
                         ) : (
                             menuItems.map((item, index) => {
@@ -483,14 +510,14 @@ export default function MenuPage() {
                 {loadingMore && !loading && (
                     <div className="text-center py-8">
                         <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
-                        <p className="mt-4 text-gray-600">Đang tải thêm món...</p>
+                        <p className="mt-4 text-gray-600">{t('customer.menu.loading_more')}</p>
                     </div>
                 )}
 
                 {/* No More Items */}
                 {!hasMore && menuItems.length > 0 && !debouncedSearch && (
                     <div className="text-center py-8 text-gray-500">
-                        <p className="text-lg">🎉 Đã hiển thị tất cả món ăn</p>
+                        <p className="text-lg">🎉 {t('customer.menu.all_loaded')}</p>
                     </div>
                 )}
 
@@ -508,8 +535,8 @@ export default function MenuPage() {
                         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all">
                             <div className="text-center mb-6">
                                 <div className="text-6xl mb-4">👋</div>
-                                <h2 className="text-2xl font-bold text-gray-900 mb-2">Chào mừng đến với nhà hàng!</h2>
-                                <p className="text-gray-600">Bạn muốn đặt món như thế nào?</p>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('customer.menu.welcome')}</h2>
+                                <p className="text-gray-600">{t('customer.menu.welcome_desc')}</p>
                             </div>
 
                             <div className="space-y-4">
@@ -520,8 +547,8 @@ export default function MenuPage() {
                                 >
                                     <span className="text-2xl">👤</span>
                                     <div className="text-left">
-                                        <div className="font-bold">Tôi là khách hàng</div>
-                                        <div className="text-sm opacity-90">Đăng nhập để theo dõi đơn hàng</div>
+                                        <div className="font-bold">{t('customer.menu.i_am_customer')}</div>
+                                        <div className="text-sm opacity-90">{t('customer.menu.login_desc')}</div>
                                     </div>
                                 </button>
 
@@ -532,14 +559,14 @@ export default function MenuPage() {
                                 >
                                     <span className="text-2xl">🍽️</span>
                                     <div className="text-left">
-                                        <div className="font-bold">Tiếp tục như khách</div>
-                                        <div className="text-sm opacity-75">Đặt món không cần đăng nhập</div>
+                                        <div className="font-bold">{t('customer.menu.continue_guest')}</div>
+                                        <div className="text-sm opacity-75">{t('customer.menu.guest_desc')}</div>
                                     </div>
                                 </button>
                             </div>
 
                             <p className="text-xs text-gray-500 text-center mt-6">
-                                Bạn có thể đăng nhập sau để xem lịch sử đơn hàng
+                                {t('customer.menu.login_later_hint')}
                             </p>
                         </div>
                     </div>
