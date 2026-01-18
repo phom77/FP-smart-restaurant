@@ -11,7 +11,7 @@ export default function CouponListPage() {
 
     const fetchCoupons = async () => {
         try {
-            const res = await api.get('/api/coupons'); 
+            const res = await api.get('/api/coupons/admin/all'); // Admin endpoint - lấy tất cả voucher
             if (res.data.success) setCoupons(res.data.data);
         } catch (err) {
             toast.error('Không thể tải danh sách');
@@ -44,7 +44,7 @@ export default function CouponListPage() {
                     <h2 className="text-xl font-bold text-gray-800">Quản lý Voucher</h2>
                     <p className="text-sm text-gray-500">Danh sách các chương trình khuyến mãi</p>
                 </div>
-                <button 
+                <button
                     onClick={() => navigate('/admin/coupons/create')}
                     className="px-4 py-2 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition flex items-center gap-2 shadow-sm"
                 >

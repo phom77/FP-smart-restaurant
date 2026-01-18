@@ -25,6 +25,9 @@ export default function CartPage() {
     const [availableVouchers, setAvailableVouchers] = useState([]);
     const [showVoucherList, setShowVoucherList] = useState(false);
 
+    // VAT rate state (default 8% as fallback)
+    const [vatRate, setVatRate] = useState(8);
+
     // Get existing order info from localStorage (set by OrderTrackingPage)
     // Get existing order info from localStorage (set by OrderTrackingPage)
     const [existingOrderId] = useState(() => {
@@ -93,6 +96,24 @@ export default function CartPage() {
             }
         };
         fetchVouchers();
+    }, []);
+
+    // Fetch VAT rate from system settings
+    useEffect(() => {
+        const fetchVATRate = async () => {
+            try {
+                const response = await api.get('/api/system/settings');
+                if (response.data.success && response.data.data.vat_rate) {
+                    const rate = parseFloat(response.data.data.vat_rate);
+                    setVatRate(rate);
+                    console.log('✅ VAT Rate loaded from system settings:', rate + '%');
+                }
+            } catch (err) {
+                console.warn('⚠️ Could not fetch VAT rate, using default 8%:', err.message);
+                // Keep default 8% if API fails
+            }
+        };
+        fetchVATRate();
     }, []);
 
     // ✅ Validate existing order is still valid (not completed/paid)
@@ -246,8 +267,7 @@ export default function CartPage() {
 
     // Calculate subtotal and tax
     const subtotal = getCartTotal();
-    const TAX_RATE = 8; // Will be fetched from system settings in production
-    const taxAmount = subtotal * (TAX_RATE / 100);
+    const taxAmount = subtotal * (vatRate / 100);
     const totalBeforeDiscount = subtotal + taxAmount;
     const total = totalBeforeDiscount - voucherDiscount;
 
@@ -527,7 +547,7 @@ export default function CartPage() {
                             <span className="font-semibold">{subtotal.toLocaleString('vi-VN')}đ</span>
                         </div>
                         <div className="flex justify-between text-sm sm:text-base text-gray-600">
-                            <span>Thuế VAT ({TAX_RATE}%):</span>
+                            <span>Thuế VAT ({vatRate}%):</span>
                             <span className="font-semibold">{taxAmount.toLocaleString('vi-VN')}đ</span>
                         </div>
                         {voucherDiscount > 0 && (
