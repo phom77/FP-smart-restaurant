@@ -42,12 +42,19 @@ const CustomerSidebar = () => {
                     </button>
                     <span className="font-bold text-[22px] tracking-wide bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">{t('common.appName')}</span>
                 </div>
-                <button
-                    onClick={() => setIsSidebarOpen(false)}
-                    className="ml-auto md:hidden text-gray-400 hover:text-gray-600 transition-colors"
+                
+                {/* Cart Button for Mobile */}
+                <Link
+                    to="/cart"
+                    className="relative p-2 text-gray-600 hover:text-emerald-600 hover:bg-gray-100 rounded-md transition-colors"
                 >
-                    <span className="material-symbols-outlined">close</span>
-                </button>
+                    <span className="material-symbols-outlined text-2xl">shopping_cart</span>
+                    {getCartCount() > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm animate-pulse">
+                            {getCartCount()}
+                        </span>
+                    )}
+                </Link>
             </div>
 
             {/* Mobile Overlay */}
