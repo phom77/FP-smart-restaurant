@@ -7,14 +7,36 @@ const { sendStaffInvitation } = require('../services/emailService');
 // 1. Lấy danh sách nhân viên (Waiter & Kitchen)
 exports.getStaff = async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const { page = 1, limit = 10, search } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const offset = (pageNum - 1) * limitNum;
+
+        let query = supabase
             .from('users')
-            .select('id, email, full_name, role, phone, avatar_url, created_at')
-            .in('role', ['waiter', 'kitchen'])
-            .order('created_at', { ascending: false });
+            .select('id, email, full_name, role, phone, avatar_url, created_at', { count: 'exact' })
+            .in('role', ['waiter', 'kitchen']);
+
+        if (search) {
+            query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+        }
+
+        const { data, error, count } = await query
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limitNum - 1);
 
         if (error) throw error;
-        res.status(200).json({ success: true, data });
+
+        res.status(200).json({
+            success: true,
+            data,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total: count,
+                totalPages: Math.ceil(count / limitNum)
+            }
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

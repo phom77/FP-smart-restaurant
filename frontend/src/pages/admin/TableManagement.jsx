@@ -24,6 +24,10 @@ const TableManagement = () => {
         description: ''
     });
     const [editData, setEditData] = useState({ table_number: '', capacity: 4, status: 'available', location: '', description: '' });
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const itemsPerPage = 12;
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -31,15 +35,16 @@ const TableManagement = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')} ` }
     });
 
-    const fetchTables = async () => {
+    const fetchTables = async (page = currentPage, showLoading = true) => {
         try {
-            setLoading(true);
-            let url = `${API_URL}/api/admin/tables?sort_by=${sortBy}`;
+            if (showLoading) setLoading(true);
+            let url = `${API_URL}/api/admin/tables?sort_by=${sortBy}&page=${page}&limit=${itemsPerPage}`;
             if (filterLocation) url += `&location=${filterLocation}`;
 
             const response = await axios.get(url, getAuthHeader());
             setTables(response.data.data);
-            setLoading(false);
+            setTotalPages(response.data.pagination?.totalPages || 1);
+            setTotalItems(response.data.pagination?.total || 0);
         } catch (err) {
             console.error(err);
             toast.error(err.response?.data?.message || 'Failed to fetch tables');
@@ -48,8 +53,16 @@ const TableManagement = () => {
         }
     };
 
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+            fetchTables(newPage, false); // Fetch without full-screen loading
+        }
+    };
+
     useEffect(() => {
-        fetchTables();
+        setCurrentPage(1);
+        fetchTables(1, true); // Show loading when filters change
     }, [filterLocation, sortBy]);
 
     const handleCreateTable = async (e) => {
@@ -92,7 +105,7 @@ const TableManagement = () => {
         if (!socket) return;
 
         // Join room
-        socket.emit('join_room', 'waiter'); 
+        socket.emit('join_room', 'waiter');
 
         // Hàm helper: Chỉ sửa đúng cái bàn cần sửa trong State
         // Không hiện loading, không nháy màn hình
@@ -122,9 +135,9 @@ const TableManagement = () => {
 
         // 3. Xử lý sự kiện thanh toán thành công (Phòng hờ backend quên bắn table_status_update)
         const handlePaymentSuccess = (data) => {
-             // Lưu ý: Nếu backend bắn event này vào room 'table_ID' thì admin (room waiter) có thể không nghe thấy.
-             // Nhưng ở các bước trước tôi đã code backend bắn 'table_status_update' cho room waiter rồi.
-             // Nên ở đây ta không cần làm gì thêm để tránh bị update 2 lần.
+            // Lưu ý: Nếu backend bắn event này vào room 'table_ID' thì admin (room waiter) có thể không nghe thấy.
+            // Nhưng ở các bước trước tôi đã code backend bắn 'table_status_update' cho room waiter rồi.
+            // Nên ở đây ta không cần làm gì thêm để tránh bị update 2 lần.
         };
 
         // Đăng ký sự kiện
@@ -481,7 +494,7 @@ const TableManagement = () => {
                         </div>
                         <div className="w-[1px] bg-gray-200 my-1"></div>
                         <button
-                            onClick={fetchTables}
+                            onClick={() => fetchTables(currentPage)}
                             className="px-3 bg-white text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100"
                             title="Refresh Data"
                         >
@@ -525,7 +538,7 @@ const TableManagement = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                             <p className="text-gray-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('table.total_tables')}</p>
-                            <p className="text-2xl font-black text-gray-800">{tables.length}</p>
+                            <p className="text-2xl font-black text-gray-800">{totalItems}</p>
                         </div>
                         <div className="bg-emerald-50/30 p-4 rounded-2xl shadow-sm border border-emerald-50">
                             <p className="text-emerald-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('table.available')}</p>
@@ -620,6 +633,51 @@ const TableManagement = () => {
                             </div>
                         ))}
                     </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                            <div className="text-sm text-gray-500 font-medium order-2 md:order-1">
+                                {t('common.page_of', { current: currentPage, total: totalPages })}
+                            </div>
+                            <div className="flex items-center gap-2 order-1 md:order-2">
+                                <button
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className={`p-2 rounded-xl border-2 transition-all ${currentPage === 1 ? 'border-gray-50 text-gray-200' : 'border-gray-100 text-gray-600 hover:border-emerald-500 hover:text-emerald-500 active:scale-95'}`}
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                                </button>
+
+                                <div className="flex items-center gap-1">
+                                    {[...Array(totalPages)].map((_, idx) => {
+                                        const pageNum = idx + 1;
+                                        if (totalPages > 7 && pageNum !== 1 && pageNum !== totalPages && Math.abs(pageNum - currentPage) > 1) {
+                                            if (Math.abs(pageNum - currentPage) === 2) return <span key={pageNum} className="px-1 text-gray-400">...</span>;
+                                            return null;
+                                        }
+                                        return (
+                                            <button
+                                                key={pageNum}
+                                                onClick={() => handlePageChange(pageNum)}
+                                                className={`w-10 h-10 rounded-xl font-bold transition-all flex items-center justify-center ${currentPage === pageNum ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 scale-110' : 'text-gray-400 hover:bg-gray-50 hover:text-emerald-600 border-2 border-transparent hover:border-emerald-100'}`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <button
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className={`p-2 rounded-xl border-2 transition-all ${currentPage === totalPages ? 'border-gray-50 text-gray-200' : 'border-gray-100 text-gray-600 hover:border-emerald-500 hover:text-emerald-500 active:scale-95'}`}
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </>
             )
             }

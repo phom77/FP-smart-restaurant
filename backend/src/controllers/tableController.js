@@ -24,9 +24,22 @@ const generateTableJWT = (tableId) => {
 exports.getTables = async (req, res) => {
   try {
     console.log('[DEBUG] GET /api/admin/tables hit with query:', req.query);
-    const { location, is_active, sort_by = 'table_number' } = req.query;
+    const {
+      location,
+      is_active,
+      sort_by = 'table_number',
+      page = 1,
+      limit = 10
+    } = req.query;
 
-    let query = supabase.from('tables').select('*').is('deleted_at', null);
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+
+    let query = supabase
+      .from('tables')
+      .select('*', { count: 'exact' })
+      .is('deleted_at', null);
 
     if (location) query = query.eq('location', location);
     if (is_active !== undefined) query = query.eq('is_active', is_active === 'true');
@@ -40,10 +53,22 @@ exports.getTables = async (req, res) => {
       query = query.order('table_number', { ascending: true });
     }
 
-    const { data, error } = await query;
+    // Apply pagination
+    query = query.range(offset, offset + limitNum - 1);
+
+    const { data, error, count } = await query;
 
     if (error) throw error;
-    res.status(200).json({ success: true, data });
+    res.status(200).json({
+      success: true,
+      data,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: count,
+        totalPages: Math.ceil(count / limitNum)
+      }
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -111,9 +136,10 @@ exports.createTable = async (req, res) => {
     // Update table with the signed token
     const { data: finalTable, error: updateError } = await supabase
       .from('tables')
-      .update({ qr_code_token: signedToken,
+      .update({
+        qr_code_token: signedToken,
         token_created_at: new Date().toISOString()
-       })
+      })
       .eq('id', table.id)
       .select()
       .single();
