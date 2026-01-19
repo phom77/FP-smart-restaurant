@@ -74,8 +74,9 @@ export default function ReviewSection({ menuItemId, avgRating, reviewCount }) {
                     {user && (
                         <button
                             onClick={() => setShowForm(!showForm)}
-                            className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-green-600 transition-all shadow-md hover:shadow-lg"
+                            className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-green-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
                         >
+                            <span className="material-symbols-outlined">{showForm ? 'close' : 'rate_review'}</span>
                             {showForm ? t('reviews.hide_btn') : t('reviews.write_btn')}
                         </button>
                     )}

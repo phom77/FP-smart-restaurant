@@ -201,7 +201,7 @@ export default function KitchenDisplayPage() {
             <header className="flex flex-col sm:flex-row justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm border border-gray-100 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent flex items-center gap-2">
-                        <span>🍳</span> {t('kitchen.title')}
+                        <span className="material-symbols-outlined text-3xl text-emerald-600">soup_kitchen</span> {t('kitchen.title')}
                     </h1>
                     <p className="text-gray-500 font-medium mt-1">
                         {t('kitchen.subtitle', { count: orders.length })}
@@ -242,7 +242,7 @@ export default function KitchenDisplayPage() {
                                     <div className="text-2xl font-bold font-mono tracking-tight">{getElapsedTime(order.created_at)}</div>
                                     {allReady && (
                                         <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded-full font-medium mt-1">
-                                            ✓ {t('kitchen.all_done')}
+                                            <span className="material-symbols-outlined text-[14px]">check</span> {t('kitchen.all_done')}
                                         </span>
                                     )}
                                 </div>
@@ -279,8 +279,8 @@ export default function KitchenDisplayPage() {
 
                                                     {/* Notes */}
                                                     {item.notes && (
-                                                        <p className="inline-block text-xs text-red-600 font-bold bg-red-50 px-2 py-1 rounded-lg mt-1 border border-red-100">
-                                                            📝 {item.notes}
+                                                        <p className="inline-flex items-center gap-1 text-xs text-red-600 font-bold bg-red-50 px-2 py-1 rounded-lg mt-1 border border-red-100">
+                                                            <span className="material-symbols-outlined text-[14px]">edit_note</span> {item.notes}
                                                         </p>
                                                     )}
                                                 </div>
@@ -302,7 +302,7 @@ export default function KitchenDisplayPage() {
                                                         onClick={() => handleUpdateItem(item.id, 'ready')}
                                                         className="flex-1 bg-emerald-600 text-white py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-sm transition-all active:scale-95 shadow-emerald-200"
                                                     >
-                                                        ✓ {t('kitchen.action_complete')}
+                                                        <span className="material-symbols-outlined text-lg">check</span> {t('kitchen.action_complete')}
                                                     </button>
                                                 )}
 

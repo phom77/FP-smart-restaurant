@@ -265,11 +265,12 @@ export default function MenuPage() {
                         <div className="relative">
                             <input
                                 type="text"
-                                placeholder={`🔍 ${t('customer.menu.search_placeholder')}`}
+                                placeholder={t('customer.menu.search_placeholder')}
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
-                                className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-white border-2 border-gray-200 rounded-xl sm:rounded-2xl text-sm sm:text-base focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all shadow-md"
+                                className="w-full pl-12 pr-4 sm:pr-6 py-3 sm:py-4 bg-white border-2 border-gray-200 rounded-xl sm:rounded-2xl text-sm sm:text-base focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all shadow-md"
                             />
+                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                         </div>
                     </div>
 
@@ -282,7 +283,7 @@ export default function MenuPage() {
                                 }`}
                             onClick={() => setSelectedCategory('all')}
                         >
-                            ✨ {t('customer.menu.all')}
+                            <span className="material-symbols-outlined text-sm">auto_awesome</span> {t('customer.menu.all')}
                         </button>
                         {categories.map(cat => (
                             <button
@@ -301,7 +302,7 @@ export default function MenuPage() {
                     {/* Sort Options */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 sm:mb-8 bg-white rounded-xl sm:rounded-2xl shadow-md p-3 sm:p-4">
                         <label className="font-semibold text-gray-700 flex items-center gap-2 text-sm sm:text-base">
-                            <span>📊</span> {t('customer.menu.sort')}:
+                            <span className="material-symbols-outlined">sort</span> {t('customer.menu.sort')}:
                         </label>
                         <select
                             value={sortBy}
@@ -322,7 +323,7 @@ export default function MenuPage() {
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
-                            <span>👨‍🍳</span>
+                            <span className="material-symbols-outlined text-sm">restaurant_menu</span>
                             <span>{t('customer.menu.chefs_choice')}</span>
                             {showChefRecommendation && <span className="text-xs">✓</span>}
                         </button>
@@ -338,7 +339,9 @@ export default function MenuPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {menuItems.length === 0 ? (
                                 <div className="col-span-full text-center py-20 bg-white rounded-2xl shadow-lg">
-                                    <div className="text-6xl mb-4">🔍</div>
+                                    <div className="mb-4 text-gray-400">
+                                        <span className="material-symbols-outlined text-6xl">search_off</span>
+                                    </div>
                                     <p className="text-xl text-gray-600 font-medium">{t('customer.menu.no_results')}</p>
                                     <p className="text-gray-500 mt-2">{t('customer.menu.try_search_again')}</p>
                                 </div>
@@ -378,8 +381,9 @@ export default function MenuPage() {
 
                     {/* No More Items */}
                     {!hasMore && menuItems.length > 0 && !debouncedSearch && (
-                        <div className="text-center py-8 text-gray-500">
-                            <p className="text-lg">🎉 {t('customer.menu.all_loaded')}</p>
+                        <div className="text-center py-8 text-gray-500 flex flex-col items-center gap-2">
+                            <span className="material-symbols-outlined text-2xl animate-bounce">check_circle</span>
+                            <p className="text-lg">{t('customer.menu.all_loaded')}</p>
                         </div>
                     )}
 
@@ -396,7 +400,9 @@ export default function MenuPage() {
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all">
                                 <div className="text-center mb-6">
-                                    <div className="text-6xl mb-4">👋</div>
+                                    <div className="mb-4 text-gray-800">
+                                        <span className="material-symbols-outlined text-6xl">waving_hand</span>
+                                    </div>
                                     <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('customer.menu.welcome')}</h2>
                                     <p className="text-gray-600">{t('customer.menu.welcome_desc')}</p>
                                 </div>
@@ -407,7 +413,7 @@ export default function MenuPage() {
                                         onClick={handleGoToLogin}
                                         className="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white py-4 px-6 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-600 transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-3"
                                     >
-                                        <span className="text-2xl">👤</span>
+                                        <span className="material-symbols-outlined text-3xl">person</span>
                                         <div className="text-left">
                                             <div className="font-bold">{t('customer.menu.i_am_customer')}</div>
                                             <div className="text-sm opacity-90">{t('customer.menu.login_desc')}</div>
@@ -419,7 +425,7 @@ export default function MenuPage() {
                                         onClick={handleContinueAsGuest}
                                         className="w-full bg-gray-100 text-gray-700 py-4 px-6 rounded-xl font-semibold hover:bg-gray-200 transition-all shadow-md hover:shadow-lg hover:scale-105 flex items-center justify-center gap-3"
                                     >
-                                        <span className="text-2xl">🍽️</span>
+                                        <span className="material-symbols-outlined text-3xl">restaurant</span>
                                         <div className="text-left">
                                             <div className="font-bold">{t('customer.menu.continue_guest')}</div>
                                             <div className="text-sm opacity-75">{t('customer.menu.guest_desc')}</div>

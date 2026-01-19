@@ -49,7 +49,7 @@ export default function RecommendedItems({ menuItemId, onItemClick }) {
     return (
         <div className="space-y-4">
             <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <span>💡</span>
+                <span className="material-symbols-outlined text-yellow-500">lightbulb</span>
                 {t('menu.recommendation_title')}
             </h3>
 
@@ -70,8 +70,8 @@ export default function RecommendedItems({ menuItemId, onItemClick }) {
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-4xl">
-                                    🍽️
+                                <div className="w-full h-full flex items-center justify-center text-4xl text-gray-300">
+                                    <span className="material-symbols-outlined text-4xl">restaurant</span>
                                 </div>
                             )}
 
@@ -106,7 +106,7 @@ export default function RecommendedItems({ menuItemId, onItemClick }) {
                                     )}
                                     {item.recommendation_reason === 'same_category' && (
                                         <div className="inline-flex items-start gap-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-lg">
-                                            <span className="flex-shrink-0">📂</span>
+                                            <span className="material-symbols-outlined text-sm flex-shrink-0">folder</span>
                                             <span className="leading-snug">{t('menu.same_category')}</span>
                                         </div>
                                     )}

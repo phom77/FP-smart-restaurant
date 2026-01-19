@@ -180,7 +180,7 @@ i18n
                     },
                     reviews: {
                         title: 'Item Reviews',
-                        write_btn: '✍️ Write Review',
+                        write_btn: 'Write Review',
                         hide_btn: 'Hide Form',
                         count_suffix: 'reviews',
                         customer_reviews: 'Customer Reviews',
@@ -922,7 +922,7 @@ i18n
                     },
                     reviews: {
                         title: 'Đánh giá món ăn',
-                        write_btn: '✍️ Viết đánh giá',
+                        write_btn: 'Viết đánh giá',
                         hide_btn: 'Ẩn form',
                         count_suffix: 'đánh giá',
                         customer_reviews: 'Nhận xét từ khách hàng',

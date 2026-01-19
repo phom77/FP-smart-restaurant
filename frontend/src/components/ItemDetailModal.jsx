@@ -244,7 +244,7 @@ export default function ItemDetailModal({ item, onClose }) {
                     {/* Notes */}
                     <div className="mb-6 sm:mb-8">
                         <label htmlFor="notes" className="block font-bold mb-2 sm:mb-3 text-gray-900 flex items-center gap-2 text-sm sm:text-base">
-                            <span>📝</span> {t('menu.notes')}
+                            <span className="material-symbols-outlined text-gray-500">edit_note</span> {t('menu.notes')}
                         </label>
                         <textarea
                             id="notes"
