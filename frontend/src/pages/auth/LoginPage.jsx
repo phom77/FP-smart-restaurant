@@ -1,5 +1,5 @@
 // frontend/src/pages/auth/LoginPage.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { claimGuestOrders } from '../../utils/guestOrders';
@@ -14,6 +14,21 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
+    // Check for Google OAuth errors in URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const errorParam = params.get('error');
+
+        if (errorParam === 'account_banned') {
+            setError('⛔ Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Super Admin để được hỗ trợ.');
+            // Clean URL
+            window.history.replaceState({}, '', '/login');
+        } else if (errorParam === 'oauth_failed') {
+            setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
+            window.history.replaceState({}, '', '/login');
+        }
+    }, []);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -26,7 +41,6 @@ export default function LoginPage() {
                 await claimGuestOrders(res.data.token);
 
                 const role = res.data.user.role;
-                // Ưu tiên Super Admin
                 if (role === 'super_admin') navigate('/super-admin');
                 else if (role === 'admin') navigate('/admin/dashboard');
                 else if (role === 'waiter') navigate('/waiter/orders');
@@ -45,7 +59,7 @@ export default function LoginPage() {
             <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg border border-gray-100">
                 <div className="text-center">
                     <h2 className="mt-2 text-3xl font-extrabold text-gray-900">Chào mừng trở lại</h2>
-                    <p className="mt-2 text-sm text-gray-600">Đăng nhập để quản lý hoặc gọi món.</p>
+                    <p className="mt-2 text-sm text-gray-600">Đăng nhập để quản lý.</p>
                 </div>
 
                 {error && (
@@ -81,15 +95,19 @@ export default function LoginPage() {
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                 />
-                                <button
-                                    type="button"
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                >
-                                    <span className="material-symbols-outlined text-[20px]">
-                                        {showPassword ? 'visibility_off' : 'visibility'}
-                                    </span>
-                                </button>
+                            </div>
+                            {/* CHECKBOX HIỂN THỊ MẬT KHẨU */}
+                            <div className="flex items-center mt-2">
+                                <input
+                                    id="show-password"
+                                    type="checkbox"
+                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                                    checked={showPassword}
+                                    onChange={() => setShowPassword(!showPassword)}
+                                />
+                                <label htmlFor="show-password" className="ml-2 block text-sm text-gray-900 cursor-pointer select-none">
+                                    Hiển thị mật khẩu
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -109,15 +127,6 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                {/* --- NÚT KHÁCH VÃNG LAI (MỚI) --- */}
-                <button
-                    onClick={() => navigate('/menu')}
-                    className="w-full flex justify-center py-2.5 px-4 border border-gray-300 text-sm font-bold rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition duration-200"
-                >
-                    Khách vãng lai (Xem Menu)
-                </button>
-
-                {/* Google Button */}
                 <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-gray-200"></div>
@@ -135,12 +144,13 @@ export default function LoginPage() {
                     Google
                 </button>
 
-                <p className="mt-4 text-center text-sm text-gray-600">
-                    Chưa có tài khoản?{' '}
-                    <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 hover:underline">
+                {/* 👉 ĐÃ THÊM LẠI PHẦN ĐĂNG KÝ Ở ĐÂY */}
+                <div className="mt-6 text-center text-sm">
+                    <span className="text-gray-600">Bạn chưa có tài khoản? </span>
+                    <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
                         Đăng ký ngay
                     </Link>
-                </p>
+                </div>
             </div>
         </div>
     );

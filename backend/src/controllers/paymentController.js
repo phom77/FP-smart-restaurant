@@ -4,7 +4,7 @@ const { getIO } = require('../config/socket');
 
 // 1. Tạo Payment Intent
 exports.createPaymentIntent = async (req, res) => {
-    const { orderId, paymentMethod } = req.body;
+    const { orderId, paymentMethod, requestInvoice = false } = req.body;
 
     try {
         const { data: order } = await supabase
@@ -25,12 +25,13 @@ exports.createPaymentIntent = async (req, res) => {
                 .single();
 
             // Update DB
-            await supabase.from('orders').update({ 
-                payment_status: 'waiting_payment' 
+            await supabase.from('orders').update({
+                payment_status: 'waiting_payment',
+                needs_invoice: requestInvoice
             }).eq('id', orderId);
 
             const io = getIO();
-            
+
             // Báo cho Waiter
             io.to('waiter').emit('payment_request', {
                 orderId,
@@ -38,7 +39,8 @@ exports.createPaymentIntent = async (req, res) => {
                 tableNumber: tableInfo?.table_number, // ✅ THÊM DÒNG NÀY
                 amount: order.total_amount,
                 method: 'cash',
-                message: `Bàn ${tableInfo?.table_number || order.table_id} muốn thanh toán Tiền mặt`
+                requestInvoice: requestInvoice,
+                message: `Bàn ${tableInfo?.table_number || order.table_id} muốn thanh toán Tiền mặt${requestInvoice ? ' (Yêu cầu hóa đơn VAT)' : ''}`
             });
 
             // Báo cho Khách
@@ -47,10 +49,10 @@ exports.createPaymentIntent = async (req, res) => {
                 status: 'waiting_payment'
             });
 
-            return res.json({ 
-                success: true, 
-                method: 'cash', 
-                message: 'Đã gửi nhân viên hỗ trợ' 
+            return res.json({
+                success: true,
+                method: 'cash',
+                message: 'Đã gửi nhân viên hỗ trợ'
             });
         }
 
@@ -99,8 +101,9 @@ exports.mockPayment = async (req, res) => {
 
         // Bắn socket
         const io = getIO();
-        // Báo cho Waiter
+        // Báo cho Waiter và Kitchen
         io.to('waiter').emit('order_paid', { orderId });
+        io.to('kitchen').emit('order_paid', { orderId });
         if (order && order.table_id) {
             await supabase.from('tables').update({ status: 'available' }).eq('id', order.table_id);
 
@@ -145,6 +148,7 @@ exports.confirmPayment = async (req, res) => {
             const io = getIO();
 
             io.to('waiter').emit('order_paid', { orderId });
+            io.to('kitchen').emit('order_paid', { orderId });
             if (order && order.table_id) {
                 // --- 🟢 FIX: Giải phóng bàn ---
                 await supabase.from('tables').update({ status: 'available' }).eq('id', order.table_id);
@@ -197,10 +201,11 @@ exports.handleWebhook = async (req, res) => {
             response_log: paymentIntent
         }]);
 
-        // Bắn Socket báo cho Waiter và Khách
+        // Bắn Socket báo cho Waiter, Kitchen và Khách
         const io = getIO();
         io.to(`table_${orderId}`).emit('payment_success', { orderId });
         io.to('waiter').emit('order_paid', { orderId });
+        io.to('kitchen').emit('order_paid', { orderId });
 
         // --- 🟢 FIX: Giải phóng bàn ---
         const { data: orderInfo } = await supabase.from('orders').select('table_id').eq('id', orderId).single();
@@ -214,7 +219,7 @@ exports.handleWebhook = async (req, res) => {
 
 exports.confirmCashPayment = async (req, res) => {
     const { orderId } = req.body;
-    
+
     try {
         // ✅ 1. Lấy thông tin đơn hàng
         const { data: order } = await supabase
@@ -252,13 +257,14 @@ exports.confirmCashPayment = async (req, res) => {
 
         // 5. Bắn socket
         const io = getIO();
-        
+
         io.to('waiter').emit('order_paid', { orderId });
-        
+        io.to('kitchen').emit('order_paid', { orderId });
+
         if (order.table_id) {
-            io.to(`table_${order.table_id}`).emit('payment_success', { 
-                orderId, 
-                status: 'paid' 
+            io.to(`table_${order.table_id}`).emit('payment_success', {
+                orderId,
+                status: 'paid'
             });
         }
 

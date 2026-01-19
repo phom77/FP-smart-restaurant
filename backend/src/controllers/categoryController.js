@@ -20,7 +20,7 @@ exports.getAllCategories = async (req, res) => {
 // POST /api/admin/categories
 exports.createCategory = async (req, res) => {
   try {
-    const { name, image_url, sort_order } = req.body;
+    const { name, description, image_url, sort_order } = req.body;
 
     if (!name) {
       return res.status(400).json({ success: false, error: 'Name is required' });
@@ -52,7 +52,7 @@ exports.createCategory = async (req, res) => {
 
     const { data, error } = await supabase
       .from('categories')
-      .insert([{ name, image_url, sort_order }])
+      .insert([{ name, description, image_url, sort_order }])
       .select()
       .single();
 

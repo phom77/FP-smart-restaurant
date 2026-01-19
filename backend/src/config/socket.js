@@ -49,15 +49,15 @@ const initSocket = (httpServer) => {
 
       // 🔒 Kiểm tra quyền truy cập room
       if (room === 'kitchen') {
-        // Chỉ kitchen staff mới được join kitchen room
-        if (!user || (user.role !== 'kitchen' && user.role !== 'admin')) {
-          console.log(`❌ UNAUTHORIZED: User ${socket.id} tried to join kitchen room`);
+        // 🟢 FIX: Thêm quyền cho 'super_admin' được join
+        if (!user || (user.role !== 'kitchen' && user.role !== 'admin' && user.role !== 'super_admin')) {
+          console.log(`❌ UNAUTHORIZED: User ${socket.id} (${user?.role}) tried to join kitchen room`);
           socket.emit('error', { message: 'Unauthorized access to kitchen room' });
           return;
         }
       } else if (room === 'waiter') {
-        // Chỉ waiter và admin mới được join waiter room
-        if (!user || (user.role !== 'waiter' && user.role !== 'admin')) {
+        // 🟢 FIX: Thêm quyền cho 'super_admin'
+        if (!user || (user.role !== 'waiter' && user.role !== 'admin' && user.role !== 'super_admin')) {
           console.log(`❌ UNAUTHORIZED: User ${socket.id} tried to join waiter room`);
           socket.emit('error', { message: 'Unauthorized access to waiter room' });
           return;

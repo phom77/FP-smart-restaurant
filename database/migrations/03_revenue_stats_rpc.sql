@@ -17,10 +17,10 @@ BEGIN
     RETURN QUERY
     SELECT 
         CASE 
-            WHEN p_type = 'weekly' THEN to_char(created_at, 'IYYY-"W"IW') -- e.g., "2023-W42"
-            WHEN p_type = 'monthly' THEN to_char(created_at, 'YYYY-MM') -- e.g., "2023-10"
-            WHEN p_type = 'yearly' THEN to_char(created_at, 'YYYY') -- e.g., "2023"
-            ELSE to_char(created_at, 'YYYY-MM-DD') -- e.g., "2023-10-25"
+            WHEN p_type = 'weekly' THEN to_char(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'IYYY-"W"IW') -- e.g., "2023-W42"
+            WHEN p_type = 'monthly' THEN to_char(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM') -- e.g., "2023-10"
+            WHEN p_type = 'yearly' THEN to_char(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY') -- e.g., "2023"
+            ELSE to_char(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') -- e.g., "2023-10-25"
         END AS period,
         COALESCE(SUM(total_amount), 0) as total_revenue,
         COUNT(id) as order_count

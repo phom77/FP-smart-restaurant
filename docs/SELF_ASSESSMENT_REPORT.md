@@ -42,9 +42,9 @@ Students must input minus points to every uncompleted feature in the SE column.
 |  | Filter menu items by |  |  |  | A combination of the criteria |
 |  | › Item name | \-0.25 | x |  | Search menu items by name |
 |  | › Category | \-0.25 | x |  | Filter by food categories (Appetizers, Main Dishes, Drinks, Desserts) |
-|  | Sort menu items by popularity | \-0.25 |  |  | Sort by most ordered items |
-|  | › Chef recommendation | \-0.25 |  |  | Filter/highlight items marked as chef's recommendations |
-|  | Menu item paging | \-0.75 |  |  | Pagination for large menus with infinite scroll. URL updated on search/filter/paging |
+|  | Sort menu items by popularity | \-0.25 | x |  | Sort by most ordered items |
+|  | › Chef recommendation | \-0.25 | x |  | Filter/highlight items marked as chef's recommendations |
+|  | Menu item paging | \-0.75 | x |  | Pagination for large menus with infinite scroll. URL updated on search/filter/paging |
 |  | View menu item details | \-0.25 | x |  | Item detail page with full description, modifiers, allergen info |
 |  | View menu item status | \-0.25 | x |  | Display item availability status (Available, Unavailable, Sold out) |
 |  | Show related menu items | \-0.25 | x |  | Suggest items from same category or popular pairings |
@@ -59,7 +59,7 @@ Students must input minus points to every uncompleted feature in the SE column.
 |  | › Add items to current order | \-0.25 | x |  | Customers can add more items to their unpaid order (single order per table session) |
 |  | › View order status | \-0.25 | x |  | Guest can track order status (Received → Preparing → Ready) |
 |  | › View order details | \-0.25 | x |  | Order confirmation with items, total, table number |
-|  | › Request bill | \-0.25 |  |  | Customer requests bill when ready to pay |
+|  | › Request bill | \-0.25 | x |  | Customer requests bill when ready to pay |
 |  | › Process payment after meal | \-0.25 | x |  | Stripe payment processing after dining |
 | **3** | **Authentication and authorization** |  |  |  |  |
 |  | Use a popular authentication library | \-1 | x |  | Passport.js with JWT strategy |
@@ -90,7 +90,7 @@ Students must input minus points to every uncompleted feature in the SE column.
 |  | Filter menu items by name, category | \-0.25 | x |  | Search and filter menu items |
 |  | Sort menu items by creation time, price, popularity | \-0.25 | x |  | Sortable menu item list |
 |  | Create a new menu item | \-0.25 | x |  | Add item with name, price, description, category, prep time |
-|  | Upload multiple menu item photos | \-0.5 |  |  | Multi-image upload for menu items |
+|  | Upload multiple menu item photos | \-0.5 | x |  | Multi-image upload for menu items |
 |  | Add menu item to category with modifiers | \-0.25 | x |  | Assign categories and create modifier groups (Size, Extras) |
 |  | Menu Item Modifiers | 0.5 | x |  | Modifier groups (Size, Extras) with price adjustments |
 |  | Specify menu item status | \-0.25 | x |  | Available, Unavailable, Sold out |
@@ -113,9 +113,9 @@ Students must input minus points to every uncompleted feature in the SE column.
 |  | › QR Code Download/Print | -0.25 | x |  | Download QR as PNG/PDF for printing |
 |  | › QR Code Regeneration | -0.25 | x |  | Regenerate QR and invalidate old codes |
 |  | Reports |  |  |  |  |
-|  | › View revenue report in time range | \-0.25 |  |  | Daily, weekly, monthly revenue reports |
-|  | › View top revenue by menu item in time range | \-0.25 |  |  | Best-selling items report |
-|  | › Show interactive chart in reports | \-0.25 |  |  | Chart.js/Recharts for analytics dashboard (orders/day, peak hours, popular items) |
+|  | › View revenue report in time range | \-0.25 | x |  | Daily, weekly, monthly revenue reports |
+|  | › View top revenue by menu item in time range | \-0.25 | x |  | Best-selling items report |
+|  | › Show interactive chart in reports | \-0.25 | x |  | Chart.js/Recharts for analytics dashboard (orders/day, peak hours, popular items) |
 | **7** | **Waiter features** |  |  |  |  |
 |  | View pending orders | \-0.25 | x|  | List of new orders waiting for waiter acceptance |
 |  | Accept/Reject order items | \-0.25 | x|  | Waiter can accept or reject individual order items |
@@ -138,7 +138,7 @@ Students must input minus points to every uncompleted feature in the SE column.
 |  | Advanced authorization (RBAC) | 0.25 | x |  | Fine-grained role/permission management for Admin/Chef/Waiter and other staff roles |
 |  | WebSocket real-time updates | 0.5 | x |  | Socket.IO for real-time features: KDS order notifications, customer order status tracking, waiter new order alerts, kitchen ready notifications, table status updates |
 |  | Multi-tenant support | 0.5 |  |  | Multiple restaurants (tenants) with strict data isolation; tenant-scoped RBAC and configuration |
-|  | Multilingual support | 0.25 |  |  | i18n for English/Vietnamese language selection |
+|  | Multilingual support | 0.25 | x |  | i18n for English/Vietnamese language selection |
 
 # **GIT HISTORY**
 

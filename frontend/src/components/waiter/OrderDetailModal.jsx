@@ -2,12 +2,13 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 
-const OrderDetailModal = ({ order, onClose }) => {
+const OrderDetailModal = ({ order, onClose, onOrderUpdated }) => {
     const { t } = useTranslation();
 
     if (!order) return null;
 
     const handlePrint = () => {
+        // ... (existing print logic)
         const printContent = document.getElementById('invoice-preview').innerHTML;
 
         // Create a hidden iframe
@@ -31,11 +32,17 @@ const OrderDetailModal = ({ order, onClose }) => {
         iframeDoc.write('th:nth-child(2), td:nth-child(2) { text-align: center; }');
         iframeDoc.write('.mb-6 { margin-bottom: 24px; }');
         iframeDoc.write('.mb-4 { margin-bottom: 16px; }');
+        iframeDoc.write('.mb-3 { margin-bottom: 12px; }');
         iframeDoc.write('.text-sm { font-size: 14px; }');
         iframeDoc.write('.text-xs { font-size: 12px; }');
         iframeDoc.write('.flex { display: flex; }');
         iframeDoc.write('.justify-between { justify-content: space-between; }');
         iframeDoc.write('.items-center { align-items: center; }');
+        iframeDoc.write('.space-y-2 > * + * { margin-top: 8px; }');
+        iframeDoc.write('.border-t { border-top: 1px solid #ccc; }');
+        iframeDoc.write('.pt-3 { padding-top: 12px; }');
+        iframeDoc.write('.text-gray-600 { color: #4b5563; }');
+        iframeDoc.write('.text-emerald-600 { color: #059669; }');
         iframeDoc.write('</style>');
         iframeDoc.write('</head><body>');
         iframeDoc.write(printContent);
@@ -56,8 +63,8 @@ const OrderDetailModal = ({ order, onClose }) => {
         if (!window.confirm(`Xác nhận đã thu ${parseInt(order.total_amount).toLocaleString()}đ tiền mặt?`)) return;
         try {
             await api.post('/api/payment/confirm-cash', { orderId: order.id });
+            onOrderUpdated && onOrderUpdated(); // ✅ Refresh danh sách bên ngoài
             onClose(); // Đóng modal
-            // Socket sẽ tự refresh danh sách bên dưới
         } catch (err) {
             alert("Lỗi: " + err.message);
         }
@@ -80,6 +87,7 @@ const OrderDetailModal = ({ order, onClose }) => {
                 <div className="p-6 overflow-y-auto flex-1">
                     {/* Invoice Preview Area */}
                     <div id="invoice-preview" className="border border-gray-100 p-4 rounded-xl bg-gray-50/50">
+                        {/* ... (invoice content kept same) ... */}
                         <div className="text-center mb-6">
                             <h2 className="text-2xl font-bold uppercase tracking-widest text-gray-800">RESTAURANT</h2>
                             <p className="text-sm text-gray-500">123 Food Street, Tasty City</p>
@@ -111,12 +119,12 @@ const OrderDetailModal = ({ order, onClose }) => {
                                                 <span>{item.menu_item?.name}</span>
                                                 {/* Status Badge */}
                                                 <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${item.status === 'pending' ? 'bg-red-100 text-red-600 animate-pulse' :
-                                                        item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
-                                                            item.status === 'ready' ? 'bg-green-100 text-green-700' :
-                                                                item.status === 'served' ? 'bg-gray-100 text-gray-500 line-through' :
-                                                                    'bg-gray-100'
+                                                    item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
+                                                        item.status === 'ready' ? 'bg-green-100 text-green-700' :
+                                                            item.status === 'served' ? 'bg-gray-100 text-gray-500 line-through' :
+                                                                'bg-gray-100'
                                                     }`}>
-                                                    {item.status === 'pending' ? 'MỚI' : item.status}
+                                                    {item.status === 'pending' ? t('waiter.new_badge') : item.status}
                                                 </span>
                                             </div>
                                             {item.modifiers?.length > 0 && (
@@ -134,7 +142,27 @@ const OrderDetailModal = ({ order, onClose }) => {
 
                         <hr className="my-4 border-dashed border-gray-400" />
 
-                        <div className="flex justify-between items-center text-lg font-bold">
+                        {/* Subtotal, Tax, Discount Breakdown */}
+                        <div className="space-y-2 mb-3">
+                            <div className="flex justify-between text-sm text-gray-600">
+                                <span>{t('waiter.subtotal')}</span>
+                                <span>{parseInt(order.subtotal || order.total_amount).toLocaleString()}đ</span>
+                            </div>
+                            {order.tax_amount > 0 && (
+                                <div className="flex justify-between text-sm text-gray-600">
+                                    <span>{t('waiter.tax_vat')}</span>
+                                    <span>{parseInt(order.tax_amount).toLocaleString()}đ</span>
+                                </div>
+                            )}
+                            {order.discount_amount > 0 && (
+                                <div className="flex justify-between text-sm text-emerald-600">
+                                    <span>{t('waiter.discount')} {order.coupon_code ? `(${order.coupon_code})` : ''}</span>
+                                    <span>-{parseInt(order.discount_amount).toLocaleString()}đ</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-between items-center text-lg font-bold border-t border-gray-300 pt-3">
                             <span>{t('waiter.total')}</span>
                             <span>{parseInt(order.total_amount).toLocaleString()}đ</span>
                         </div>
@@ -148,12 +176,13 @@ const OrderDetailModal = ({ order, onClose }) => {
                 {/* Footer Actions */}
                 <div className="p-5 border-t bg-gray-50 flex flex-col gap-3">
 
-                    {/* --- 🟢 HIỂN THỊ NÚT XÁC NHẬN MÓN MỚI (NẾU CÓ MÓN PENDING) --- */}
-                    {order.items?.some(item => item.status === 'pending') && (
+                    {/* --- 🟢 HIỂN THỊ NÚT XÁC NHẬN MÓN MỚI (NẾU CÓ MÓN PENDING VÀ ORDER CHƯA BỊ HỦY) --- */}
+                    {order.status !== 'cancelled' && order.status !== 'completed' && order.items?.some(item => item.status === 'pending') && (
                         <button
                             onClick={async () => {
                                 try {
                                     await api.put(`/api/orders/${order.id}/status`, { status: 'processing' });
+                                    onOrderUpdated && onOrderUpdated(); // ✅ Refresh danh sách
                                     onClose();
                                 } catch (err) {
                                     alert("Lỗi: " + (err.response?.data?.message || err.message));
@@ -161,7 +190,6 @@ const OrderDetailModal = ({ order, onClose }) => {
                             }}
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 animate-pulse"
                         >
-                            <span className="material-symbols-outlined">restaurant_menu</span>
                             Xác nhận món mới ({order.items.filter(i => i.status === 'pending').length})
                         </button>
                     )}
@@ -172,7 +200,6 @@ const OrderDetailModal = ({ order, onClose }) => {
                             onClick={handleConfirmCash}
                             className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 animate-pulse"
                         >
-                            <span className="material-symbols-outlined">payments</span>
                             Xác nhận đã thu tiền mặt
                         </button>
                     )}
@@ -180,7 +207,6 @@ const OrderDetailModal = ({ order, onClose }) => {
 
                     <div className="flex gap-3">
                         <button onClick={handlePrint} className="flex-1 bg-gray-800 text-white py-3 rounded-xl font-bold shadow hover:bg-gray-900 transition-all flex items-center justify-center gap-2">
-                            <span className="material-symbols-outlined">print</span>
                             {t('waiter.print_invoice')}
                         </button>
                         <button onClick={onClose} className="px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded-xl font-bold hover:bg-gray-50 transition-all">

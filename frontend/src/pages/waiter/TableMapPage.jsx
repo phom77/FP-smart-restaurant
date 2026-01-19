@@ -50,7 +50,6 @@ const TableMapPage = () => {
         switch (status) {
             case 'available': return 'bg-emerald-50 border-emerald-200 text-emerald-700';
             case 'occupied': return 'bg-rose-50 border-rose-200 text-rose-700';
-            case 'reserved': return 'bg-amber-50 border-amber-200 text-amber-700';
             case 'dirty': return 'bg-gray-100 border-gray-300 text-gray-700';
             default: return 'bg-gray-50 border-gray-200 text-gray-600';
         }
@@ -106,10 +105,6 @@ const TableMapPage = () => {
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-rose-50 border border-rose-200 rounded shadow-sm"></div>
                     <span className="font-medium text-gray-600">{t('waiter.status.occupied')}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-amber-50 border border-amber-200 rounded shadow-sm"></div>
-                    <span className="font-medium text-gray-600">{t('waiter.status.reserved')}</span>
                 </div>
             </div>
         </div>

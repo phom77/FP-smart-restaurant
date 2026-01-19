@@ -3,4 +3,4 @@ dist/
 build/
 .env
 .DS_Store
-.vscode/
+.vscode/tree.txt

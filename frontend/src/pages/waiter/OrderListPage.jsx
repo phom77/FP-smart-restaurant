@@ -69,6 +69,15 @@ const OrderListPage = () => {
             fetchOrders();
         };
 
+        // ✅ Xử lý khi kết nối lại (Reconnection Handling)
+        const handleConnect = () => {
+            console.log("🔌 Socket reconnected. Re-joining 'waiter' room...");
+            socket.emit('join_room', 'waiter');
+            refreshOrders();
+        };
+
+        socket.on('connect', handleConnect);
+
         // Helper notification function
         const showNotification = (title, body) => {
             if (!("Notification" in window)) return;
@@ -102,9 +111,18 @@ const OrderListPage = () => {
         };
 
         const handlePaymentRequest = (data) => {
-            showNotification('💰 Yêu cầu thanh toán', `Bàn ${data.tableId || data.table_number || '???'} yêu cầu thanh toán`);
-            refreshOrders();
+            // Removed desktop notification - using persistent UI badge instead
+            // const invoiceText = data.requestInvoice ? ' - CẦN HÓA ĐƠN VAT ✓' : '';
+            // showNotification(
+            //     '💰 Yêu cầu thanh toán',
+            //     `Bàn ${data.tableNumber || data.tableId || '???'} yêu cầu thanh toán ${data.method === 'cash' ? 'Tiền mặt' : 'Thẻ'}${invoiceText}`
+            // );
+            // Delay nhẹ để đảm bảo DB đã cập nhật xong (tránh race condition)
+            setTimeout(() => {
+                refreshOrders();
+            }, 500);
         };
+
 
         socket.on('new_order', handleNewOrder);
         socket.on('order_status_updated', refreshOrders);
@@ -114,6 +132,7 @@ const OrderListPage = () => {
         socket.on('order_served_update', refreshOrders);
 
         return () => {
+            socket.off('connect', handleConnect);
             socket.off('new_order', handleNewOrder);
             socket.off('order_status_updated', refreshOrders);
             socket.off('item_status_update', handleItemUpdate);
@@ -126,6 +145,7 @@ const OrderListPage = () => {
     const handleAccept = async (orderId) => {
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'processing' }, getAuthHeader());
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
@@ -135,6 +155,7 @@ const OrderListPage = () => {
         if (!window.confirm(t('waiter.reject_confirm'))) return;
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'cancelled' }, getAuthHeader());
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
@@ -144,6 +165,7 @@ const OrderListPage = () => {
         if (!window.confirm(t('waiter.complete_confirm'))) return;
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: 'completed' }, getAuthHeader());
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
@@ -152,15 +174,35 @@ const OrderListPage = () => {
     const handleServed = async (orderId, currentStatus) => {
         try {
             await axios.put(`${API_URL}/api/orders/${orderId}/served`, { is_served: !currentStatus }, getAuthHeader());
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
     };
 
+    const handleRejectAdditionalItems = async (orderId, itemIds) => {
+        if (!window.confirm(`Bạn có chắc muốn từ chối ${itemIds.length} món này?`)) return;
+        try {
+            await axios.delete(`${API_URL}/api/orders/${orderId}/items`, {
+                ...getAuthHeader(),
+                data: { itemIds }
+            });
+            // Close modal if it's open for this order
+            if (selectedOrder?.id === orderId) {
+                setSelectedOrder(null);
+            }
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
+        } catch (err) {
+            alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
+        }
+    };
+
+
     const handleConfirmPayment = async (orderId) => {
         if (!window.confirm("Xác nhận đã thu tiền đơn này?")) return;
         try {
             await axios.post(`${API_URL}/api/payment/confirm-cash`, { orderId }, getAuthHeader());
+            fetchOrders(); // ✅ Cập nhật ngay lập tức
         } catch (err) {
             alert(t('common.failed') + ": " + (err.response?.data?.message || err.message));
         }
@@ -173,7 +215,7 @@ const OrderListPage = () => {
     );
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-lg min-h-[80vh] flex flex-col">
+        <div className="bg-white p-6 rounded-2xl shadow-lg min-h-[88vh] flex flex-col">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
                     <h2 className="text-3xl font-extrabold text-gray-800 tracking-tight">{t('waiter.order_list')}</h2>
@@ -188,7 +230,7 @@ const OrderListPage = () => {
                     >
                         <option value="pending">{t('waiter.status.pending')}</option>
                         <option value="processing">{t('waiter.status.processing')}</option>
-                        <option value="served">{t('waiter.status.served') || 'Đã phục vụ'}</option>
+                        <option value="served">{t('waiter.status.served')}</option>
                         <option value="completed">{t('waiter.status.completed')}</option>
                         <option value="cancelled">{t('waiter.status.cancelled')}</option>
                         <option value="all">{t('waiter.all_orders')}</option>
@@ -204,7 +246,7 @@ const OrderListPage = () => {
             <div className="flex-1">
                 {orders.length === 0 ? (
                     <div className="text-center py-20 text-gray-400 font-medium">
-                        {t('waiter.no_orders', { status: statusFilter === 'all' ? t('waiter.all_orders') : (statusFilter === 'served' ? 'Đã phục vụ' : t(`waiter.status.${statusFilter}`)) })}
+                        {t('waiter.no_orders', { status: statusFilter === 'all' ? t('waiter.all_orders') : t(`waiter.status.${statusFilter}`) })}
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -217,6 +259,7 @@ const OrderListPage = () => {
                                     onComplete={handleComplete}
                                     onServed={handleServed}
                                     onConfirmPayment={handleConfirmPayment}
+                                    onRejectAdditionalItems={handleRejectAdditionalItems}
                                     onViewDetails={() => setSelectedOrder(order)}
                                 />
                             </div>
@@ -295,6 +338,7 @@ const OrderListPage = () => {
                 <OrderDetailModal
                     order={selectedOrder}
                     onClose={() => setSelectedOrder(null)}
+                    onOrderUpdated={fetchOrders} // ✅ Truyền callback làm mới
                 />
             )}
         </div>

@@ -49,7 +49,7 @@ BEGIN
         h.h::INT as hour,
         COUNT(o.id)::BIGINT as order_count
     FROM generate_series(0, 23) h
-    LEFT JOIN orders o ON EXTRACT(HOUR FROM o.created_at) = h.h
+    LEFT JOIN orders o ON EXTRACT(HOUR FROM (o.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh')) = h.h
       AND o.status = 'completed'
       AND o.created_at >= p_start_date
       AND o.created_at <= p_end_date

@@ -61,17 +61,30 @@ exports.verifyMenuToken = async (req, res) => {
     }
 };
 
-// GET /api/menu/items - Get all menu items with filters
+// GET /api/menu/items - Get all menu items with filters and pagination
 exports.getMenuItems = async (req, res) => {
     try {
-        // 1. Lấy đủ tất cả tham số như code cũ
-        const { category_id, search, sort_by = 'name', is_available } = req.query;
+        // 1. Get all parameters including pagination
+        const {
+            category_id,
+            search,
+            sort_by = 'name',
+            is_available,
+            chef_recommendation,
+            page = 1,
+            limit = 20
+        } = req.query;
 
-        // 2. Tạo Cache Key ĐẦY ĐỦ (Bao gồm cả sort và available để không bị lẫn lộn kết quả)
-        // Ví dụ key: menu_cat1_searchNone_priceAsc_true
-        const cacheKey = `menu_${category_id || 'all'}_${search || 'none'}_${sort_by}_${is_available || 'all'}`;
+        // Calculate offset for pagination
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const offset = (pageNum - 1) * limitNum;
 
-        // 3. Kiểm tra Redis trước
+        // 2. Create Cache Key (include pagination and filters)
+        const cacheKey = `menu_${category_id || 'all'}_${search || 'none'}_${sort_by}_${is_available || 'all'}_${chef_recommendation || 'all'}_page${page}_limit${limit}`;
+
+        // 3. Check Redis cache first
+        /* 
         try {
             const cachedData = await redisClient.get(cacheKey);
             if (cachedData) {
@@ -81,11 +94,12 @@ exports.getMenuItems = async (req, res) => {
         } catch (redisErr) {
             console.log('Redis lỗi (bỏ qua):', redisErr.message);
         }
+        */
 
-        // 4. Logic Query Database (GIỮ NGUYÊN TỪ CODE CŨ CỦA BẠN)
+        // 4. Query Database with pagination
         let query = supabase
             .from('menu_items')
-            .select(`*, category:categories(id, name)`);
+            .select(`*, category:categories(id, name)`, { count: 'exact' });
 
         // Filter by category
         if (category_id) {
@@ -97,27 +111,50 @@ exports.getMenuItems = async (req, res) => {
             query = query.eq('is_available', is_available === 'true');
         }
 
+        // Filter by chef recommendation
+        if (chef_recommendation === 'true') {
+            query = query.eq('is_chef_recommendation', true);
+        }
+
         // Search by name
         if (search) {
             query = query.ilike('name', `%${search}%`);
         }
 
-        // Sort logic (Quan trọng)
+        // Sort logic
         if (sort_by === 'price_asc') {
             query = query.order('price', { ascending: true });
         } else if (sort_by === 'price_desc') {
             query = query.order('price', { ascending: false });
+        } else if (sort_by === 'popularity') {
+            query = query.order('order_count', { ascending: false });
         } else {
             query = query.order('name', { ascending: true });
         }
 
-        const { data, error } = await query;
+        // Apply pagination
+        query = query.range(offset, offset + limitNum - 1);
+
+        const { data, error, count } = await query;
 
         if (error) throw error;
 
-        const responseData = { success: true, data: data };
+        const totalPages = Math.ceil(count / limitNum);
+        const hasMore = offset + limitNum < count;
 
-        // 5. Lưu kết quả vào Redis (Hết hạn sau 1 giờ)
+        const responseData = {
+            success: true,
+            data: data,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total: count,
+                totalPages: totalPages,
+                hasMore: hasMore
+            }
+        };
+
+        // 5. Save to Redis cache (expires after 1 hour)
         try {
             await redisClient.setEx(cacheKey, 3600, JSON.stringify(responseData));
         } catch (e) {
@@ -228,7 +265,7 @@ exports.getMenuItemReviews = async (req, res) => {
 // POST /api/admin/menu-items
 exports.createMenuItem = async (req, res) => {
     try {
-        const { name, description, price, category_id, image_url, is_available } = req.body;
+        const { name, description, price, category_id, image_url, images, is_available } = req.body;
 
         // Basic validation
         if (!name || !price) {
@@ -249,7 +286,7 @@ exports.createMenuItem = async (req, res) => {
         const { data, error } = await supabase
             .from('menu_items')
             .insert([
-                { name, description, price, category_id, image_url, is_available }
+                { name, description, price, category_id, image_url, images, is_available }
             ])
             .select()
             .single();
@@ -257,7 +294,7 @@ exports.createMenuItem = async (req, res) => {
         if (error) throw error;
 
         // Invalidate cache
-        await clearCache('cache:/api/menu*');
+        await clearCache('menu_*');
 
         res.status(201).json({
             success: true,
@@ -273,7 +310,11 @@ exports.createMenuItem = async (req, res) => {
 exports.updateMenuItem = async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
+        const { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation } = req.body;
+
+        const updates = {
+            name, description, price, category_id, image_url, images, is_available, is_chef_recommendation
+        };
 
         // Check for duplicates if name is being updated
         if (updates.name) {
@@ -299,7 +340,7 @@ exports.updateMenuItem = async (req, res) => {
         if (error) throw error;
 
         // Invalidate cache
-        await clearCache('cache:/api/menu*');
+        await clearCache('menu_*');
 
         res.status(200).json({
             success: true,
@@ -324,7 +365,7 @@ exports.deleteMenuItem = async (req, res) => {
         if (error) throw error;
 
         // Invalidate cache
-        await clearCache('cache:/api/menu*');
+        await clearCache('menu_*');
 
         res.status(200).json({
             success: true,

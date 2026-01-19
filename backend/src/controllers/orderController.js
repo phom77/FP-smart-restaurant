@@ -2,6 +2,26 @@ const supabase = require('../config/supabaseClient');
 const { getIO } = require('../config/socket');
 const { updateOrderStatusSchema } = require('../utils/validation');
 
+// Utility function to get VAT rate from system settings
+const getVATRate = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'vat_rate')
+      .single();
+
+    if (error || !data) {
+      console.warn('⚠️ Could not fetch VAT rate from system_settings, using default 8%');
+      return 8;
+    }
+    return parseFloat(data.value);
+  } catch (err) {
+    console.error('Error fetching VAT rate:', err);
+    return 8; // Default fallback
+  }
+};
+
 // GET /api/waiter/orders
 exports.getOrders = async (req, res) => {
   try {
@@ -112,7 +132,36 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
-    // C. Automate Table Status (Best effort)
+    // C. Refund voucher if order is cancelled
+    if (status === 'cancelled' && updatedOrder.coupon_code) {
+      // Get coupon info
+      const { data: coupon } = await supabase
+        .from('coupons')
+        .select('id, used_count')
+        .eq('code', updatedOrder.coupon_code)
+        .single();
+
+      if (coupon) {
+        // Decrement used_count
+        await supabase
+          .from('coupons')
+          .update({ used_count: Math.max(0, coupon.used_count - 1) })
+          .eq('id', coupon.id);
+
+        // Delete coupon_usage record if customer exists
+        if (updatedOrder.customer_id) {
+          await supabase
+            .from('coupon_usage')
+            .delete()
+            .eq('coupon_id', coupon.id)
+            .eq('order_id', id);
+        }
+
+        console.log(`✅ Refunded voucher ${updatedOrder.coupon_code} for cancelled order #${id}`);
+      }
+    }
+
+    // D. Automate Table Status (Best effort)
     if (updatedOrder.table_id) {
       let newTableStatus = null;
 
@@ -235,7 +284,7 @@ exports.updateOrderServedStatus = async (req, res) => {
 };
 
 exports.createOrder = async (req, res) => {
-  const { table_id, items, customer_id, notes } = req.body;
+  const { table_id, items, customer_id, notes, coupon_code } = req.body;
 
   if (!items || items.length === 0) {
     return res.status(400).json({ success: false, message: 'Giỏ hàng trống' });
@@ -303,8 +352,8 @@ exports.createOrder = async (req, res) => {
     const menuMap = new Map(dbMenuItems.map(i => [i.id, i]));
     const modMap = new Map(dbModifiers.map(m => [m.id, m]));
 
-    // 2. Tính tiền (Logic cũ - Giữ nguyên)
-    let totalAmount = 0;
+    // 2. Tính tiền với thuế VAT
+    let subtotal = 0;
     const orderItemsData = [];
 
     for (const item of items) {
@@ -331,7 +380,7 @@ exports.createOrder = async (req, res) => {
       }
 
       const itemTotalPrice = itemUnitPrice * item.quantity;
-      totalAmount += itemTotalPrice;
+      subtotal += itemTotalPrice;
 
       orderItemsData.push({
         menu_item_id: item.menu_item_id,
@@ -343,13 +392,58 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // 3. Insert Order (Logic cũ - Giữ nguyên)
+    // Calculate tax
+    const vatRate = await getVATRate();
+    const taxAmount = subtotal * (vatRate / 100);
+    let totalBeforeDiscount = subtotal + taxAmount;
+
+    // 2.5. Validate and apply voucher if provided using couponService
+    let discountAmount = 0;
+    let validatedCouponCode = null;
+    let couponId = null;
+
+    if (coupon_code) {
+      const couponService = require('../services/couponService');
+
+      // Use centralized validation service (checks target_type, limit_per_user, etc.)
+      const validationResult = await couponService.verifyCouponCondition(
+        coupon_code,
+        subtotal,
+        customer_id
+      );
+
+      if (!validationResult.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: validationResult.message
+        });
+      }
+
+      // Extract validated data
+      discountAmount = validationResult.discountAmount;
+      validatedCouponCode = coupon_code;
+      couponId = validationResult.coupon.id;
+
+      // Increment global usage count
+      await supabase
+        .from('coupons')
+        .update({ used_count: validationResult.coupon.used_count + 1 })
+        .eq('id', couponId);
+    }
+
+    const totalAmount = totalBeforeDiscount - discountAmount;
+
+    // 3. Insert Order với thuế và voucher
     const { data: newOrder, error: orderInsertError } = await supabase
       .from('orders')
       .insert([{
         table_id,
         customer_id: customer_id || null,
         status: 'pending',
+        subtotal: subtotal,
+        tax_amount: taxAmount,
+        discount_amount: discountAmount,
+        coupon_code: validatedCouponCode,
         total_amount: totalAmount,
         payment_method: 'pay_later',
       }])
@@ -390,6 +484,17 @@ exports.createOrder = async (req, res) => {
 
         if (modInsertError) throw modInsertError;
       }
+    }
+
+    // 4.5. Record coupon usage for per-user limit tracking
+    if (couponId && customer_id) {
+      await supabase
+        .from('coupon_usage')
+        .insert([{
+          coupon_id: couponId,
+          user_id: customer_id,
+          order_id: newOrder.id
+        }]);
     }
 
     // --- 🟢 FIX 2: CẬP NHẬT TRẠNG THÁI BÀN ---
@@ -519,7 +624,7 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
     const modMap = new Map(dbModifiers.map(m => [m.id, m]));
 
     // 2. Calculate prices and prepare items
-    let additionalAmount = 0;
+    let additionalSubtotal = 0;
     const orderItemsData = [];
 
     for (const item of items) {
@@ -546,7 +651,7 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       }
 
       const itemTotalPrice = itemUnitPrice * item.quantity;
-      additionalAmount += itemTotalPrice;
+      additionalSubtotal += itemTotalPrice;
 
       orderItemsData.push({
         menu_item_id: item.menu_item_id,
@@ -592,20 +697,49 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       }
     }
 
-    // 4. Update order total amount
+    // 4. Update order total amount with tax recalculation and voucher preservation
     const { data: currentOrder, error: fetchOrderError } = await supabase
       .from('orders')
-      .select('total_amount, table_id')
+      .select('subtotal, tax_amount, total_amount, table_id, coupon_code, discount_amount')
       .eq('id', orderId)
       .single();
 
     if (fetchOrderError) throw fetchOrderError;
 
-    const newTotalAmount = parseFloat(currentOrder.total_amount) + additionalAmount;
+    const newSubtotal = parseFloat(currentOrder.subtotal || currentOrder.total_amount) + additionalSubtotal;
+    const vatRate = await getVATRate();
+    const newTaxAmount = newSubtotal * (vatRate / 100);
+
+    // Recalculate discount if voucher exists
+    let newDiscountAmount = 0;
+    if (currentOrder.coupon_code) {
+      const { data: coupon, error: couponError } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', currentOrder.coupon_code)
+        .single();
+
+      if (!couponError && coupon) {
+        // Recalculate discount based on new subtotal
+        if (coupon.discount_type === 'fixed') {
+          newDiscountAmount = parseFloat(coupon.discount_value);
+        } else {
+          newDiscountAmount = (newSubtotal * parseFloat(coupon.discount_value)) / 100;
+          if (coupon.max_discount_value && newDiscountAmount > parseFloat(coupon.max_discount_value)) {
+            newDiscountAmount = parseFloat(coupon.max_discount_value);
+          }
+        }
+      }
+    }
+
+    const newTotalAmount = newSubtotal + newTaxAmount - newDiscountAmount;
 
     const { error: updateError } = await supabase
       .from('orders')
       .update({
+        subtotal: newSubtotal,
+        tax_amount: newTaxAmount,
+        discount_amount: newDiscountAmount,
         total_amount: newTotalAmount,
         updated_at: new Date()
       })
@@ -642,7 +776,10 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       message: 'Đã thêm món vào đơn hàng hiện tại',
       order_id: orderId,
       items_added: orderItemsData.length,
-      additional_amount: additionalAmount,
+      additional_subtotal: additionalSubtotal,
+      new_subtotal: newSubtotal,
+      new_tax: newTaxAmount,
+      new_discount: newDiscountAmount,
       new_total: newTotalAmount
     });
 
@@ -658,6 +795,150 @@ exports.addItemsToOrder = async (req, res) => {
   const { items } = req.body;
   return await addItemsToExistingOrder(req, res, orderId, items);
 };
+
+// DELETE /api/orders/:id/items - Reject additional items
+exports.rejectAdditionalItems = async (req, res) => {
+  try {
+    const { id: orderId } = req.params;
+    const { itemIds } = req.body;
+
+    // Validation
+    if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp danh sách món cần từ chối'
+      });
+    }
+
+    // 1. Get items to be rejected (to calculate amount to subtract)
+    const { data: itemsToReject, error: fetchError } = await supabase
+      .from('order_items')
+      .select('id, total_price, order_id, menu_item:menu_items(name)')
+      .in('id', itemIds)
+      .eq('order_id', orderId)
+      .eq('status', 'pending'); // Only allow rejecting pending items
+
+    if (fetchError) throw fetchError;
+
+    if (!itemsToReject || itemsToReject.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không tìm thấy món pending để từ chối'
+      });
+    }
+
+    // 2. Calculate total amount to subtract
+    const subtotalToSubtract = itemsToReject.reduce((sum, item) =>
+      sum + parseFloat(item.total_price), 0
+    );
+
+    // 3. Delete the rejected items and their modifiers (CASCADE will handle modifiers)
+    const { error: deleteError } = await supabase
+      .from('order_items')
+      .delete()
+      .in('id', itemIds);
+
+    if (deleteError) throw deleteError;
+
+    // 4. Update order total amount with tax and voucher recalculation
+    const { data: currentOrder, error: fetchOrderError } = await supabase
+      .from('orders')
+      .select('subtotal, tax_amount, total_amount, table_id, coupon_code, discount_amount')
+      .eq('id', orderId)
+      .single();
+
+    if (fetchOrderError) throw fetchOrderError;
+
+    const newSubtotal = parseFloat(currentOrder.subtotal || currentOrder.total_amount) - subtotalToSubtract;
+    const vatRate = await getVATRate();
+    const newTaxAmount = newSubtotal * (vatRate / 100);
+
+    // Recalculate voucher discount if exists
+    let newDiscountAmount = 0;
+    if (currentOrder.coupon_code) {
+      const { data: coupon } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', currentOrder.coupon_code)
+        .single();
+
+      if (coupon) {
+        // Recalculate discount based on new subtotal
+        if (coupon.discount_type === 'fixed') {
+          newDiscountAmount = parseFloat(coupon.discount_value);
+        } else {
+          newDiscountAmount = (newSubtotal * parseFloat(coupon.discount_value)) / 100;
+          if (coupon.max_discount_value && newDiscountAmount > parseFloat(coupon.max_discount_value)) {
+            newDiscountAmount = parseFloat(coupon.max_discount_value);
+          }
+        }
+      }
+    }
+
+    const newTotalAmount = newSubtotal + newTaxAmount - newDiscountAmount;
+
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        subtotal: newSubtotal,
+        tax_amount: newTaxAmount,
+        discount_amount: newDiscountAmount,
+        total_amount: newTotalAmount,
+        updated_at: new Date()
+      })
+      .eq('id', orderId);
+
+    if (updateError) throw updateError;
+
+    // 5. Emit socket event to notify customer
+    const io = getIO();
+    const { data: tableInfo } = await supabase
+      .from('tables')
+      .select('table_number')
+      .eq('id', currentOrder.table_id)
+      .single();
+
+    // Notify customer at the table
+    if (currentOrder.table_id) {
+      io.to(`table_${currentOrder.table_id}`).emit('additional_items_rejected', {
+        order_id: orderId,
+        rejected_items: itemsToReject.map(item => ({
+          id: item.id,
+          name: item.menu_item?.name
+        })),
+        items_count: itemsToReject.length,
+        amount_refunded: subtotalToSubtract,
+        new_total: newTotalAmount,
+        message: `${itemsToReject.length} món đã bị từ chối bởi nhân viên`
+      });
+    }
+
+    // Notify waiter room to refresh
+    io.to('waiter').emit('order_status_updated', {
+      order_id: orderId,
+      updated_at: new Date()
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Đã từ chối ${itemsToReject.length} món`,
+      rejected_count: itemsToReject.length,
+      subtotal_refunded: subtotalToSubtract,
+      new_subtotal: newSubtotal,
+      new_tax: newTaxAmount,
+      new_total: newTotalAmount
+    });
+
+  } catch (err) {
+    console.error("Reject Additional Items Error:", err);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi từ chối món ăn',
+      error: err.message
+    });
+  }
+};
+
 
 // POST /api/orders/:id/checkout - Thanh toán
 exports.checkoutOrder = async (req, res) => {

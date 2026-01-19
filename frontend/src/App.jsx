@@ -11,7 +11,7 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import AdminSidebar from './pages/admin/AdminSidebar';
 import MenuManagement from './pages/admin/MenuManagement';
 import CategoryManagement from './pages/admin/CategoryManagement';
-import RevenuePage from './pages/admin/RevenuePage'; // Import RevenuePage
+import DashboardPage from './pages/admin/DashboardPage';
 import TableManagement from './pages/admin/TableManagement';
 import StaffManagement from './pages/admin/StaffManagement';
 import WaiterLayout from './layouts/WaiterLayout'; // Import WaiterLayout
@@ -27,6 +27,9 @@ import SuperAdminLayout from './layouts/SuperAdminLayout';
 import CreateAdminPage from './pages/superadmin/CreateAdminPage';
 import UserManagementPage from './pages/superadmin/UserManagementPage';
 import SystemSettingsPage from './pages/superadmin/SystemSettingsPage';
+import CreateCouponPage from './pages/admin/CreateCouponPage';
+import CouponListPage from './pages/admin/CouponListPage';
+import EditCouponPage from './pages/admin/EditCouponPage';
 import { Toaster } from 'react-hot-toast';
 import GuestActiveOrdersBanner from './components/customer/GuestActiveOrdersBanner'; // Import Banner
 import './App.css';
@@ -56,10 +59,12 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
           <Route path="/admin" element={<AdminSidebar />}>
             <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<div>Dashboard Placeholder</div>} />
+            <Route path="dashboard" element={<DashboardPage />} />
             <Route path="menu" element={<MenuManagement />} />
             <Route path="categories" element={<CategoryManagement />} />
-            <Route path="revenue" element={<RevenuePage />} />
+            <Route path="coupons/create" element={<CreateCouponPage />} />
+            <Route path="coupons" element={<CouponListPage />} />
+            <Route path="coupons/edit/:id" element={<EditCouponPage />} />
             <Route path="tables" element={<TableManagement />} />
             <Route path="staff" element={<StaffManagement />} />
           </Route>
