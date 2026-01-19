@@ -23,7 +23,11 @@ passport.use(
                     .single();
 
                 if (existingUser) {
-                    // User exists, return user
+                    // Check if user is banned
+                    if (!existingUser.is_verified) {
+                        return done(null, false, { message: 'Tài khoản đã bị khóa' });
+                    }
+                    // User exists and not banned, return user
                     return done(null, existingUser);
                 }
 

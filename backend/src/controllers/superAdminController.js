@@ -119,9 +119,16 @@ exports.banUser = async (req, res) => {
         const { is_active } = req.body; // true = mở, false = khóa
 
         // Dùng is_verified để chặn đăng nhập
+        // Khi ban: set is_verified = false và xóa verification_token để phân biệt với user chưa verify
+        const updateData = { is_verified: is_active };
+        if (!is_active) {
+            // When banning, clear verification_token to distinguish from unverified users
+            updateData.verification_token = null;
+        }
+
         const { error } = await supabase
             .from('users')
-            .update({ is_verified: is_active })
+            .update(updateData)
             .eq('id', id);
 
         if (error) throw error;
