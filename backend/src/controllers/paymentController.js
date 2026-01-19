@@ -108,6 +108,11 @@ exports.mockPayment = async (req, res) => {
             await supabase.from('tables').update({ status: 'available' }).eq('id', order.table_id);
 
             io.to(`table_${order.table_id}`).emit('payment_success', { orderId, status: 'paid' });
+
+            io.to('waiter').emit('table_status_update', {
+                table_id: order.table_id,
+                status: 'available'
+            });
         }
 
         res.json({ success: true, message: "Thanh toán giả lập thành công" });
@@ -154,7 +159,12 @@ exports.confirmPayment = async (req, res) => {
                 await supabase.from('tables').update({ status: 'available' }).eq('id', order.table_id);
 
                 io.to(`table_${order.table_id}`).emit('payment_success', { orderId, status: 'paid' });
-            }
+
+                io.to('waiter').emit('table_status_update', {
+                    table_id: order.table_id,
+                    status: 'available'
+                });
+            }   
 
             return res.json({ success: true });
         } else {
@@ -267,6 +277,11 @@ exports.confirmCashPayment = async (req, res) => {
                 status: 'paid'
             });
         }
+
+        io.to('waiter').emit('table_status_update', {
+            table_id: order.table_id,
+            status: 'available'
+        });
 
         res.json({ success: true, message: "Đã xác nhận thu tiền" });
     } catch (err) {
