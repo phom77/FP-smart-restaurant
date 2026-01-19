@@ -101,7 +101,10 @@ export default function MenuPage() {
     // Fetch menu items with fuzzy search
     useEffect(() => {
         const fetchMenuItems = async () => {
-            setLoading(true);
+            // Only show full loading on initial load or filter change (page 1)
+            if (page === 1) {
+                setLoading(true);
+            }
             setSearchLoading(true);
             try {
                 // Use fuzzy search if there's a search query
@@ -134,7 +137,9 @@ export default function MenuPage() {
                     setMenuItems(results);
                 } else {
                     // Standard menu fetch without search with pagination
-                    setLoadingMore(true);
+                    if (page > 1) {
+                        setLoadingMore(true);
+                    }
                     const params = {
                         is_available: 'true',
                         page: page,
@@ -174,6 +179,7 @@ export default function MenuPage() {
             } catch (error) {
                 console.error('Error fetching menu items:', error);
                 setMenuItems([]);
+                setLoadingMore(false);
             } finally {
                 setLoading(false);
                 setSearchLoading(false);
@@ -183,7 +189,7 @@ export default function MenuPage() {
         fetchMenuItems();
     }, [selectedCategory, debouncedSearch, sortBy, page, showChefRecommendation]);
 
-    // Reset page when filters change
+    // Reset page when filters change (but not when page itself changes)
     useEffect(() => {
         setPage(1);
         setMenuItems([]);

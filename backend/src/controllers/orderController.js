@@ -179,6 +179,12 @@ exports.updateOrderStatus = async (req, res) => {
           .from('tables')
           .update({ status: newTableStatus })
           .eq('id', updatedOrder.table_id);
+
+        const io = getIO();
+        io.to('waiter').emit('table_status_update', {
+            table_id: updatedOrder.table_id,
+            status: newTableStatus
+        });
       }
     }
 
@@ -200,12 +206,6 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
-    if (status === 'processing') {
-      io.to('kitchen').emit('new_order', {
-        message: 'Có món mới được duyệt',
-        order_id: id
-      });
-    }
 
     res.status(200).json({
       success: true,
@@ -519,6 +519,13 @@ exports.createOrder = async (req, res) => {
       created_at: newOrder.created_at,
       message: `Bàn ${tableData.table_number} vừa đặt món mới`
     });
+
+    if (table_id) {
+        io.to('waiter').emit('table_status_update', {
+            table_id: table_id,
+            status: 'occupied'
+        });
+    }
 
     // Báo cho Khách hàng (để chuyển trang Tracking)
     io.to(`table_${table_id}`).emit('order_status_update', {
@@ -942,9 +949,81 @@ exports.rejectAdditionalItems = async (req, res) => {
 
 // POST /api/orders/:id/checkout - Thanh toán
 exports.checkoutOrder = async (req, res) => {
-  // Logic thanh toán
-  res.status(200).json({ success: true, message: "Tính năng thanh toán đang phát triển" });
+  const { id } = req.params;
+  const { payment_method } = req.body; // 'cash', 'card', 'transfer'...
+
+  try {
+    // 1. Lấy thông tin đơn hàng hiện tại
+    const { data: order, error: fetchError } = await supabase
+      .from('orders')
+      .select('id, table_id, status, total_amount')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !order) {
+      return res.status(404).json({ success: false, message: 'Đơn hàng không tồn tại' });
+    }
+
+    if (order.status === 'completed' || order.status === 'cancelled') {
+      return res.status(400).json({ success: false, message: 'Đơn hàng này đã kết thúc' });
+    }
+
+    // 2. Cập nhật trạng thái đơn hàng -> 'completed'
+    const { error: updateOrderError } = await supabase
+      .from('orders')
+      .update({
+        status: 'completed',
+        payment_status: 'paid',
+        payment_method: payment_method || 'cash',
+        updated_at: new Date()
+      })
+      .eq('id', id);
+
+    if (updateOrderError) throw updateOrderError;
+
+    // 3. Giải phóng bàn -> 'available'
+    if (order.table_id) {
+      const { error: updateTableError } = await supabase
+        .from('tables')
+        .update({ status: 'available' })
+        .eq('id', order.table_id);
+
+      if (updateTableError) throw updateTableError;
+
+      // 4. 🔥 BẮN SOCKET THÔNG BÁO BÀN TRỐNG 🔥
+      const io = getIO();
+      
+      // Bắn sự kiện này để Admin/Waiter cập nhật lại danh sách bàn
+      io.to('waiter').emit('table_status_update', {
+        table_id: order.table_id,
+        status: 'available'
+      });
+
+      // Bắn sự kiện cập nhật đơn hàng (để danh sách đơn biến mất hoặc chuyển tab)
+      io.to('waiter').emit('order_status_updated', {
+        order_id: id,
+        status: 'completed'
+      });
+      
+      // Bắn cho bếp (để xóa đơn khỏi màn hình bếp nếu cần)
+      io.to('kitchen').emit('order_status_updated', {
+        order_id: id,
+        status: 'completed'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Thanh toán thành công. Bàn đã được giải phóng.',
+      order_id: id
+    });
+
+  } catch (err) {
+    console.error("Checkout Order Error:", err);
+    res.status(500).json({ success: false, message: 'Lỗi thanh toán', error: err.message });
+  }
 };
+
 // GET /api/orders/my-orders - Get all orders for logged-in customer
 exports.getCustomerOrders = async (req, res) => {
   try {

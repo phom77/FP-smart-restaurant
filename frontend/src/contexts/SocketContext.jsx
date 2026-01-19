@@ -1,33 +1,48 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import io from 'socket.io-client';
+// 1. Import useAuth để theo dõi trạng thái đăng nhập
+import { useAuth } from './AuthContext'; 
 
 const SocketContext = createContext();
 
 export const useSocket = () => useContext(SocketContext);
 
-// ... imports
-
 export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
-    // Lấy token từ localStorage (hoặc từ AuthContext nếu bạn muốn truyền vào)
-    // const token = localStorage.getItem('token'); // This line is moved inside useEffect
+    
+    // 2. Lấy token từ AuthContext (Thay vì lấy trực tiếp từ localStorage)
+    // Điều này giúp Socket biết khi nào user đăng nhập/đăng xuất
+    const { token } = useAuth(); 
 
     useEffect(() => {
-        // ✅ Kết nối WebSocket cho cả guest và authenticated users
-        const token = localStorage.getItem('token');
-
+        // Nếu không có token và bạn muốn Guest cũng dùng được (ví dụ khách hàng scan QR)
+        // thì vẫn connect. Nhưng nếu muốn chắc chắn, có thể check token ở đây.
+        
+        const currentToken = token || localStorage.getItem('token');
+        
         const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5001', {
             withCredentials: true,
             transports: ['websocket', 'polling'],
+            // 3. Quan trọng: Luôn gửi token mới nhất
             auth: {
-                token: token || null // Gửi token nếu có, null nếu là guest
-            }
+                token: currentToken
+            },
+            // Thêm options để đảm bảo kết nối ổn định hơn
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
         });
 
-        console.log('🔌 Connecting to WebSocket...', token ? 'with token' : 'as guest');
+        console.log(`🔌 Socket initializing... Token: ${currentToken ? 'Present' : 'Missing (Guest)'}`);
 
         newSocket.on('connect', () => {
             console.log('✅ WebSocket connected:', newSocket.id);
+            
+            // 4. Nếu là Admin/Kitchen, tự động rejoin room khi connect lại
+            // Logic này hỗ trợ cho việc reload trang hoặc rớt mạng
+            if (currentToken) {
+               // Bạn có thể emit sự kiện để backend biết user này là ai ngay lập tức nếu cần
+            }
         });
 
         newSocket.on('connect_error', (error) => {
@@ -36,11 +51,15 @@ export const SocketProvider = ({ children }) => {
 
         setSocket(newSocket);
 
+        // Cleanup: Ngắt kết nối khi component unmount hoặc TOKEN THAY ĐỔI
         return () => {
             console.log('🔌 Disconnecting WebSocket...');
-            newSocket.close();
+            newSocket.disconnect();
         };
-    }, []); // Chỉ connect một lần khi component mount
+
+    // 5. QUAN TRỌNG NHẤT: Thêm [token] vào dependency array
+    // Để mỗi khi đăng nhập/đăng xuất, socket sẽ tự khởi động lại với quyền mới
+    }, [token]); 
 
     return (
         <SocketContext.Provider value={socket}>
