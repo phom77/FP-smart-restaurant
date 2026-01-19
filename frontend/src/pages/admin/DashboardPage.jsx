@@ -232,7 +232,7 @@ const DashboardPage = () => {
                                     <Tooltip
                                         cursor={{ fill: '#f9fafb' }}
                                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(val) => [val, 'Quantity']}
+                                        formatter={(val) => [val, t('common.quantity')]}
                                     />
                                     <Bar dataKey="total_quantity" radius={[0, 10, 10, 0]} barSize={20}>
                                         {topProducts.map((entry, index) => (

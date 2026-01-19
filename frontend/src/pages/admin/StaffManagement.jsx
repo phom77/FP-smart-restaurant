@@ -246,7 +246,7 @@ const StaffManagement = () => {
                         <h2 className="text-2xl font-bold text-gray-800 mb-6">{t('staff.modal_add_title')}</h2>
                         <form onSubmit={handleCreateStaff} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Full Name</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">{t('staff.full_name')}</label>
                                 <input
                                     type="text" required
                                     value={formData.full_name}
@@ -273,18 +273,18 @@ const StaffManagement = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Role</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">{t('staff.role_label')}</label>
                                 <select
                                     value={formData.role}
                                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none"
                                 >
-                                    <option value="waiter">Waiter</option>
-                                    <option value="kitchen">Kitchen Staff</option>
+                                    <option value="waiter">{t('staff.role_waiter')}</option>
+                                    <option value="kitchen">{t('staff.role_kitchen')}</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Phone</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">{t('staff.phone_label')}</label>
                                 <input
                                     type="text"
                                     value={formData.phone}
@@ -298,7 +298,7 @@ const StaffManagement = () => {
                                     onClick={() => setIsAddModalOpen(false)}
                                     className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all"
                                 >
-                                    Cancel
+                                    {t('staff.cancel')}
                                 </button>
                                 <button
                                     type="submit"
@@ -319,7 +319,7 @@ const StaffManagement = () => {
                         <h2 className="text-2xl font-bold text-gray-800 mb-6">{t('staff.modal_edit_title')}</h2>
                         <form onSubmit={handleUpdateStaff} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Full Name</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">{t('staff.full_name')}</label>
                                 <input
                                     type="text" required
                                     value={editData.full_name}
@@ -328,18 +328,18 @@ const StaffManagement = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Role</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">{t('staff.role_label')}</label>
                                 <select
                                     value={editData.role}
                                     onChange={(e) => setEditData({ ...editData, role: e.target.value })}
                                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none"
                                 >
-                                    <option value="waiter">Waiter</option>
-                                    <option value="kitchen">Kitchen Staff</option>
+                                    <option value="waiter">{t('staff.role_waiter')}</option>
+                                    <option value="kitchen">{t('staff.role_kitchen')}</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Phone</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">{t('staff.phone_label')}</label>
                                 <input
                                     type="text"
                                     value={editData.phone}
@@ -348,10 +348,10 @@ const StaffManagement = () => {
                                 />
                             </div>
                             <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
-                                <label className="block text-sm font-bold text-amber-800 mb-1">Reset Password (Optional)</label>
+                                <label className="block text-sm font-bold text-amber-800 mb-1">{t('staff.reset_password')}</label>
                                 <input
                                     type="password"
-                                    placeholder="Leave blank to keep current"
+                                    placeholder={t('staff.leave_blank_password')}
                                     value={editData.password}
                                     onChange={(e) => setEditData({ ...editData, password: e.target.value })}
                                     className="w-full px-4 py-3 rounded-xl border border-amber-200 focus:ring-2 focus:ring-amber-500 outline-none bg-white font-medium"
@@ -363,7 +363,7 @@ const StaffManagement = () => {
                                     onClick={() => setIsEditModalOpen(false)}
                                     className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all"
                                 >
-                                    Cancel
+                                    {t('staff.cancel')}
                                 </button>
                                 <button
                                     type="submit"
@@ -382,7 +382,7 @@ const StaffManagement = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl scale-in-center">
                         <div className="flex justify-between items-start mb-6">
-                            <h2 className="text-2xl font-bold text-gray-800">Staff Details</h2>
+                            <h2 className="text-2xl font-bold text-gray-800">{t('staff.staff_details')}</h2>
                             <button onClick={() => setIsViewModalOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
                         </div>
                         <div className="space-y-4">
@@ -399,14 +399,19 @@ const StaffManagement = () => {
                                 <div className="p-4 bg-gray-50 rounded-xl">
                                     <p className="text-xs text-gray-400 font-bold uppercase flex items-center gap-1.5 mb-1">
                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                                        Role
+                                        {t('staff.role_label')}
                                     </p>
-                                    <p className="text-sm font-bold text-emerald-600 uppercase mt-1">{selectedStaff.role}</p>
+                                    <p className="text-sm font-bold text-emerald-600 uppercase mt-1">
+                                        {selectedStaff.role === 'admin' ? t('staff.role_admin') :
+                                            selectedStaff.role === 'kitchen' ? t('staff.role_kitchen') :
+                                                selectedStaff.role === 'waiter' ? t('staff.role_waiter') :
+                                                    selectedStaff.role}
+                                    </p>
                                 </div>
                                 <div className="p-4 bg-gray-50 rounded-xl">
                                     <p className="text-xs text-gray-400 font-bold uppercase flex items-center gap-1.5 mb-1">
                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                                        Phone
+                                        {t('staff.phone_label')}
                                     </p>
                                     <p className="text-sm font-bold text-gray-800 mt-1">{selectedStaff.phone || 'N/A'}</p>
                                 </div>
@@ -414,7 +419,7 @@ const StaffManagement = () => {
                             <div className="p-4 bg-gray-50 rounded-xl">
                                 <p className="text-xs text-gray-400 font-bold uppercase flex items-center gap-1.5 mb-1">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                    Joined Date
+                                    {t('staff.joined_date')}
                                 </p>
                                 <p className="text-sm text-gray-800 font-medium font-mono">
                                     {new Date(selectedStaff.created_at).toLocaleDateString()}

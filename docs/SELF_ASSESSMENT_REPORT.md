@@ -138,7 +138,7 @@ Students must input minus points to every uncompleted feature in the SE column.
 |  | Advanced authorization (RBAC) | 0.25 | x |  | Fine-grained role/permission management for Admin/Chef/Waiter and other staff roles |
 |  | WebSocket real-time updates | 0.5 | x |  | Socket.IO for real-time features: KDS order notifications, customer order status tracking, waiter new order alerts, kitchen ready notifications, table status updates |
 |  | Multi-tenant support | 0.5 |  |  | Multiple restaurants (tenants) with strict data isolation; tenant-scoped RBAC and configuration |
-|  | Multilingual support | 0.25 |  |  | i18n for English/Vietnamese language selection |
+|  | Multilingual support | 0.25 | x |  | i18n for English/Vietnamese language selection |
 
 # **GIT HISTORY**
 

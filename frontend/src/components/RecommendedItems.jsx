@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 
 export default function RecommendedItems({ menuItemId, onItemClick }) {
+    const { t } = useTranslation();
     const [recommendations, setRecommendations] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -46,9 +48,9 @@ export default function RecommendedItems({ menuItemId, onItemClick }) {
 
     return (
         <div className="space-y-4">
-            <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                <span>💡</span>
-                Món ăn gợi ý
+            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <span className="material-symbols-outlined text-yellow-500">lightbulb</span>
+                {t('menu.recommendation_title')}
             </h3>
 
             {/* Horizontal Scroll Carousel */}
@@ -68,8 +70,8 @@ export default function RecommendedItems({ menuItemId, onItemClick }) {
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-4xl">
-                                    🍽️
+                                <div className="w-full h-full flex items-center justify-center text-4xl text-gray-300">
+                                    <span className="material-symbols-outlined text-4xl">restaurant</span>
                                 </div>
                             )}
 
@@ -97,14 +99,16 @@ export default function RecommendedItems({ menuItemId, onItemClick }) {
                             {item.recommendation_reason && (
                                 <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                                     {item.recommendation_reason === 'frequently_ordered_together' && (
-                                        <span className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                                            🔥 Thường gọi cùng
-                                        </span>
+                                        <div className="inline-flex items-start gap-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-lg">
+                                            <span className="flex-shrink-0">🔥</span>
+                                            <span className="leading-snug">{t('menu.frequently_ordered')}</span>
+                                        </div>
                                     )}
                                     {item.recommendation_reason === 'same_category' && (
-                                        <span className="bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full">
-                                            📂 Cùng loại
-                                        </span>
+                                        <div className="inline-flex items-start gap-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-lg">
+                                            <span className="material-symbols-outlined text-sm flex-shrink-0">folder</span>
+                                            <span className="leading-snug">{t('menu.same_category')}</span>
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -115,7 +119,7 @@ export default function RecommendedItems({ menuItemId, onItemClick }) {
 
             {/* Scroll Hint */}
             <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                ← Vuốt để xem thêm →
+                ← {t('menu.swipe_hint')} →
             </p>
         </div>
     );
