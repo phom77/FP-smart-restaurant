@@ -111,7 +111,9 @@ exports.createTable = async (req, res) => {
     // Update table with the signed token
     const { data: finalTable, error: updateError } = await supabase
       .from('tables')
-      .update({ qr_code_token: signedToken })
+      .update({ qr_code_token: signedToken,
+        token_created_at: new Date().toISOString()
+       })
       .eq('id', table.id)
       .select()
       .single();
@@ -206,7 +208,7 @@ exports.regenerateAllQR = async (req, res) => {
   try {
     // Để làm mới tất cả các token khác nhau, ta cần fetch ra rồi update từng dòng hoặc dùng RPC nếu database logic phức tạp.
     // Ở đây ta đơn giản là lấy toàn bộ danh sách ID rồi update.
-    const { data: tables, error: fetchError } = await supabase.from('tables').select('id');
+    const { data: tables, error: fetchError } = await supabase.from('tables').select('id, table_number');
     if (fetchError) throw fetchError;
 
     const updates = tables.map(t => ({

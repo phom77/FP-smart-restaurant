@@ -3,8 +3,10 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import QRCode from 'react-qr-code';
+import { useSocket } from '../../contexts/SocketContext';
 
 const TableManagement = () => {
+    const socket = useSocket();
     const { t } = useTranslation();
     const [tables, setTables] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -85,6 +87,60 @@ const TableManagement = () => {
             toast.error('Failed to delete table');
         }
     };
+
+    useEffect(() => {
+        if (!socket) return;
+
+        // Join room
+        socket.emit('join_room', 'waiter'); 
+
+        // Hàm helper: Chỉ sửa đúng cái bàn cần sửa trong State
+        // Không hiện loading, không nháy màn hình
+        const updateTableStateSilently = (tableId, newStatus) => {
+            setTables(prevTables => prevTables.map(table => {
+                // So sánh id (dùng == để chấp nhận cả string '1' và number 1)
+                if (table.id == tableId) {
+                    console.log(`✨ Silent Update: Bàn ${table.table_number} -> ${newStatus}`);
+                    return { ...table, status: newStatus };
+                }
+                return table;
+            }));
+        };
+
+        // 1. Xử lý sự kiện cập nhật trạng thái bàn (Sự kiện chính)
+        // Backend bắn cái này khi: Thanh toán xong, Hủy đơn, Chuyển bàn...
+        const handleTableUpdate = (data) => {
+            updateTableStateSilently(data.table_id, data.status);
+        };
+
+        // 2. Xử lý sự kiện có đơn mới (Khách vừa ngồi xuống)
+        const handleNewOrder = (data) => {
+            if (data.table_id) {
+                updateTableStateSilently(data.table_id, 'occupied');
+            }
+        };
+
+        // 3. Xử lý sự kiện thanh toán thành công (Phòng hờ backend quên bắn table_status_update)
+        const handlePaymentSuccess = (data) => {
+             // Lưu ý: Nếu backend bắn event này vào room 'table_ID' thì admin (room waiter) có thể không nghe thấy.
+             // Nhưng ở các bước trước tôi đã code backend bắn 'table_status_update' cho room waiter rồi.
+             // Nên ở đây ta không cần làm gì thêm để tránh bị update 2 lần.
+        };
+
+        // Đăng ký sự kiện
+        socket.on('table_status_update', handleTableUpdate);
+        socket.on('new_order', handleNewOrder);
+        // socket.on('payment_success', handlePaymentSuccess); // Không cần thiết
+
+        // ⚠️ QUAN TRỌNG: 
+        // Tôi đã XÓA BỎ hoàn toàn các dòng `fetchTables()` ở đây.
+        // Điều này giúp màn hình đứng yên, chỉ có màu sắc bàn thay đổi.
+
+        return () => {
+            socket.off('table_status_update', handleTableUpdate);
+            socket.off('new_order', handleNewOrder);
+        };
+    }, [socket]);
 
     const handlePrint = async (table) => {
         try {
