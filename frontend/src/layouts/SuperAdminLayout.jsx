@@ -43,7 +43,7 @@ export default function SuperAdminLayout() {
                 className={`
                     fixed inset-y-0 left-0 z-50 w-64 bg-white text-gray-700 shadow-2xl transition-transform duration-300 ease-in-out
                     ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-                    md:translate-x-0 md:static md:inset-auto md:shadow-xl
+                    md:translate-x-0
                 `}
             >
                 <div className="h-full flex flex-col">
@@ -62,7 +62,7 @@ export default function SuperAdminLayout() {
                     </div>
 
                     {/* Navigation Links */}
-                    <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                    <nav className="flex-1 px-4 py-6 space-y-2">
                         {navItems.map((item) => (
                             <NavLink
                                 key={item.path}
@@ -106,7 +106,7 @@ export default function SuperAdminLayout() {
             </aside>
 
             {/* 3. MAIN CONTENT AREA */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50">
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 md:ml-64">
                 {/* Mobile Header */}
                 <header className="bg-white border-b border-gray-200 h-16 flex items-center px-4 md:hidden shadow-sm sticky top-0 z-30">
                     <button

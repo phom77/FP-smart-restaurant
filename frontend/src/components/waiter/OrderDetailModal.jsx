@@ -32,11 +32,17 @@ const OrderDetailModal = ({ order, onClose, onOrderUpdated }) => {
         iframeDoc.write('th:nth-child(2), td:nth-child(2) { text-align: center; }');
         iframeDoc.write('.mb-6 { margin-bottom: 24px; }');
         iframeDoc.write('.mb-4 { margin-bottom: 16px; }');
+        iframeDoc.write('.mb-3 { margin-bottom: 12px; }');
         iframeDoc.write('.text-sm { font-size: 14px; }');
         iframeDoc.write('.text-xs { font-size: 12px; }');
         iframeDoc.write('.flex { display: flex; }');
         iframeDoc.write('.justify-between { justify-content: space-between; }');
         iframeDoc.write('.items-center { align-items: center; }');
+        iframeDoc.write('.space-y-2 > * + * { margin-top: 8px; }');
+        iframeDoc.write('.border-t { border-top: 1px solid #ccc; }');
+        iframeDoc.write('.pt-3 { padding-top: 12px; }');
+        iframeDoc.write('.text-gray-600 { color: #4b5563; }');
+        iframeDoc.write('.text-emerald-600 { color: #059669; }');
         iframeDoc.write('</style>');
         iframeDoc.write('</head><body>');
         iframeDoc.write(printContent);
@@ -136,7 +142,27 @@ const OrderDetailModal = ({ order, onClose, onOrderUpdated }) => {
 
                         <hr className="my-4 border-dashed border-gray-400" />
 
-                        <div className="flex justify-between items-center text-lg font-bold">
+                        {/* Subtotal, Tax, Discount Breakdown */}
+                        <div className="space-y-2 mb-3">
+                            <div className="flex justify-between text-sm text-gray-600">
+                                <span>{t('waiter.subtotal')}</span>
+                                <span>{parseInt(order.subtotal || order.total_amount).toLocaleString()}đ</span>
+                            </div>
+                            {order.tax_amount > 0 && (
+                                <div className="flex justify-between text-sm text-gray-600">
+                                    <span>{t('waiter.tax_vat')}</span>
+                                    <span>{parseInt(order.tax_amount).toLocaleString()}đ</span>
+                                </div>
+                            )}
+                            {order.discount_amount > 0 && (
+                                <div className="flex justify-between text-sm text-emerald-600">
+                                    <span>{t('waiter.discount')} {order.coupon_code ? `(${order.coupon_code})` : ''}</span>
+                                    <span>-{parseInt(order.discount_amount).toLocaleString()}đ</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-between items-center text-lg font-bold border-t border-gray-300 pt-3">
                             <span>{t('waiter.total')}</span>
                             <span>{parseInt(order.total_amount).toLocaleString()}đ</span>
                         </div>
