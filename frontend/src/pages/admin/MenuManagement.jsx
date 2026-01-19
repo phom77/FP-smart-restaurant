@@ -323,7 +323,7 @@ const MenuManagement = () => {
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                     </button>
                                     {newItem.image_url === imgUrl && (
-                                        <span className="absolute bottom-0 left-0 right-0 bg-emerald-500/80 text-white text-[10px] text-center font-bold">Main</span>
+                                        <span className="absolute bottom-0 left-0 right-0 bg-emerald-500/80 text-white text-[10px] text-center font-bold">{t('common.main')}</span>
                                     )}
                                     {newItem.image_url !== imgUrl && (
                                         <button
@@ -331,7 +331,7 @@ const MenuManagement = () => {
                                             onClick={() => setNewItem({ ...newItem, image_url: imgUrl })}
                                             className="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
-                                            Set Main
+                                            {t('common.set_main')}
                                         </button>
                                     )}
                                 </div>
@@ -353,7 +353,7 @@ const MenuManagement = () => {
                                     >
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                     </button>
-                                    <div className="absolute bottom-0 left-0 right-0 bg-blue-500/80 text-white text-[10px] text-center font-bold">New</div>
+                                    <div className="absolute bottom-0 left-0 right-0 bg-blue-500/80 text-white text-[10px] text-center font-bold">{t('common.new')}</div>
                                 </div>
                             ))}
                         </div>
@@ -400,7 +400,7 @@ const MenuManagement = () => {
                                         {item.image_url ? (
                                             <img src={item.image_url} alt={item.name} className="h-14 w-14 object-cover rounded-xl shadow-sm" />
                                         ) : (
-                                            <span className="text-gray-300 text-xs">No Image</span>
+                                            <span className="text-gray-300 text-xs">{t('common.no_image')}</span>
                                         )}
                                     </div>
                                 </td>
@@ -559,7 +559,7 @@ const MenuManagement = () => {
                             {/* Image Gallery Thumbnails */}
                             {viewItem.images && viewItem.images.length > 1 && (
                                 <div className="mt-6">
-                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Gallery</h4>
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{t('common.gallery')}</h4>
                                     <div className="flex gap-2 overflow-x-auto pb-2">
                                         {viewItem.images.map((img, idx) => (
                                             <button

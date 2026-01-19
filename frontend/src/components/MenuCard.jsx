@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function MenuCard({ item, onClick }) {
+    const { t } = useTranslation();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     // Get all available images (prioritize images array, fallback to image_url)
@@ -55,7 +57,7 @@ export default function MenuCard({ item, onClick }) {
                             <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <p className="text-sm font-medium">Chưa có ảnh</p>
+                            <p className="text-sm font-medium">{t('common.no_image')}</p>
                         </div>
                     </div>
                 )}
@@ -81,13 +83,13 @@ export default function MenuCard({ item, onClick }) {
                 {item.is_chef_recommendation && (
                     <div className="absolute top-2 sm:top-3 left-2 sm:left-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shadow-lg flex items-center gap-1 z-10">
                         <span>👨‍🍳</span>
-                        <span className="hidden sm:inline">Chef's Choice</span>
+                        <span className="hidden sm:inline">{t('menu.chefs_choice')}</span>
                         <span className="sm:hidden">Chef</span>
                     </div>
                 )}
                 {!item.is_available && (
                     <div className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-red-600 text-white px-2 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shadow-lg z-10">
-                        Hết món
+                        {t('menu.out_of_stock')}
                     </div>
                 )}
             </div>

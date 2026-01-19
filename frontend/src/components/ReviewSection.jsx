@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import ReviewForm from './ReviewForm';
 
 export default function ReviewSection({ menuItemId, avgRating, reviewCount }) {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -67,14 +69,14 @@ export default function ReviewSection({ menuItemId, avgRating, reviewCount }) {
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-md">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
-                        Đánh giá món ăn
+                        {t('reviews.title')}
                     </h3>
                     {user && (
                         <button
                             onClick={() => setShowForm(!showForm)}
                             className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-green-600 transition-all shadow-md hover:shadow-lg"
                         >
-                            {showForm ? 'Ẩn form' : '✍️ Viết đánh giá'}
+                            {showForm ? t('reviews.hide_btn') : t('reviews.write_btn')}
                         </button>
                     )}
                 </div>
@@ -88,7 +90,7 @@ export default function ReviewSection({ menuItemId, avgRating, reviewCount }) {
                             {renderStars(Math.round(avgRating || 0))}
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                            {reviewCount || 0} đánh giá
+                            {reviewCount || 0} {t('reviews.count_suffix')}
                         </p>
                     </div>
                 </div>
@@ -105,19 +107,19 @@ export default function ReviewSection({ menuItemId, avgRating, reviewCount }) {
             {/* Reviews List */}
             <div className="space-y-4">
                 <h4 className="text-lg font-bold text-gray-800 dark:text-white">
-                    Nhận xét từ khách hàng
+                    {t('reviews.customer_reviews')}
                 </h4>
 
                 {loading ? (
                     <div className="text-center py-8">
                         <div className="animate-spin rounded-full h-10 w-10 border-4 border-emerald-500 border-t-transparent mx-auto"></div>
-                        <p className="text-gray-600 dark:text-gray-400 mt-4">Đang tải đánh giá...</p>
+                        <p className="text-gray-600 dark:text-gray-400 mt-4">{t('reviews.loading')}</p>
                     </div>
                 ) : reviews.length === 0 ? (
                     <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-2xl">
                         <div className="text-6xl mb-4">💬</div>
                         <p className="text-gray-600 dark:text-gray-400">
-                            Chưa có đánh giá nào. Hãy là người đầu tiên!
+                            {t('reviews.empty')}
                         </p>
                     </div>
                 ) : (
@@ -130,7 +132,7 @@ export default function ReviewSection({ menuItemId, avgRating, reviewCount }) {
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
                                         <p className="font-bold text-gray-800 dark:text-white">
-                                            {review.user?.full_name || 'Khách hàng'}
+                                            {review.user?.full_name || t('reviews.anonymous')}
                                         </p>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">
                                             {formatDate(review.created_at)}
@@ -155,17 +157,17 @@ export default function ReviewSection({ menuItemId, avgRating, reviewCount }) {
                                     disabled={page === 1}
                                     className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
-                                    ← Trước
+                                    ← {t('reviews.prev')}
                                 </button>
                                 <span className="px-4 py-2 text-gray-700 dark:text-gray-300 font-semibold">
-                                    Trang {page} / {totalPages}
+                                    {t('reviews.page')} {page} / {totalPages}
                                 </span>
                                 <button
                                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                     disabled={page === totalPages}
                                     className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
-                                    Sau →
+                                    {t('reviews.next')} →
                                 </button>
                             </div>
                         )}

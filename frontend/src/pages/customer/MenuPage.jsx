@@ -274,7 +274,7 @@ export default function MenuPage() {
                     </div>
 
                     {/* Category Tabs */}
-                    <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-x-auto pb-2 scrollbar-hide">
+                    <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-x-auto p-1 scrollbar-hide">
                         <button
                             className={`px-4 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all shadow-md ${selectedCategory === 'all'
                                 ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg scale-105'

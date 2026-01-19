@@ -210,20 +210,20 @@ const TableManagement = () => {
                         </style>
                     </head>
                     <body>
-                        <button class="no-print print-btn" onclick="window.print()">Print This QR</button>
+                        <button class="no-print print-btn" onclick="window.print()">${t('table.print_btn')}</button>
                         <div class="wrapper">
                             <div class="brand-title">${t('common.appName').toUpperCase()}</div>
-                            <div class="brand-subtitle">Contactless Ordering System</div>
+                            <div class="brand-subtitle">${t('table.contactless_ordering')}</div>
                             
-                            <div class="table-label">Table</div>
+                            <div class="table-label">${t('table.table_label')}</div>
                             <div class="table-number">${table.table_number}</div>
 
                             <div class="qr-container">
                                 <img src="${qrImage}" class="qr-image" />
                             </div>
 
-                            <div class="instructions">SCAN TO ORDER</div>
-                            <div class="instruction-steps">1. Open Camera  |  2. Scan QR  |  3. Enjoy</div>
+                            <div class="instructions">${t('table.scan_to_order')}</div>
+                            <div class="instruction-steps">${t('table.scan_instructions')}</div>
                         </div>
                     </body>
                 </html>
@@ -440,10 +440,10 @@ const TableManagement = () => {
                             className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer whitespace-nowrap min-w-[140px]"
                         >
                             <option value="">{t('table.all_locations')}</option>
-                            <option value="Indoor">Indoor</option>
-                            <option value="Outdoor">Outdoor</option>
-                            <option value="Patio">Patio</option>
-                            <option value="VIP Room">VIP Room</option>
+                            <option value="Indoor">{t('table.location_indoor')}</option>
+                            <option value="Outdoor">{t('table.location_outdoor')}</option>
+                            <option value="Patio">{t('table.location_patio')}</option>
+                            <option value="VIP Room">{t('table.location_vip')}</option>
                         </select>
 
                         <select
@@ -466,7 +466,7 @@ const TableManagement = () => {
             ) : (
                 <>
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                             <p className="text-gray-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('table.total_tables')}</p>
                             <p className="text-2xl font-black text-gray-800">{tables.length}</p>
@@ -479,10 +479,7 @@ const TableManagement = () => {
                             <p className="text-orange-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('table.occupied')}</p>
                             <p className="text-2xl font-black text-orange-600">{tables.filter(t => t.status === 'occupied').length}</p>
                         </div>
-                        <div className="bg-amber-50/30 p-4 rounded-2xl shadow-sm border border-amber-50">
-                            <p className="text-amber-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('table.reserved')}</p>
-                            <p className="text-2xl font-black text-amber-600">{tables.filter(t => t.status === 'reserved').length}</p>
-                        </div>
+
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -540,7 +537,17 @@ const TableManagement = () => {
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-gray-400">{t('table.location')}</span>
-                                        <span className="font-medium text-gray-600 px-2 py-0.5 bg-gray-100 rounded-lg">{table.location || t('table.not_set')}</span>
+                                        <span className="font-medium text-gray-600 px-2 py-0.5 bg-gray-100 rounded-lg">
+                                            {(() => {
+                                                switch (table.location) {
+                                                    case 'Indoor': return t('table.location_indoor');
+                                                    case 'Outdoor': return t('table.location_outdoor');
+                                                    case 'Patio': return t('table.location_patio');
+                                                    case 'VIP Room': return t('table.location_vip');
+                                                    default: return table.location || t('table.not_set');
+                                                }
+                                            })()}
+                                        </span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-gray-400">{t('table.token_created')}</span>
@@ -550,7 +557,7 @@ const TableManagement = () => {
                                     </div>
                                     <div className="pt-2 border-t border-gray-50 flex items-center justify-between">
                                         <span className={`text-[10px] font-black uppercase tracking-widest ${table.status === 'available' ? 'text-emerald-500' : 'text-orange-500'}`}>
-                                            {table.status}
+                                            {t(`table.${table.status}`)}
                                         </span>
                                     </div>
                                 </div>
@@ -597,10 +604,10 @@ const TableManagement = () => {
                                         value={newTable.location}
                                         onChange={(e) => setNewTable({ ...newTable, location: e.target.value })}
                                     >
-                                        <option value="Indoor">Indoor</option>
-                                        <option value="Outdoor">Outdoor</option>
-                                        <option value="Patio">Patio</option>
-                                        <option value="VIP Room">VIP Room</option>
+                                        <option value="Indoor">{t('table.location_indoor')}</option>
+                                        <option value="Outdoor">{t('table.location_outdoor')}</option>
+                                        <option value="Patio">{t('table.location_patio')}</option>
+                                        <option value="VIP Room">{t('table.location_vip')}</option>
                                     </select>
                                 </div>
                                 <div>
@@ -668,10 +675,10 @@ const TableManagement = () => {
                                         value={editData.location}
                                         onChange={(e) => setEditData({ ...editData, location: e.target.value })}
                                     >
-                                        <option value="Indoor">Indoor</option>
-                                        <option value="Outdoor">Outdoor</option>
-                                        <option value="Patio">Patio</option>
-                                        <option value="VIP Room">VIP Room</option>
+                                        <option value="Indoor">{t('table.location_indoor')}</option>
+                                        <option value="Outdoor">{t('table.location_outdoor')}</option>
+                                        <option value="Patio">{t('table.location_patio')}</option>
+                                        <option value="VIP Room">{t('table.location_vip')}</option>
                                     </select>
                                 </div>
                                 <div>
@@ -692,7 +699,7 @@ const TableManagement = () => {
                                     >
                                         <option value="available">{t('table.available')}</option>
                                         <option value="occupied">{t('table.occupied')}</option>
-                                        <option value="reserved">{t('table.reserved')}</option>
+
                                     </select>
                                 </div>
                                 <div className="flex gap-3 pt-4">
@@ -754,7 +761,17 @@ const TableManagement = () => {
                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0L6.343 16.657a8 8 0 1111.314 0z" /></svg>
                                         {t('table.location')}
                                     </p>
-                                    <p className="text-sm text-gray-800 font-medium">{selectedTable.location || t('table.not_set')}</p>
+                                    <p className="text-sm text-gray-800 font-medium">
+                                        {(() => {
+                                            switch (selectedTable.location) {
+                                                case 'Indoor': return t('table.location_indoor');
+                                                case 'Outdoor': return t('table.location_outdoor');
+                                                case 'Patio': return t('table.location_patio');
+                                                case 'VIP Room': return t('table.location_vip');
+                                                default: return selectedTable.location || t('table.not_set');
+                                            }
+                                        })()}
+                                    </p>
                                 </div>
                                 <div className="p-4 bg-gray-50 rounded-xl">
                                     <p className="text-xs text-gray-400 font-bold uppercase flex items-center gap-1.5 mb-1">
