@@ -101,8 +101,9 @@ exports.mockPayment = async (req, res) => {
 
         // Bắn socket
         const io = getIO();
-        // Báo cho Waiter
+        // Báo cho Waiter và Kitchen
         io.to('waiter').emit('order_paid', { orderId });
+        io.to('kitchen').emit('order_paid', { orderId });
         if (order && order.table_id) {
             await supabase.from('tables').update({ status: 'available' }).eq('id', order.table_id);
 
@@ -147,6 +148,7 @@ exports.confirmPayment = async (req, res) => {
             const io = getIO();
 
             io.to('waiter').emit('order_paid', { orderId });
+            io.to('kitchen').emit('order_paid', { orderId });
             if (order && order.table_id) {
                 // --- 🟢 FIX: Giải phóng bàn ---
                 await supabase.from('tables').update({ status: 'available' }).eq('id', order.table_id);
@@ -199,10 +201,11 @@ exports.handleWebhook = async (req, res) => {
             response_log: paymentIntent
         }]);
 
-        // Bắn Socket báo cho Waiter và Khách
+        // Bắn Socket báo cho Waiter, Kitchen và Khách
         const io = getIO();
         io.to(`table_${orderId}`).emit('payment_success', { orderId });
         io.to('waiter').emit('order_paid', { orderId });
+        io.to('kitchen').emit('order_paid', { orderId });
 
         // --- 🟢 FIX: Giải phóng bàn ---
         const { data: orderInfo } = await supabase.from('orders').select('table_id').eq('id', orderId).single();
@@ -256,6 +259,7 @@ exports.confirmCashPayment = async (req, res) => {
         const io = getIO();
 
         io.to('waiter').emit('order_paid', { orderId });
+        io.to('kitchen').emit('order_paid', { orderId });
 
         if (order.table_id) {
             io.to(`table_${order.table_id}`).emit('payment_success', {

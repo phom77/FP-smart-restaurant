@@ -573,7 +573,9 @@ i18n
                         col_total: 'Total Qty',
                         notes: 'notes',
                         refresh_tooltip: 'Refresh',
-                        logout_tooltip: 'Logout'
+                        logout_tooltip: 'Logout',
+                        language_tooltip: 'Change Language',
+                        order_completed_toast: 'Order completed'
                     },
                     superadmin: {
                         sidebar: {
@@ -1249,7 +1251,9 @@ i18n
                         col_total: 'Tổng SL',
                         notes: 'ghi chú',
                         refresh_tooltip: 'Làm mới',
-                        logout_tooltip: 'Đăng xuất'
+                        logout_tooltip: 'Đăng xuất',
+                        language_tooltip: 'Đổi ngôn ngữ',
+                        order_completed_toast: 'Đơn hàng đã hoàn thành'
                     },
                     superadmin: {
                         sidebar: {

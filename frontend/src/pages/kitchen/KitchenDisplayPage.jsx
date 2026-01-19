@@ -72,7 +72,7 @@ export default function KitchenDisplayPage() {
             } catch (e) { }
 
             toast.success(t('kitchen.new_order_toast', { table: data.table_number || data.table_id }));
-            fetchKitchenOrders(); 
+            fetchKitchenOrders();
         };
 
         // B. Khi có update món (từ người khác hoặc chính mình)
@@ -94,13 +94,22 @@ export default function KitchenDisplayPage() {
             }));
         };
 
+        // C. Khi đơn hàng đã thanh toán xong
+        const handleOrderPaid = (data) => {
+            console.log("💰 Đơn hàng đã thanh toán, xóa khỏi bếp:", data);
+            setOrders(prevOrders => prevOrders.filter(order => order.id !== data.orderId));
+            toast.success(t('kitchen.order_completed_toast'));
+        };
+
         socket.on('new_order', handleNewOrder);
         socket.on('kitchen_item_update', handleItemUpdate);
+        socket.on('order_paid', handleOrderPaid);
 
         return () => {
             socket.off('connect', joinKitchenRoom);
             socket.off('new_order', handleNewOrder);
             socket.off('kitchen_item_update', handleItemUpdate);
+            socket.off('order_paid', handleOrderPaid);
         };
     }, [socket, t]);
 
@@ -268,21 +277,24 @@ export default function KitchenDisplayPage() {
                                                         </p>
                                                     )}
                                                 </div>
-                                                {item.order_item_modifiers?.length > 0 && (
-                                                    <p className="text-xs text-gray-500 mb-1 leading-relaxed">
-                                                        + {item.order_item_modifiers.map(m => m.modifier_name).join(', ')}
-                                                    </p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {item.status === 'pending' && (
+                                                    <button
+                                                        onClick={() => handleUpdateItem(item.id, 'preparing')}
+                                                        className="flex-1 bg-white border border-gray-200 text-gray-700 py-2 rounded-xl text-sm font-bold hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95"
+                                                    >
+                                                        {t('kitchen.action_start')}
+                                                    </button>
                                                 )}
-
                                                 {item.status === 'preparing' && (
                                                     <button
                                                         onClick={() => handleUpdateItem(item.id, 'ready')}
                                                         className="flex-1 bg-emerald-600 text-white py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-sm transition-all active:scale-95 shadow-emerald-200"
                                                     >
-                                                        <span className="material-symbols-outlined text-lg">check</span> {t('kitchen.action_complete')}
+                                                        ✓ {t('kitchen.action_complete')}
                                                     </button>
                                                 )}
-
                                                 {item.status === 'ready' && (
                                                     <div className="flex-1 text-center text-emerald-600 font-bold text-sm py-2 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center gap-1">
                                                         <span className="material-symbols-outlined text-base">check_circle</span>
@@ -291,32 +303,8 @@ export default function KitchenDisplayPage() {
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="flex gap-2">
-                                            {item.status === 'pending' && (
-                                                <button
-                                                    onClick={() => handleUpdateItem(item.id, 'preparing')}
-                                                    className="flex-1 bg-white border border-gray-200 text-gray-700 py-2 rounded-xl text-sm font-bold hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95"
-                                                >
-                                                    {t('kitchen.action_start')}
-                                                </button>
-                                            )}
-                                            {item.status === 'preparing' && (
-                                                <button
-                                                    onClick={() => handleUpdateItem(item.id, 'ready')}
-                                                    className="flex-1 bg-emerald-600 text-white py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-sm transition-all active:scale-95 shadow-emerald-200"
-                                                >
-                                                    ✓ {t('kitchen.action_complete')}
-                                                </button>
-                                            )}
-                                            {item.status === 'ready' && (
-                                                <div className="flex-1 text-center text-emerald-600 font-bold text-sm py-2 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center gap-1">
-                                                    <span className="material-symbols-outlined text-base">check_circle</span>
-                                                    {t('kitchen.action_done')}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                             <div className="px-4 py-3 bg-gray-50/50 border-t border-gray-100">
                                 <div className="text-xs text-gray-400 font-medium text-center flex items-center justify-center gap-1">
@@ -351,70 +339,72 @@ export default function KitchenDisplayPage() {
                 </button>
             </div>
 
-            {showSummary && (
-                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                    <span className="p-2 bg-emerald-50 rounded-lg text-emerald-600 material-symbols-outlined">analytics</span>
-                                    {t('kitchen.modal_title')}
-                                </h2>
-                                <p className="text-sm text-gray-500 mt-1 pl-12">
-                                    {t('kitchen.modal_total', { count: summaryData.reduce((acc, [_, v]) => acc + v.count, 0) })}
-                                </p>
+            {
+                showSummary && (
+                    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                        <span className="p-2 bg-emerald-50 rounded-lg text-emerald-600 material-symbols-outlined">analytics</span>
+                                        {t('kitchen.modal_title')}
+                                    </h2>
+                                    <p className="text-sm text-gray-500 mt-1 pl-12">
+                                        {t('kitchen.modal_total', { count: summaryData.reduce((acc, [_, v]) => acc + v.count, 0) })}
+                                    </p>
+                                </div>
+                                <button onClick={() => setShowSummary(false)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all">
+                                    <span className="material-symbols-outlined text-xl">close</span>
+                                </button>
                             </div>
-                            <button onClick={() => setShowSummary(false)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all">
-                                <span className="material-symbols-outlined text-xl">close</span>
-                            </button>
-                        </div>
-                        <div className="p-6 overflow-y-auto flex-1">
-                            <table className="w-full">
-                                <thead className="text-gray-500 text-xs uppercase font-bold tracking-wider bg-gray-50 sticky top-0 rounded-lg">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left first:rounded-l-lg">{t('kitchen.col_item')}</th>
-                                        <th className="px-4 py-3 text-center">{t('kitchen.col_pending')}</th>
-                                        <th className="px-4 py-3 text-center">{t('kitchen.col_preparing')}</th>
-                                        <th className="px-4 py-3 text-right last:rounded-r-lg">{t('kitchen.col_total')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {summaryData.map(([name, data]) => (
-                                        <tr key={name} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-4 font-medium text-gray-800">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                                                    {name}
-                                                </div>
-                                                {data.notes.length > 0 && (
-                                                    <div className="text-xs text-red-500 font-medium mt-1.5 ml-4.5 bg-red-50 inline-block px-2 py-0.5 rounded border border-red-100">
-                                                        Note: {data.notes.length}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-4 text-center">
-                                                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${data.pending > 0 ? 'bg-gray-100 text-gray-600' : 'text-gray-300'}`}>
-                                                    {data.pending}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-4 text-center">
-                                                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${data.preparing > 0 ? 'bg-yellow-50 text-yellow-700' : 'text-gray-300'}`}>
-                                                    {data.preparing}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-4 text-right">
-                                                <span className="font-bold text-lg text-emerald-600">
-                                                    {data.count}
-                                                </span>
-                                            </td>
+                            <div className="p-6 overflow-y-auto flex-1">
+                                <table className="w-full">
+                                    <thead className="text-gray-500 text-xs uppercase font-bold tracking-wider bg-gray-50 sticky top-0 rounded-lg">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left first:rounded-l-lg">{t('kitchen.col_item')}</th>
+                                            <th className="px-4 py-3 text-center">{t('kitchen.col_pending')}</th>
+                                            <th className="px-4 py-3 text-center">{t('kitchen.col_preparing')}</th>
+                                            <th className="px-4 py-3 text-right last:rounded-r-lg">{t('kitchen.col_total')}</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {summaryData.map(([name, data]) => (
+                                            <tr key={name} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-4 font-medium text-gray-800">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                                                        {name}
+                                                    </div>
+                                                    {data.notes.length > 0 && (
+                                                        <div className="text-xs text-red-500 font-medium mt-1.5 ml-4.5 bg-red-50 inline-block px-2 py-0.5 rounded border border-red-100">
+                                                            Note: {data.notes.length}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-4 text-center">
+                                                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${data.pending > 0 ? 'bg-gray-100 text-gray-600' : 'text-gray-300'}`}>
+                                                        {data.pending}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-4 text-center">
+                                                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${data.preparing > 0 ? 'bg-yellow-50 text-yellow-700' : 'text-gray-300'}`}>
+                                                        {data.preparing}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-4 text-right">
+                                                    <span className="font-bold text-lg text-emerald-600">
+                                                        {data.count}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
