@@ -154,14 +154,10 @@ const StaffManagement = () => {
             ) : (
                 <>
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                             <p className="text-gray-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.total_staff')}</p>
                             <p className="text-2xl font-black text-gray-800">{staff.length}</p>
-                        </div>
-                        <div className="bg-emerald-50/30 p-4 rounded-2xl shadow-sm border border-emerald-50">
-                            <p className="text-emerald-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.admins')}</p>
-                            <p className="text-2xl font-black text-emerald-600">{staff.filter(s => s.role === 'admin').length}</p>
                         </div>
                         <div className="bg-blue-50/30 p-4 rounded-2xl shadow-sm border border-blue-50">
                             <p className="text-blue-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.waiters')}</p>
@@ -285,7 +281,6 @@ const StaffManagement = () => {
                                 >
                                     <option value="waiter">Waiter</option>
                                     <option value="kitchen">Kitchen Staff</option>
-                                    <option value="admin">Admin</option>
                                 </select>
                             </div>
                             <div>
@@ -341,7 +336,6 @@ const StaffManagement = () => {
                                 >
                                     <option value="waiter">Waiter</option>
                                     <option value="kitchen">Kitchen Staff</option>
-                                    <option value="admin">Admin</option>
                                 </select>
                             </div>
                             <div>

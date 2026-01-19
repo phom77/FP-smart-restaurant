@@ -50,8 +50,8 @@ exports.createStaff = async (req, res) => {
         }
 
         // 1. Validate Input Strict
-        const { error: validationError } = registerSchema.validate({ 
-            email, password, full_name, phone, role 
+        const { error: validationError } = registerSchema.validate({
+            email, password, full_name, phone, role
         });
         if (validationError) {
             return res.status(400).json({ success: false, message: validationError.details[0].message });
@@ -90,10 +90,10 @@ exports.createStaff = async (req, res) => {
         // 5. Gửi mail
         await sendStaffInvitation(email, full_name, password, verificationToken);
 
-        res.status(201).json({ 
-            success: true, 
+        res.status(201).json({
+            success: true,
             message: 'Tạo nhân viên thành công. Đã gửi email xác thực.',
-            data: newStaff 
+            data: newStaff
         });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -106,10 +106,25 @@ exports.updateStaff = async (req, res) => {
         const { id } = req.params;
         const { full_name, role, phone, password } = req.body;
 
+        // Check if the staff member exists and is not an admin
+        const { data: existingStaff, error: fetchError } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !existingStaff) {
+            return res.status(404).json({ success: false, message: 'Staff not found' });
+        }
+
+        if (existingStaff.role === 'admin') {
+            return res.status(403).json({ success: false, message: 'Cannot update admin accounts' });
+        }
+
         const updateData = {};
         if (full_name) updateData.full_name = full_name;
         if (role) {
-            if (!['waiter', 'kitchen', 'admin'].includes(role)) {
+            if (!['waiter', 'kitchen'].includes(role)) {
                 return res.status(400).json({ success: false, message: 'Invalid role' });
             }
             updateData.role = role;
