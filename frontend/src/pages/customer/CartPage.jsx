@@ -642,9 +642,19 @@ export default function CartPage() {
                 <button
                     onClick={handleCheckout}
                     disabled={loading || !selectedTable}
-                    className="w-full py-3 sm:py-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-base sm:text-lg font-bold rounded-xl hover:from-emerald-600 hover:to-green-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                    className="w-full py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-lg font-bold rounded-2xl hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] flex items-center justify-center gap-2"
                 >
-                    {loading ? t('customer.cart.processing') : t('customer.cart.checkout')}
+                    {loading ? (
+                        <>
+                            <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            {t('customer.cart.processing')}
+                        </>
+                    ) : (
+                        <>
+                            <span className="material-symbols-outlined">shopping_cart_checkout</span>
+                            {t('customer.cart.checkout')}
+                        </>
+                    )}
                 </button>
             </div>
         </div>

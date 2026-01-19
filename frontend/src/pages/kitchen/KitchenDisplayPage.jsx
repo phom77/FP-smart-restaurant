@@ -126,7 +126,7 @@ export default function KitchenDisplayPage() {
 
     // Xử lý Logout
     const handleLogout = () => {
-        if (window.confirm(t('kitchen.logout_confirm'))) {
+        if (window.confirm(t('common.logout_confirm'))) {
             logout();
             navigate('/login');
         }
@@ -196,47 +196,52 @@ export default function KitchenDisplayPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 p-4 pb-20">
+        <div className="min-h-screen bg-gray-50 p-4 pb-20 md:p-6 md:pb-24">
             {/* ========== HEADER ========== */}
-            <header className="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm gap-4">
+            <header className="flex flex-col sm:flex-row justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm border border-gray-100 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">🍳 {t('kitchen.title')}</h1>
-                    <p className="text-gray-500">
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent flex items-center gap-2">
+                        <span>🍳</span> {t('kitchen.title')}
+                    </h1>
+                    <p className="text-gray-500 font-medium mt-1">
                         {t('kitchen.subtitle', { count: orders.length })}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setShowSummary(true)}
-                        className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-gray-800 shadow-lg transition-all active:scale-95"
+                        className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-5 py-3 rounded-2xl font-bold hover:bg-emerald-100 transition-all active:scale-95 border border-emerald-100"
                     >
-                        <span className="material-symbols-outlined">analytics</span>
+                        <span className="material-symbols-outlined text-xl">analytics</span>
                         {t('kitchen.summary_btn')} ({summaryData.reduce((acc, [_, v]) => acc + v.count, 0)})
                     </button>
                 </div>
             </header>
 
             {/* ========== ORDERS GRID ========== */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {orders.map(order => {
                     const allReady = order.order_items.every(item => item.status === 'ready');
 
                     return (
                         <div
                             key={order.id}
-                            className={`bg-white rounded-xl shadow-sm border-2 overflow-hidden flex flex-col transition-all ${allReady ? 'border-green-500 ring-2 ring-green-200' : 'border-gray-200'
+                            className={`bg-white rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all hover:shadow-md ${allReady ? 'border-emerald-500 ring-2 ring-emerald-100' : 'border-gray-100'
                                 }`}
                         >
                             {/* Order Header */}
-                            <div className={`${getHeaderColor(order.created_at)} text-white p-4 flex justify-between items-center`}>
+                            <div className={`${getHeaderColor(order.created_at)} text-white p-4 flex justify-between items-center bg-gradient-to-r from-opacity-90 to-opacity-100`}>
                                 <div>
-                                    <h3 className="text-xl font-bold">{t('kitchen.table')} {order.tables?.table_number}</h3>
-                                    <p className="text-xs opacity-90 font-mono">#{order.id.slice(0, 8)}</p>
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-lg">table_restaurant</span>
+                                        {t('kitchen.table')} {order.tables?.table_number}
+                                    </h3>
+                                    <p className="text-xs opacity-90 font-mono mt-0.5">#{order.id.slice(0, 8)}</p>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-2xl font-bold font-mono">{getElapsedTime(order.created_at)}</div>
+                                    <div className="text-2xl font-bold font-mono tracking-tight">{getElapsedTime(order.created_at)}</div>
                                     {allReady && (
-                                        <span className="text-xs bg-white/20 px-2 py-1 rounded-full animate-pulse">
+                                        <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded-full font-medium mt-1">
                                             ✓ {t('kitchen.all_done')}
                                         </span>
                                     )}
@@ -244,43 +249,41 @@ export default function KitchenDisplayPage() {
                             </div>
 
                             {/* Order Items */}
-                            <div className="p-3 flex-1 space-y-3">
+                            <div className="p-4 flex-1 space-y-4">
                                 {order.order_items.map(item => {
                                     const badge = getStatusBadge(item.status);
 
                                     return (
-                                        <div key={item.id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                                        <div key={item.id} className="relative pl-3">
+                                            {/* Left color bar indicator */}
+                                            <div className={`absolute left-0 top-1 bottom-1 w-1 rounded-full ${item.status === 'ready' ? 'bg-emerald-500' : item.status === 'preparing' ? 'bg-yellow-400' : 'bg-gray-200'}`}></div>
+
                                             {/* Item Info */}
-                                            <div className="flex justify-between items-start mb-2">
+                                            <div className="flex justify-between items-start mb-3">
                                                 <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="font-bold text-xl text-gray-800 bg-white px-2 py-0.5 rounded">
+                                                    <div className="flex items-baseline gap-2 mb-1">
+                                                        <span className="font-bold text-lg text-gray-800 tabular-nums">
                                                             {item.quantity}x
                                                         </span>
-                                                        <span className="font-semibold text-gray-800">
+                                                        <span className="font-semibold text-gray-800 leading-tight">
                                                             {item.menu_items?.name}
                                                         </span>
                                                     </div>
 
                                                     {/* Modifiers */}
                                                     {item.order_item_modifiers?.length > 0 && (
-                                                        <p className="text-xs text-gray-600 ml-11">
+                                                        <p className="text-xs text-gray-500 mb-1 leading-relaxed">
                                                             + {item.order_item_modifiers.map(m => m.modifier_name).join(', ')}
                                                         </p>
                                                     )}
 
                                                     {/* Notes */}
                                                     {item.notes && (
-                                                        <p className="text-xs text-red-600 font-bold ml-11 mt-1 italic bg-red-50 px-2 py-1 rounded">
+                                                        <p className="inline-block text-xs text-red-600 font-bold bg-red-50 px-2 py-1 rounded-lg mt-1 border border-red-100">
                                                             📝 {item.notes}
                                                         </p>
                                                     )}
                                                 </div>
-
-                                                {/* Status Badge */}
-                                                <span className={`${badge.bg} ${badge.text} px-2 py-1 rounded text-xs font-bold`}>
-                                                    {badge.label}
-                                                </span>
                                             </div>
 
                                             {/* Action Buttons */}
@@ -288,7 +291,7 @@ export default function KitchenDisplayPage() {
                                                 {item.status === 'pending' && (
                                                     <button
                                                         onClick={() => handleUpdateItem(item.id, 'preparing')}
-                                                        className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm transition-all active:scale-95"
+                                                        className="flex-1 bg-white border border-gray-200 text-gray-700 py-2 rounded-xl text-sm font-bold hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95"
                                                     >
                                                         {t('kitchen.action_start')}
                                                     </button>
@@ -297,15 +300,16 @@ export default function KitchenDisplayPage() {
                                                 {item.status === 'preparing' && (
                                                     <button
                                                         onClick={() => handleUpdateItem(item.id, 'ready')}
-                                                        className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-green-700 shadow-sm transition-all active:scale-95"
+                                                        className="flex-1 bg-emerald-600 text-white py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-sm transition-all active:scale-95 shadow-emerald-200"
                                                     >
                                                         ✓ {t('kitchen.action_complete')}
                                                     </button>
                                                 )}
 
                                                 {item.status === 'ready' && (
-                                                    <div className="flex-1 text-center text-green-600 font-bold text-sm py-2 bg-green-50 rounded-lg border-2 border-green-200">
-                                                        ✓ {t('kitchen.action_done')}
+                                                    <div className="flex-1 text-center text-emerald-600 font-bold text-sm py-2 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center gap-1">
+                                                        <span className="material-symbols-outlined text-base">check_circle</span>
+                                                        {t('kitchen.action_done')}
                                                     </div>
                                                 )}
                                             </div>
@@ -315,9 +319,10 @@ export default function KitchenDisplayPage() {
                             </div>
 
                             {/* Order Footer */}
-                            <div className="p-3 bg-gray-50 border-t border-gray-200">
-                                <div className="text-xs text-gray-500 text-center">
-                                    {t('waiter.date')}: {new Date(order.created_at).toLocaleTimeString('vi-VN')}
+                            <div className="px-4 py-3 bg-gray-50/50 border-t border-gray-100">
+                                <div className="text-xs text-gray-400 font-medium text-center flex items-center justify-center gap-1">
+                                    <span className="material-symbols-outlined text-sm">schedule</span>
+                                    {new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                 </div>
                             </div>
                         </div>
@@ -326,110 +331,103 @@ export default function KitchenDisplayPage() {
 
                 {/* Empty State */}
                 {orders.length === 0 && (
-                    <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-400">
-                        <span className="material-symbols-outlined text-7xl mb-4">soup_kitchen</span>
-                        <p className="text-xl font-medium">{t('kitchen.empty_title')}</p>
+                    <div className="col-span-full flex flex-col items-center justify-center min-h-[85vh] py-24 text-gray-400 bg-white rounded-3xl border border-gray-100 shadow-sm">
+                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+                            <span className="material-symbols-outlined text-4xl text-gray-300">soup_kitchen</span>
+                        </div>
+                        <p className="text-xl font-bold text-gray-600">{t('kitchen.empty_title')}</p>
                         <p className="text-sm text-gray-400 mt-2">{t('kitchen.empty_desc')}</p>
                     </div>
                 )}
             </div>
 
             {/* ========== FLOATING ACTION BUTTONS (Góc dưới trái) ========== */}
-            <div className="fixed bottom-6 left-6 flex flex-col gap-3 z-40">
+            <div className="fixed bottom-8 left-8 flex flex-col gap-4 z-40">
                 <button
                     onClick={toggleLanguage}
-                    className="w-12 h-12 bg-white text-indigo-600 rounded-full shadow-lg border border-gray-100 flex items-center justify-center hover:bg-indigo-50 hover:scale-110 transition-all group relative"
+                    className="w-12 h-12 bg-white text-emerald-600 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 hover:scale-105 transition-all group"
                     title={t('kitchen.language_tooltip') || 'Change Language'}
                 >
-                    <span className="material-symbols-outlined text-2xl">language</span>
-                    {/* Tooltip */}
-                    <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {i18n.language === 'vi' ? 'English' : 'Tiếng Việt'}
-                    </span>
+                    <span className="material-symbols-outlined text-xl">language</span>
                 </button>
 
                 <button
                     onClick={fetchKitchenOrders}
-                    className="w-12 h-12 bg-white text-emerald-600 rounded-full shadow-lg border border-gray-100 flex items-center justify-center hover:bg-emerald-50 hover:scale-110 transition-all group relative"
+                    className="w-12 h-12 bg-white text-emerald-600 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center hover:bg-emerald-50 hover:scale-105 transition-all group"
                     title={t('kitchen.refresh_tooltip')}
                 >
-                    <span className={`material-symbols-outlined text-2xl ${loading ? 'animate-spin' : ''}`}>refresh</span>
-                    {/* Tooltip */}
-                    <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {t('kitchen.refresh_tooltip')}
-                    </span>
+                    <span className={`material-symbols-outlined text-xl ${loading ? 'animate-spin' : ''}`}>refresh</span>
                 </button>
 
                 <button
                     onClick={handleLogout}
-                    className="w-12 h-12 bg-white text-red-500 rounded-full shadow-lg border border-gray-100 flex items-center justify-center hover:bg-red-50 hover:scale-110 transition-all group relative"
+                    className="w-12 h-12 bg-white text-red-500 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center hover:bg-red-50 hover:scale-105 transition-all group"
                     title={t('kitchen.logout_tooltip')}
                 >
-                    <span className="material-symbols-outlined text-2xl">logout</span>
-                    {/* Tooltip */}
-                    <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {t('kitchen.logout_tooltip')}
-                    </span>
+                    <span className="material-symbols-outlined text-xl">logout</span>
                 </button>
             </div>
 
             {/* ========== SUMMARY MODAL ========== */}
             {showSummary && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col">
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
                         {/* Modal Header */}
-                        <div className="p-5 border-b flex justify-between items-center bg-gradient-to-r from-emerald-50 to-white rounded-t-2xl">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-800">📊 {t('kitchen.modal_title')}</h2>
-                                <p className="text-sm text-gray-500 mt-1">
+                                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                    <span className="p-2 bg-emerald-50 rounded-lg text-emerald-600 material-symbols-outlined">analytics</span>
+                                    {t('kitchen.modal_title')}
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-1 pl-12">
                                     {t('kitchen.modal_total', { count: summaryData.reduce((acc, [_, v]) => acc + v.count, 0) })}
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowSummary(false)}
-                                className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition"
+                                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
                             >
-                                <span className="material-symbols-outlined text-2xl">close</span>
+                                <span className="material-symbols-outlined text-xl">close</span>
                             </button>
                         </div>
 
                         {/* Modal Body */}
-                        <div className="p-5 overflow-y-auto flex-1">
+                        <div className="p-6 overflow-y-auto flex-1">
                             <table className="w-full">
-                                <thead className="text-gray-600 text-xs uppercase bg-gray-100 sticky top-0">
+                                <thead className="text-gray-500 text-xs uppercase font-bold tracking-wider bg-gray-50 sticky top-0 rounded-lg">
                                     <tr>
-                                        <th className="px-4 py-3 text-left rounded-l-lg">{t('kitchen.col_item')}</th>
+                                        <th className="px-4 py-3 text-left first:rounded-l-lg">{t('kitchen.col_item')}</th>
                                         <th className="px-4 py-3 text-center">{t('kitchen.col_pending')}</th>
                                         <th className="px-4 py-3 text-center">{t('kitchen.col_preparing')}</th>
-                                        <th className="px-4 py-3 text-right rounded-r-lg">{t('kitchen.col_total')}</th>
+                                        <th className="px-4 py-3 text-right last:rounded-r-lg">{t('kitchen.col_total')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {summaryData.map(([name, data]) => (
-                                        <tr key={name} className="hover:bg-gray-50">
+                                        <tr key={name} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-4 py-4 font-medium text-gray-800">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                                                     {name}
                                                 </div>
                                                 {data.notes.length > 0 && (
-                                                    <div className="text-xs text-red-500 font-normal mt-1 ml-4">
-                                                        ⚠️ {data.notes.length} {t('kitchen.notes')}
+                                                    <div className="text-xs text-red-500 font-medium mt-1.5 ml-4.5 bg-red-50 inline-block px-2 py-0.5 rounded border border-red-100">
+                                                        Note: {data.notes.length}
                                                     </div>
                                                 )}
                                             </td>
                                             <td className="px-4 py-4 text-center">
-                                                <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold">
+                                                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${data.pending > 0 ? 'bg-gray-100 text-gray-600' : 'text-gray-300'}`}>
                                                     {data.pending}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-4 text-center">
-                                                <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">
+                                                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${data.preparing > 0 ? 'bg-yellow-50 text-yellow-700' : 'text-gray-300'}`}>
                                                     {data.preparing}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-4 text-right">
-                                                <span className="font-bold text-2xl text-emerald-600">
+                                                <span className="font-bold text-lg text-emerald-600">
                                                     {data.count}
                                                 </span>
                                             </td>

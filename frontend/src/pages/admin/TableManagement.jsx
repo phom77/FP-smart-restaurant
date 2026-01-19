@@ -212,7 +212,7 @@ const TableManagement = () => {
                     <body>
                         <button class="no-print print-btn" onclick="window.print()">Print This QR</button>
                         <div class="wrapper">
-                            <div class="brand-title">SMART RESTAURANT</div>
+                            <div class="brand-title">${t('common.appName').toUpperCase()}</div>
                             <div class="brand-subtitle">Contactless Ordering System</div>
                             
                             <div class="table-label">Table</div>

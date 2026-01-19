@@ -9,7 +9,7 @@ export default function CreateAdminPage() {
         email: '',
         phone: '',
         password: '',
-        restaurant_name: 'Smart Restaurant'
+        restaurant_name: t('common.appName')
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', content: '' });
@@ -51,35 +51,38 @@ export default function CreateAdminPage() {
 
     return (
         <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-                <div className="mb-6">
-                    <h2 className="text-lg font-bold text-gray-800">{t('superadmin.create_admin.title')}</h2>
-                    <p className="text-sm text-gray-500">{t('superadmin.create_admin.subtitle')}</p>
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                <div className="mb-8 border-b border-gray-100 pb-4">
+                    <h2 className="text-2xl font-bold text-gray-800 tracking-tight">{t('superadmin.create_admin.title')}</h2>
+                    <p className="text-gray-500 mt-1">{t('superadmin.create_admin.subtitle')}</p>
                 </div>
 
                 {message.content && (
-                    <div className={`p-4 rounded-lg mb-6 ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                        {message.content}
+                    <div className={`p-4 rounded-xl mb-6 flex items-start gap-3 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' : 'bg-red-50 text-red-800 border border-red-100'}`}>
+                        <span className="material-symbols-outlined text-xl mt-0.5">
+                            {message.type === 'success' ? 'check_circle' : 'error'}
+                        </span>
+                        <span>{message.content}</span>
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('superadmin.create_admin.owner_name')}</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">{t('superadmin.create_admin.owner_name')}</label>
                             <input
                                 type="text"
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition-all placeholder-gray-400 font-medium"
                                 value={formData.full_name}
                                 onChange={e => setFormData({ ...formData, full_name: e.target.value })}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('superadmin.create_admin.phone')}</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">{t('superadmin.create_admin.phone')}</label>
                             <input
                                 type="text"
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition-all placeholder-gray-400 font-medium"
                                 value={formData.phone}
                                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
                             />
@@ -88,21 +91,21 @@ export default function CreateAdminPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('superadmin.create_admin.email')}</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">{t('superadmin.create_admin.email')}</label>
                             <input
                                 type="email"
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition-all placeholder-gray-400 font-medium"
                                 value={formData.email}
                                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('superadmin.create_admin.password')}</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">{t('superadmin.create_admin.password')}</label>
                             <input
                                 type="text"
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none font-mono"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none font-mono text-sm transition-all placeholder-gray-400"
                                 placeholder={t('superadmin.create_admin.password_hint')}
                                 title={t('superadmin.create_admin.error_password')} // Use the error message as title tooltip
                                 value={formData.password}
@@ -112,22 +115,27 @@ export default function CreateAdminPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('superadmin.create_admin.restaurant_name')}</label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">{t('superadmin.create_admin.restaurant_name')}</label>
                         <input
                             type="text"
                             required
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition-all placeholder-gray-400 font-medium"
                             value={formData.restaurant_name}
                             onChange={e => setFormData({ ...formData, restaurant_name: e.target.value })}
                         />
                     </div>
 
-                    <div className="pt-4 border-t border-gray-100 flex justify-end">
+                    <div className="pt-6 border-t border-gray-100 flex justify-end">
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm disabled:bg-gray-400"
+                            className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-xl hover:shadow-lg hover:scale-105 transition-all disabled:opacity-70 disabled:hover:scale-100 flex items-center gap-2"
                         >
+                            {loading ? (
+                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                            ) : (
+                                <span className="material-symbols-outlined">person_add</span>
+                            )}
                             {loading ? t('superadmin.create_admin.loading_btn') : t('superadmin.create_admin.submit_btn')}
                         </button>
                     </div>

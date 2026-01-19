@@ -11,8 +11,10 @@ const WaiterSidebar = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const handleLogout = () => {
-        logout();
-        navigate('/login');
+        if (window.confirm(t('common.logout_confirm'))) {
+            logout();
+            navigate('/login');
+        }
     };
 
     const toggleLanguage = () => {
@@ -31,26 +33,15 @@ const WaiterSidebar = () => {
             <div className="md:hidden bg-white p-4 shadow-sm flex items-center justify-between fixed top-0 left-0 right-0 z-40 h-16">
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className="p-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all"
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
+                        <span className="material-symbols-outlined text-2xl">menu</span>
                     </button>
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                        {t('waiter.portal')}
+                    <h1 className="text-[22px] font-bold tracking-wide bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                        {t('common.appName')}
                     </h1>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    className="p-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all"
-                    title={t('admin.logout')}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                </button>
             </div>
 
             {/* Mobile Overlay */}
@@ -63,38 +54,36 @@ const WaiterSidebar = () => {
 
             {/* Sidebar */}
             <div className={`
-                fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:shadow-xl flex flex-col
+                fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:shadow-xl flex flex-col h-full
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                        {t('waiter.portal')}
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center h-16 md:h-20 bg-white shrink-0">
+                    <h1 className="text-[22px] font-bold tracking-wide bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                        {t('common.appName')}
                     </h1>
-                    {/* Close button for mobile */}
                     <button
                         onClick={() => setIsSidebarOpen(false)}
-                        className="md:hidden p-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all"
+                        className="md:hidden text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
 
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                    <Link to="/waiter/orders" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/waiter/orders' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="material-symbols-outlined mr-3">list_alt</span> {t('waiter.order_list')}
+                    <Link to="/waiter/orders" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium text-sm ${location.pathname === '/waiter/orders' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
+                        <span className="material-symbols-outlined mr-3 text-[22px]">list_alt</span> {t('waiter.order_list')}
                     </Link>
-                    <Link to="/waiter/map" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium ${location.pathname === '/waiter/map' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
-                        <span className="material-symbols-outlined mr-3">table_restaurant</span> {t('waiter.table_map')}
+                    <Link to="/waiter/map" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium text-sm ${location.pathname === '/waiter/map' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
+                        <span className="material-symbols-outlined mr-3 text-[22px]">table_restaurant</span> {t('waiter.table_map')}
                     </Link>
                 </nav>
 
-                <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+                <div className="p-4 border-t border-gray-100 bg-gray-50/50 shrink-0">
                     <button
                         onClick={toggleLanguage}
-                        className="w-full mb-3 px-4 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                        className="w-full mb-3 flex items-center justify-center gap-2 px-3 py-2.5 bg-white text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all text-sm font-medium border border-gray-200 shadow-sm"
                     >
+                        <span className="material-symbols-outlined text-[20px]">language</span>
                         {i18n.language === 'vi' ? 'English' : 'Tiếng Việt'}
                     </button>
                     <button
@@ -108,11 +97,6 @@ const WaiterSidebar = () => {
 
             {/* Main Content */}
             <div className="flex-1 overflow-auto bg-gray-50 w-full pt-16 md:pt-0">
-                <header className="hidden md:block bg-white shadow-sm p-6 mb-6">
-                    <h2 className="text-xl font-bold text-gray-800">
-                        {location.pathname === '/waiter/orders' ? t('waiter.order_mgmt') : t('waiter.floor_map')}
-                    </h2>
-                </header>
                 <main className="p-4 md:p-8 md:pb-8 pb-24">
                     <Outlet />
                 </main>

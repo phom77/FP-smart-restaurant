@@ -60,7 +60,7 @@ export default function WaiterBillPage() {
                 </head>
                 <body>
                     <div class="header">
-                        <div class="title">SMART RESTAURANT</div>
+                        <div class="title">${t('common.appName').toUpperCase()}</div>
                         <div>123 Food Street, Culinary City</div>
                     </div>
                     <div class="info">

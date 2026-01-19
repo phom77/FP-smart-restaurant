@@ -8,17 +8,29 @@ export default function UserManagementPage() {
     const [users, setUsers] = useState([]);
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const limit = 10;
+
+    const [searchTerm, setSearchTerm] = useState('');
 
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const endpoint = filter === 'all'
-                ? '/api/super-admin/users'
-                : `/api/super-admin/users?role=${filter}`;
+            const params = { page, limit };
+            if (filter !== 'all') {
+                params.role = filter;
+            }
+            if (searchTerm) {
+                params.search = searchTerm;
+            }
 
-            const res = await api.get(endpoint);
+            const res = await api.get('/api/super-admin/users', { params });
             if (res.data.success) {
                 setUsers(res.data.data);
+                if (res.data.pagination) {
+                    setTotalPages(res.data.pagination.totalPages);
+                }
             }
         } catch (err) {
             toast.error(t('superadmin.user.load_error'));
@@ -27,9 +39,19 @@ export default function UserManagementPage() {
         }
     };
 
+    // Reset pagination when filter or search changes
     useEffect(() => {
-        fetchUsers();
-    }, [filter]);
+        setPage(1);
+    }, [filter, searchTerm]);
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchUsers();
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [filter, page, searchTerm]);
 
     const handleToggleStatus = async (id, currentStatus) => {
         const action = currentStatus ? t('superadmin.user.action_ban') : t('superadmin.user.action_unban');
@@ -61,18 +83,34 @@ export default function UserManagementPage() {
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+            <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
                 <h2 className="text-lg font-bold text-gray-800">{t('superadmin.user.title')}</h2>
-                <select
-                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                >
-                    <option value="all">{t('superadmin.user.filter_all')}</option>
-                    <option value="admin">{t('superadmin.user.filter_admin')}</option>
-                    <option value="waiter">{t('superadmin.user.filter_waiter')}</option>
-                    <option value="customer">{t('superadmin.user.filter_customer')}</option>
-                </select>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    {/* Search Input */}
+                    <div className="relative flex-1 md:w-96">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
+                        <input
+                            type="text"
+                            placeholder={t('superadmin.user.search_placeholder')}
+                            className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Role Filter */}
+                    <select
+                        className="h-10 border border-gray-200 rounded-lg px-3 text-sm focus:outline-none focus:border-emerald-500 bg-white"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                    >
+                        <option value="all">{t('superadmin.user.filter_all')}</option>
+                        <option value="admin">{t('superadmin.user.filter_admin')}</option>
+                        <option value="waiter">{t('superadmin.user.filter_waiter')}</option>
+                        <option value="customer">{t('superadmin.user.filter_customer')}</option>
+                    </select>
+                </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -89,6 +127,8 @@ export default function UserManagementPage() {
                     <tbody className="divide-y divide-gray-100 text-sm">
                         {loading ? (
                             <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500">{t('common.loading')}</td></tr>
+                        ) : users.length === 0 ? (
+                            <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500">{t('superadmin.user.no_data')}</td></tr>
                         ) : users.map((user) => (
                             <tr key={user.id} className="hover:bg-gray-50 transition">
                                 <td className="px-6 py-4">
@@ -130,6 +170,29 @@ export default function UserManagementPage() {
                         ))}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <p className="text-sm text-gray-500">
+                    {t('common.showing_page', { page, total: totalPages })}
+                </p>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium hover:bg-white hover:shadow-sm disabled:opacity-50 disabled:hover:shadow-none transition-all"
+                    >
+                        {t('common.prev')}
+                    </button>
+                    <button
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium hover:bg-white hover:shadow-sm disabled:opacity-50 disabled:hover:shadow-none transition-all"
+                    >
+                        {t('common.next')}
+                    </button>
+                </div>
             </div>
         </div>
     );
