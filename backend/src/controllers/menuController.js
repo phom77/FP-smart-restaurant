@@ -295,7 +295,7 @@ exports.createMenuItem = async (req, res) => {
 
         // Invalidate cache
         await clearCache('menu_*');
-        clearCache('cache:/api/menu/*');
+        await clearCache('cache:/api/menu/*');
 
         res.status(201).json({
             success: true,
@@ -342,7 +342,7 @@ exports.updateMenuItem = async (req, res) => {
 
         // Invalidate cache
         await clearCache('menu_*');
-        clearCache('cache:/api/menu/*');
+        await clearCache('cache:/api/menu/*');
 
         res.status(200).json({
             success: true,
@@ -368,7 +368,7 @@ exports.deleteMenuItem = async (req, res) => {
 
         // Invalidate cache
         await clearCache('menu_*');
-        clearCache('cache:/api/menu/*');
+        await clearCache('cache:/api/menu/*');
 
         res.status(200).json({
             success: true,
