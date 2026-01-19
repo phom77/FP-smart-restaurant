@@ -907,7 +907,7 @@ exports.rejectAdditionalItems = async (req, res) => {
           name: item.menu_item?.name
         })),
         items_count: itemsToReject.length,
-        amount_refunded: amountToSubtract,
+        amount_refunded: subtotalToSubtract,
         new_total: newTotalAmount,
         message: `${itemsToReject.length} món đã bị từ chối bởi nhân viên`
       });

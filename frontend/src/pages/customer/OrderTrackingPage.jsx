@@ -85,6 +85,22 @@ export default function OrderTrackingPage() {
         const handleItemsRejected = (data) => {
             console.log("🚫 Items Rejected:", data);
 
+            // Immediately filter out rejected items from current state
+            if (data.rejected_items && Array.isArray(data.rejected_items)) {
+                const rejectedItemIds = data.rejected_items.map(item => item.id);
+
+                setOrder(prev => {
+                    if (!prev) return null;
+                    return {
+                        ...prev,
+                        order_items: prev.order_items?.filter(item =>
+                            !rejectedItemIds.includes(item.id)
+                        ) || [],
+                        total_amount: data.new_total || prev.total_amount
+                    };
+                });
+            }
+
             // Show notification to customer
             if (data.message) {
                 alert(t('customer.tracking.items_rejected_msg', {
@@ -94,7 +110,7 @@ export default function OrderTrackingPage() {
                 }));
             }
 
-            // Refresh order to show updated items and total
+            // Refresh order to ensure data consistency
             fetchOrder();
         };
 
