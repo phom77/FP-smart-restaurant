@@ -265,7 +265,7 @@ exports.getMenuItemReviews = async (req, res) => {
 // POST /api/admin/menu-items
 exports.createMenuItem = async (req, res) => {
     try {
-        const { name, description, price, category_id, image_url, images, is_available } = req.body;
+        const { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation } = req.body;
 
         // Basic validation
         if (!name || !price) {
@@ -286,7 +286,7 @@ exports.createMenuItem = async (req, res) => {
         const { data, error } = await supabase
             .from('menu_items')
             .insert([
-                { name, description, price, category_id, image_url, images, is_available }
+                { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation }
             ])
             .select()
             .single();
@@ -295,6 +295,7 @@ exports.createMenuItem = async (req, res) => {
 
         // Invalidate cache
         await clearCache('menu_*');
+        await clearCache('cache:/api/menu/*');
 
         res.status(201).json({
             success: true,
@@ -341,6 +342,7 @@ exports.updateMenuItem = async (req, res) => {
 
         // Invalidate cache
         await clearCache('menu_*');
+        await clearCache('cache:/api/menu/*');
 
         res.status(200).json({
             success: true,
@@ -366,6 +368,7 @@ exports.deleteMenuItem = async (req, res) => {
 
         // Invalidate cache
         await clearCache('menu_*');
+        await clearCache('cache:/api/menu/*');
 
         res.status(200).json({
             success: true,
