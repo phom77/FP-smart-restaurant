@@ -1,5 +1,5 @@
 // frontend/src/pages/auth/LoginPage.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { claimGuestOrders } from '../../utils/guestOrders';
@@ -13,6 +13,21 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+
+    // Check for Google OAuth errors in URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const errorParam = params.get('error');
+
+        if (errorParam === 'account_banned') {
+            setError('⛔ Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Super Admin để được hỗ trợ.');
+            // Clean URL
+            window.history.replaceState({}, '', '/login');
+        } else if (errorParam === 'oauth_failed') {
+            setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
+            window.history.replaceState({}, '', '/login');
+        }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -125,7 +140,7 @@ export default function LoginPage() {
                     onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/google`}
                     className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-50 transition duration-200 font-medium text-sm"
                 >
-                     <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5" />
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5" />
                     Google
                 </button>
 

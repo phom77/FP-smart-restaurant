@@ -1,7 +1,7 @@
 const supabase = require('../config/supabaseClient');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto'); 
+const crypto = require('crypto');
 const { sendResetPasswordEmail, sendVerificationEmail } = require('../services/emailService');
 const { registerSchema } = require('../utils/validation');
 
@@ -18,10 +18,10 @@ exports.register = async (req, res) => {
     // 1. Validation (Khai báo biến error lần 1)
     const { error } = registerSchema.validate({ email, password, full_name, phone });
     if (error) {
-        return res.status(400).json({ 
-            success: false, 
-            message: error.details[0].message 
-        });
+      return res.status(400).json({
+        success: false,
+        message: error.details[0].message
+      });
     }
 
     // 2. Check email tồn tại
@@ -96,11 +96,20 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Sai email hoặc mật khẩu' });
     }
 
+    // Check if account is banned or unverified
     if (!user.is_verified) {
-        return res.status(403).json({ 
-            success: false, 
-            message: 'Tài khoản chưa được xác thực. Vui lòng kiểm tra email để kích hoạt.' 
+      // If verification_token is null, user was banned (not just unverified)
+      if (!user.verification_token) {
+        return res.status(403).json({
+          success: false,
+          message: '⛔ Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Super Admin để được hỗ trợ.'
         });
+      }
+      // User just hasn't verified email yet
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản chưa được xác thực. Vui lòng kiểm tra email để kích hoạt.'
+      });
     }
 
     // Check pass
@@ -168,7 +177,11 @@ exports.googleCallback = (req, res, next) => {
 
   passport.authenticate('google', { session: false }, (err, user, info) => {
     if (err || !user) {
-      // Redirect to frontend login page with error
+      // Check if it's a banned user
+      if (info && info.message && info.message.includes('khóa')) {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=account_banned`);
+      }
+      // Other errors
       return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`);
     }
 
@@ -181,135 +194,135 @@ exports.googleCallback = (req, res, next) => {
 };
 
 exports.forgotPassword = async (req, res) => {
-    try {
-        const { email } = req.body;
-        if (!email) return res.status(400).json({ success: false, message: 'Vui lòng nhập email' });
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: 'Vui lòng nhập email' });
 
-        // 1. Kiểm tra user có tồn tại không
-        const { data: user } = await supabase
-            .from('users')
-            .select('id, email, full_name')
-            .eq('email', email)
-            .single();
+    // 1. Kiểm tra user có tồn tại không
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, email, full_name')
+      .eq('email', email)
+      .single();
 
-        // 2. Nếu không tìm thấy user -> Vẫn báo thành công ảo để bảo mật (tránh hacker dò email)
-        if (!user) {
-            return res.status(200).json({ 
-                success: true, 
-                message: 'Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.' 
-            });
-        }
-
-        // 3. Tạo Token Reset (Chứa ID user, hết hạn sau 15 phút)
-        // Token này dùng bí mật riêng hoặc cộng dồn password hash cũ để tăng bảo mật (khi đổi pass xong token cũ vô hiệu)
-        const resetToken = jwt.sign(
-            { id: user.id }, 
-            process.env.JWT_SECRET, 
-            { expiresIn: '15m' } 
-        );
-
-        // 4. Gửi Email
-        const sent = await sendResetPasswordEmail(user.email, resetToken);
-
-        if (!sent) {
-            return res.status(500).json({ success: false, message: 'Lỗi server gửi email' });
-        }
-
-        res.status(200).json({ 
-            success: true, 
-            message: 'Đã gửi email hướng dẫn đặt lại mật khẩu.' 
-        });
-
-    } catch (err) {
-        console.error("Forgot Password Error:", err);
-        res.status(500).json({ success: false, message: 'Lỗi xử lý yêu cầu' });
+    // 2. Nếu không tìm thấy user -> Vẫn báo thành công ảo để bảo mật (tránh hacker dò email)
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: 'Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.'
+      });
     }
+
+    // 3. Tạo Token Reset (Chứa ID user, hết hạn sau 15 phút)
+    // Token này dùng bí mật riêng hoặc cộng dồn password hash cũ để tăng bảo mật (khi đổi pass xong token cũ vô hiệu)
+    const resetToken = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    // 4. Gửi Email
+    const sent = await sendResetPasswordEmail(user.email, resetToken);
+
+    if (!sent) {
+      return res.status(500).json({ success: false, message: 'Lỗi server gửi email' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Đã gửi email hướng dẫn đặt lại mật khẩu.'
+    });
+
+  } catch (err) {
+    console.error("Forgot Password Error:", err);
+    res.status(500).json({ success: false, message: 'Lỗi xử lý yêu cầu' });
+  }
 };
 
 exports.resetPassword = async (req, res) => {
-    try {
-        const { token, newPassword } = req.body;
+  try {
+    const { token, newPassword } = req.body;
 
-        if (!token || !newPassword) {
-            return res.status(400).json({ success: false, message: 'Thiếu thông tin xác thực' });
-        }
-
-        if (newPassword.length < 6) {
-            return res.status(400).json({ success: false, message: 'Mật khẩu phải từ 6 ký tự trở lên' });
-        }
-
-        // 1. Verify Token
-        let decoded;
-        try {
-            decoded = jwt.verify(token, process.env.JWT_SECRET);
-        } catch (err) {
-            return res.status(400).json({ success: false, message: 'Link hết hạn hoặc không hợp lệ' });
-        }
-
-        // 2. Hash mật khẩu mới
-        const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash(newPassword, salt);
-
-        // 3. Update DB
-        const { error } = await supabase
-            .from('users')
-            .update({ 
-                password_hash: passwordHash,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', decoded.id);
-
-        if (error) throw error;
-
-        res.status(200).json({ 
-            success: true, 
-            message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.' 
-        });
-
-    } catch (err) {
-        console.error("Reset Password Error:", err);
-        res.status(500).json({ success: false, message: 'Lỗi khi đặt lại mật khẩu' });
+    if (!token || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Thiếu thông tin xác thực' });
     }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu phải từ 6 ký tự trở lên' });
+    }
+
+    // 1. Verify Token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: 'Link hết hạn hoặc không hợp lệ' });
+    }
+
+    // 2. Hash mật khẩu mới
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    // 3. Update DB
+    const { error } = await supabase
+      .from('users')
+      .update({
+        password_hash: passwordHash,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', decoded.id);
+
+    if (error) throw error;
+
+    res.status(200).json({
+      success: true,
+      message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.'
+    });
+
+  } catch (err) {
+    console.error("Reset Password Error:", err);
+    res.status(500).json({ success: false, message: 'Lỗi khi đặt lại mật khẩu' });
+  }
 };
 
 // --- 8. VERIFY EMAIL (Xác thực khi user bấm link) ---
 exports.verifyEmail = async (req, res) => {
-    try {
-        const { token } = req.body; // Frontend sẽ gửi token lên qua body
+  try {
+    const { token } = req.body; // Frontend sẽ gửi token lên qua body
 
-        if (!token) {
-            return res.status(400).json({ success: false, message: 'Thiếu token xác thực' });
-        }
-
-        // 1. Tìm user có token này
-        const { data: user, error } = await supabase
-            .from('users')
-            .select('id, email, is_verified')
-            .eq('verification_token', token)
-            .single();
-
-        if (error || !user) {
-            return res.status(400).json({ success: false, message: 'Token không hợp lệ hoặc tài khoản đã kích hoạt.' });
-        }
-
-        // 2. Update trạng thái user
-        const { error: updateError } = await supabase
-            .from('users')
-            .update({ 
-                is_verified: true, 
-                verification_token: null // Xóa token đi để không dùng lại được
-            })
-            .eq('id', user.id);
-
-        if (updateError) throw updateError;
-
-        res.status(200).json({ 
-            success: true, 
-            message: 'Xác thực tài khoản thành công! Bạn có thể đăng nhập ngay.' 
-        });
-
-    } catch (err) {
-        console.error("Verify Email Error:", err);
-        res.status(500).json({ success: false, message: 'Lỗi xác thực' });
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'Thiếu token xác thực' });
     }
+
+    // 1. Tìm user có token này
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, email, is_verified')
+      .eq('verification_token', token)
+      .single();
+
+    if (error || !user) {
+      return res.status(400).json({ success: false, message: 'Token không hợp lệ hoặc tài khoản đã kích hoạt.' });
+    }
+
+    // 2. Update trạng thái user
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        is_verified: true,
+        verification_token: null // Xóa token đi để không dùng lại được
+      })
+      .eq('id', user.id);
+
+    if (updateError) throw updateError;
+
+    res.status(200).json({
+      success: true,
+      message: 'Xác thực tài khoản thành công! Bạn có thể đăng nhập ngay.'
+    });
+
+  } catch (err) {
+    console.error("Verify Email Error:", err);
+    res.status(500).json({ success: false, message: 'Lỗi xác thực' });
+  }
 };
