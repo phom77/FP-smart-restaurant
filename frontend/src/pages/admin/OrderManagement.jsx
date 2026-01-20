@@ -27,7 +27,7 @@ const OrderManagement = () => {
         // Prevent concurrent requests
         if (fetchingRef.current) return;
         fetchingRef.current = true;
-        
+
         try {
             if (showLoading) setLoading(true);
             let url = `${API_URL}/api/orders?limit=10000`; // Fetch all orders
@@ -61,11 +61,11 @@ const OrderManagement = () => {
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
         }
-        
+
         debounceRef.current = setTimeout(() => {
             fetchOrders(false); // Fetch silently, no loading spinner
         }, 500); // Wait 500ms after user stops typing
-        
+
         return () => {
             if (debounceRef.current) {
                 clearTimeout(debounceRef.current);
@@ -183,41 +183,37 @@ const OrderManagement = () => {
                 <div className="flex flex-wrap gap-2">
                     <button
                         onClick={() => setStatusFilter('all')}
-                        className={`px-4 py-2 rounded-xl font-bold transition-all ${
-                            statusFilter === 'all'
+                        className={`px-4 py-2 rounded-xl font-bold transition-all ${statusFilter === 'all'
                                 ? 'bg-gray-800 text-white'
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
+                            }`}
                     >
                         {t('admin.filter_all')} ({orders.length})
                     </button>
                     <button
                         onClick={() => setStatusFilter('pending')}
-                        className={`px-4 py-2 rounded-xl font-bold transition-all ${
-                            statusFilter === 'pending'
+                        className={`px-4 py-2 rounded-xl font-bold transition-all ${statusFilter === 'pending'
                                 ? 'bg-yellow-500 text-white'
                                 : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
-                        }`}
+                            }`}
                     >
                         {t('admin.status_pending')} ({orders.filter(o => o.status === 'pending').length})
                     </button>
                     <button
                         onClick={() => setStatusFilter('processing')}
-                        className={`px-4 py-2 rounded-xl font-bold transition-all ${
-                            statusFilter === 'processing'
+                        className={`px-4 py-2 rounded-xl font-bold transition-all ${statusFilter === 'processing'
                                 ? 'bg-blue-600 text-white'
                                 : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                        }`}
+                            }`}
                     >
                         {t('admin.status_processing')} ({orders.filter(o => o.status === 'processing').length})
                     </button>
                     <button
                         onClick={() => setStatusFilter('completed')}
-                        className={`px-4 py-2 rounded-xl font-bold transition-all ${
-                            statusFilter === 'completed'
+                        className={`px-4 py-2 rounded-xl font-bold transition-all ${statusFilter === 'completed'
                                 ? 'bg-emerald-600 text-white'
                                 : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                        }`}
+                            }`}
                     >
                         {t('admin.status_completed')} ({orders.filter(o => o.status === 'completed').length})
                     </button>
@@ -360,11 +356,10 @@ const OrderManagement = () => {
                                             <button
                                                 key={status}
                                                 onClick={() => handleUpdateStatus(selectedOrder.id, status)}
-                                                className={`px-4 py-2 rounded-xl font-bold transition-all ${
-                                                    isCurrentStatus
+                                                className={`px-4 py-2 rounded-xl font-bold transition-all ${isCurrentStatus
                                                         ? `${badge.bg} ${badge.text} ring-2`
                                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                                }`}
+                                                    }`}
                                             >
                                                 {getStatusBadge(status).label}
                                             </button>
