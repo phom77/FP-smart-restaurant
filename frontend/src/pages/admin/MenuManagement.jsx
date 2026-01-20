@@ -6,11 +6,18 @@ const MenuManagement = () => {
     const { t } = useTranslation();
     const [items, setItems] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [modifierGroups, setModifierGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const itemsPerPage = 10;
+
+    // Filter State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
+    const [sortBy, setSortBy] = useState('name');
 
     // Form State
     const [newItem, setNewItem] = useState({
@@ -20,7 +27,9 @@ const MenuManagement = () => {
         category_id: '',
         image_url: '',
         is_available: true,
-        is_chef_recommendation: false
+        is_chef_recommendation: false,
+        status: 'available',
+        selected_modifier_groups: []
     });
     const [imageFiles, setImageFiles] = useState([]); // Array of new files
     const [previewImages, setPreviewImages] = useState([]); // Previews for new files
@@ -38,17 +47,48 @@ const MenuManagement = () => {
         fetchData();
     }, []);
 
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Refetch when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+        fetchData(1, true);
+    }, [debouncedSearch, filterCategory, sortBy]);
+
     const fetchData = async (page = currentPage, showLoading = true) => {
         try {
             if (showLoading) setLoading(true);
             const timestamp = Date.now();
-            const [itemRes, catRes] = await Promise.all([
-                axios.get(`${API_URL}/api/menu/items?page=${page}&limit=${itemsPerPage}&t=${timestamp}`),
-                axios.get(`${API_URL}/api/categories?t=${timestamp}`)
+
+            // Build query params
+            const params = new URLSearchParams({
+                page: page,
+                limit: itemsPerPage,
+                t: timestamp,
+                sort_by: sortBy
+            });
+
+            if (debouncedSearch) params.append('search', debouncedSearch);
+            if (filterCategory) params.append('category_id', filterCategory);
+            params.append('admin_view', 'true');
+
+            const [itemRes, catRes, modRes] = await Promise.all([
+                axios.get(`${API_URL}/api/menu/items?${params.toString()}`, getAuthHeader()),
+                axios.get(`${API_URL}/api/categories?t=${timestamp}`),
+                axios.get(`${API_URL}/api/admin/modifiers/groups`, getAuthHeader())
             ]);
             console.log('Fetched items count:', itemRes.data.data.length);
             setItems(itemRes.data.data);
             setCategories(catRes.data);
+            if (modRes.data.success) {
+                setModifierGroups(modRes.data.data);
+            }
             setTotalPages(itemRes.data.pagination?.totalPages || 1);
         } catch (err) {
             console.error(err);
@@ -88,6 +128,21 @@ const MenuManagement = () => {
 
     const handleEdit = (item) => {
         console.log('Editing item:', item);
+        // Fetch linked modifier groups for this item
+        const fetchLinkedModifiers = async () => {
+            try {
+                const res = await axios.get(`${API_URL}/api/admin/menu-items/${item.id}/modifiers`, getAuthHeader());
+                if (res.data.success) {
+                    setNewItem(prev => ({
+                        ...prev,
+                        selected_modifier_groups: res.data.data.map(g => g.id)
+                    }));
+                }
+            } catch (err) {
+                console.error('Failed to fetch linked modifiers', err);
+            }
+        };
+
         setNewItem({
             name: item.name,
             description: item.description || '',
@@ -96,8 +151,11 @@ const MenuManagement = () => {
             image_url: item.image_url || '',
             images: Array.isArray(item.images) ? item.images : [], // Validate array
             is_available: item.is_available,
-            is_chef_recommendation: item.is_chef_recommendation || false
+            is_chef_recommendation: item.is_chef_recommendation || false,
+            status: item.status || 'available',
+            selected_modifier_groups: [] // Will be populated by fetchLinkedModifiers
         });
+        fetchLinkedModifiers();
         setEditingId(item.id);
         setImageFiles([]); // Reset file input
         setPreviewImages([]);
@@ -108,7 +166,7 @@ const MenuManagement = () => {
     };
 
     const resetForm = () => {
-        setNewItem({ name: '', description: '', price: '', category_id: '', image_url: '', images: [], is_available: true, is_chef_recommendation: false });
+        setNewItem({ name: '', description: '', price: '', category_id: '', image_url: '', images: [], is_available: true, is_chef_recommendation: false, status: 'available', selected_modifier_groups: [] });
         setImageFiles([]);
         setPreviewImages([]);
         setEditingId(null);
@@ -144,10 +202,39 @@ const MenuManagement = () => {
 
             if (editingId) {
                 // Update
-                await axios.put(`${API_URL}/api/admin/menu-items/${editingId}`, itemToSave, getAuthHeader());
+                const res = await axios.put(`${API_URL}/api/admin/menu-items/${editingId}`, itemToSave, getAuthHeader());
+                const menuItemId = editingId;
+
+                // Sync modifiers - Link new ones (unlink is handled differently or we can just brute force re-link)
+                // Actually, a better way is to have a sync API, but for now we'll do it manually
+                // We'll first unlink all and then link current selection
+                // This is not the most efficient but reliable
+                // Delete existing links
+                const currentLinked = await axios.get(`${API_URL}/api/admin/menu-items/${menuItemId}/modifiers`, getAuthHeader());
+                if (currentLinked.data.success) {
+                    for (const group of currentLinked.data.data) {
+                        await axios.delete(`${API_URL}/api/admin/menu-items/${menuItemId}/modifiers/${group.id}`, getAuthHeader());
+                    }
+                }
+                // Link selected ones
+                for (const groupId of (newItem.selected_modifier_groups || [])) {
+                    await axios.post(`${API_URL}/api/admin/menu-items/modifiers/link`, {
+                        menu_item_id: menuItemId,
+                        modifier_group_id: groupId
+                    }, getAuthHeader());
+                }
             } else {
                 // Create
-                await axios.post(`${API_URL}/api/admin/menu-items`, itemToSave, getAuthHeader());
+                const res = await axios.post(`${API_URL}/api/admin/menu-items`, itemToSave, getAuthHeader());
+                const menuItemId = res.data.data.id;
+
+                // Link selected modifiers
+                for (const groupId of (newItem.selected_modifier_groups || [])) {
+                    await axios.post(`${API_URL}/api/admin/menu-items/modifiers/link`, {
+                        menu_item_id: menuItemId,
+                        modifier_group_id: groupId
+                    }, getAuthHeader());
+                }
             }
 
             resetForm();
@@ -174,8 +261,18 @@ const MenuManagement = () => {
 
     const [viewItem, setViewItem] = useState(null);
 
-    const handleView = (item) => {
-        setViewItem(item);
+    const handleView = async (item) => {
+        const itemWithMods = { ...item, currentImage: item.image_url, linked_modifiers: [] };
+        setViewItem(itemWithMods);
+
+        try {
+            const res = await axios.get(`${API_URL}/api/admin/menu-items/${item.id}/modifiers`, getAuthHeader());
+            if (res.data.success) {
+                setViewItem(prev => ({ ...prev, linked_modifiers: res.data.data }));
+            }
+        } catch (err) {
+            console.error('Failed to fetch modifiers for view', err);
+        }
     };
 
     const closeView = () => {
@@ -190,6 +287,7 @@ const MenuManagement = () => {
             <h2 className="text-xl md:text-2xl font-bold mb-6 text-gray-800">{t('menu.title')}</h2>
 
             {error && <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-xl text-sm">{error}</div>}
+
 
             {/* Form */}
             <form
@@ -256,41 +354,77 @@ const MenuManagement = () => {
                         </div>
                     </div>
 
-                    {/* Toggles Container */}
+                    {/* Status & Recommendation Container */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-1 md:col-span-2">
-                        {/* Availability Toggle */}
-                        <div
-                            className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${newItem.is_available ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white hover:border-emerald-200'}`}
-                            onClick={() => setNewItem({ ...newItem, is_available: !newItem.is_available })}
-                        >
-                            <label className="flex items-center gap-2 cursor-pointer pointer-events-none">
-                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${newItem.is_available ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 bg-white'}`}>
-                                    {newItem.is_available && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
-                                </div>
-                                <span className={`font-bold ${newItem.is_available ? 'text-emerald-700' : 'text-gray-600'}`}>{t('menu.available')}</span>
-                            </label>
-                            <div className={`w-12 h-6 rounded-full p-1 transition-colors ${newItem.is_available ? 'bg-emerald-500' : 'bg-gray-200'}`}>
-                                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${newItem.is_available ? 'translate-x-6' : ''}`} />
+                        {/* Status Selection */}
+                        <div className="bg-white p-4 rounded-xl border-2 border-gray-100">
+                            <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">{t('menu.table_status')}</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { id: 'available', icon: 'check_circle', activeClass: 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm', label: t('menu.status_available') },
+                                    { id: 'sold_out', icon: 'block', activeClass: 'border-red-500 bg-red-50 text-red-700 shadow-sm', label: t('menu.status_sold_out') },
+                                    { id: 'unavailable', icon: 'visibility_off', activeClass: 'border-gray-600 bg-gray-100 text-gray-800 shadow-sm', label: t('menu.status_unavailable') }
+                                ].map((s) => (
+                                    <button
+                                        key={s.id}
+                                        type="button"
+                                        onClick={() => setNewItem({ ...newItem, status: s.id, is_available: s.id === 'available' })}
+                                        className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${newItem.status === s.id
+                                            ? s.activeClass
+                                            : 'border-transparent bg-gray-50 text-gray-500 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        <span className="material-symbols-outlined text-xl">{s.icon}</span>
+                                        <span className="text-[10px] font-bold uppercase">{s.label}</span>
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
                         {/* Chef Recommendation Toggle */}
                         <div
-                            className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${newItem.is_chef_recommendation ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white hover:border-emerald-200'}`}
+                            className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${newItem.is_chef_recommendation ? 'border-amber-500 bg-amber-50' : 'border-gray-200 bg-white hover:border-amber-200'}`}
                             onClick={() => setNewItem({ ...newItem, is_chef_recommendation: !newItem.is_chef_recommendation })}
                         >
                             <label className="flex items-center gap-2 cursor-pointer pointer-events-none">
-                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${newItem.is_chef_recommendation ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 bg-white'}`}>
+                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${newItem.is_chef_recommendation ? 'bg-amber-500 border-amber-500' : 'border-gray-300 bg-white'}`}>
                                     {newItem.is_chef_recommendation && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
                                 </div>
-                                <span className={`font-bold ${newItem.is_chef_recommendation ? 'text-emerald-700' : 'text-gray-600'}`}>{t('menu.chefs_choice')}</span>
+                                <span className="text-sm font-bold text-gray-700">{t('menu.chefs_choice')}</span>
                             </label>
-                            <div className={`w-12 h-6 rounded-full p-1 transition-colors ${newItem.is_chef_recommendation ? 'bg-emerald-500' : 'bg-gray-200'}`}>
-                                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${newItem.is_chef_recommendation ? 'translate-x-6' : ''}`} />
-                            </div>
+                            <span className="material-symbols-outlined text-amber-500">auto_awesome</span>
                         </div>
                     </div>
 
+                    {/* Modifiers Section */}
+                    <div className="col-span-1 md:col-span-2 mt-2">
+                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('menu.modifiers_link')}</label>
+                        <div className="flex flex-wrap gap-2">
+                            {modifierGroups.map((group) => (
+                                <button
+                                    key={group.id}
+                                    type="button"
+                                    onClick={() => {
+                                        const selected = newItem.selected_modifier_groups || [];
+                                        if (selected.includes(group.id)) {
+                                            setNewItem({ ...newItem, selected_modifier_groups: selected.filter(id => id !== group.id) });
+                                        } else {
+                                            setNewItem({ ...newItem, selected_modifier_groups: [...selected, group.id] });
+                                        }
+                                    }}
+                                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all border-2 ${newItem.selected_modifier_groups?.includes(group.id)
+                                        ? 'bg-emerald-600 border-emerald-600 text-white'
+                                        : 'bg-white border-gray-200 text-gray-500 hover:border-emerald-200'
+                                        }`}
+                                >
+                                    {group.name}
+                                </button>
+                            ))}
+                            {modifierGroups.length === 0 && (
+                                <p className="text-sm text-gray-400 italic">{t('menu.no_modifiers_available')}</p>
+                            )}
+                        </div>
+                    </div>
                     <div className="flex flex-col gap-4 border-2 border-gray-100 shadow-sm p-6 rounded-xl bg-white col-span-1 md:col-span-2 w-full">
                         <div className="flex flex-col sm:flex-row flex-wrap items-center justify-between gap-4">
                             <div className="flex-1">
@@ -399,6 +533,72 @@ const MenuManagement = () => {
                 </button>
             </form>
 
+            {/* Filters (Moved down) */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <div className="flex-1">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">{t('menu.search_by_name')}</label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder={t('menu.search_placeholder')}
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-emerald-500 transition-colors"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">close</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="w-full md:w-64">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">{t('menu.filter_category')}</label>
+                    <div className="relative">
+                        <select
+                            className="w-full appearance-none pl-10 pr-8 py-2.5 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-emerald-500 transition-colors bg-white cursor-pointer"
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                        >
+                            <option value="">{t('menu.all_categories')}</option>
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">category</span>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="w-full md:w-48">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">{t('menu.sort_by')}</label>
+                    <div className="relative">
+                        <select
+                            className="w-full appearance-none pl-10 pr-8 py-2.5 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-emerald-500 transition-colors bg-white cursor-pointer"
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                        >
+                            <option value="name">{t('menu.sort_name')}</option>
+                            <option value="newest">{t('menu.sort_newest')}</option>
+                            <option value="price_asc">{t('menu.sort_price_asc')}</option>
+                            <option value="price_desc">{t('menu.sort_price_desc')}</option>
+                            <option value="popularity">{t('menu.sort_popularity')}</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">sort</span>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Table */}
             <div className="overflow-x-auto rounded-xl border border-gray-200">
                 <table className="w-full text-left border-collapse min-w-[800px]">
@@ -435,8 +635,13 @@ const MenuManagement = () => {
                                     {item.price.toLocaleString()}đ
                                 </td>
                                 <td className="p-4 border-b border-gray-100 text-center">
-                                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${item.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        {item.is_available ? t('menu.active') : t('menu.hidden')}
+                                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${item.status === 'available' ? 'bg-green-100 text-green-700' :
+                                        item.status === 'sold_out' ? 'bg-red-100 text-red-700' :
+                                            'bg-gray-100 text-gray-500'
+                                        }`}>
+                                        {item.status === 'available' ? t('menu.status_available') :
+                                            item.status === 'sold_out' ? t('menu.status_sold_out') :
+                                                t('menu.status_unavailable')}
                                     </span>
                                 </td>
                                 <td className="p-4 border-b border-gray-100 text-center">
@@ -631,6 +836,33 @@ const MenuManagement = () => {
                                     {viewItem.description || t('menu.modal_desc_empty')}
                                 </p>
                             </div>
+
+                            {/* Modifiers List */}
+                            {viewItem.linked_modifiers && viewItem.linked_modifiers.length > 0 && (
+                                <div className="mt-6">
+                                    <h4 className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
+                                        <span className="w-8 h-[2px] bg-emerald-500/50"></span>
+                                        {t('admin.modifiers')}
+                                    </h4>
+                                    <div className="space-y-4">
+                                        {viewItem.linked_modifiers.map((group) => (
+                                            <div key={group.id} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                <p className="text-sm font-bold text-gray-800 mb-2">{group.name}</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {group.modifiers?.map((mod) => (
+                                                        <div key={mod.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border border-gray-100 text-xs shadow-sm">
+                                                            <span className="font-semibold text-gray-700">{mod.name}</span>
+                                                            {mod.price_modifier > 0 && (
+                                                                <span className="text-emerald-600 font-bold">+{mod.price_modifier.toLocaleString()}đ</span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Image Gallery Thumbnails */}
                             {viewItem.images && viewItem.images.length > 1 && (

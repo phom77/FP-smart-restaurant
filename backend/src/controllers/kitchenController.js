@@ -18,7 +18,8 @@ exports.getKitchenItems = async (req, res) => {
           notes, 
           status, 
           created_at,
-          menu_items (id, name, image_url)
+          menu_items (id, name, image_url),
+          order_item_modifiers (id, modifier_name)
         )
       `)
       .eq('status', 'processing')

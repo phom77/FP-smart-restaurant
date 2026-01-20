@@ -22,10 +22,34 @@ const getVATRate = async () => {
   }
 };
 
+// Helper: Verify QR Token
+const verifyQRTokenInDatabase = async (tableId, token) => {
+  if (!tableId || !token) return { success: false, message: 'Missing table ID or QR token' };
+
+  const { data: tableData, error: tableError } = await supabase
+    .from('tables')
+    .select('qr_code_token, table_number')
+    .eq('id', tableId)
+    .single();
+
+  if (tableError || !tableData) return { success: false, message: 'Table not found' };
+
+  if (tableData.qr_code_token !== token) {
+    return {
+      success: false,
+      message: 'customer.qr.invalid_desc',
+      params: { tableNumber: tableData.table_number }
+    };
+  }
+
+  return { success: true };
+};
+
 // GET /api/waiter/orders
 exports.getOrders = async (req, res) => {
   try {
     const status = req.query.status;
+    const search = req.query.search;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
@@ -34,20 +58,20 @@ exports.getOrders = async (req, res) => {
       .from('orders')
       .select(`
                 *,
-                table:tables(id, table_number),
-                customer:users(id, full_name, phone),
-                items:order_items(
+                tables(id, table_number),
+                users(id, full_name, phone),
+                order_items(
                     id, 
                     quantity, 
                     unit_price, 
                     total_price, 
                     notes, 
                     status,
-                    menu_item:menu_items(id, name, image_url)
+                    menu_items(id, name, image_url),
+                    order_item_modifiers(id, modifier_name)
                 )
             `, { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order('created_at', { ascending: false });
 
     if (status) {
       query = query.eq('status', status);
@@ -57,9 +81,65 @@ exports.getOrders = async (req, res) => {
       query = query.eq('is_served', req.query.is_served === 'true');
     }
 
-    const { data, error, count } = await query;
+    // Handle search - Supabase doesn't support OR filters on joined tables
+    // So we need to fetch and filter in JavaScript
+    let data, count;
 
-    if (error) throw error;
+    if (search) {
+      // Fetch all orders with status filter (without pagination first)
+      const { data: allOrders, error: fetchError } = await query;
+
+      if (fetchError) throw fetchError;
+
+      console.log(`🔍 Searching for: "${search}" in ${allOrders.length} orders`);
+
+      // Filter in JavaScript by order ID, table number, or customer name
+      const searchLower = search.toLowerCase().trim();
+
+      // Extract table number from search query if it contains "bàn" or "table"
+      // e.g., "bàn 1" -> "1", "bàn T01" -> "T01"
+      let tableSearchTerm = searchLower;
+      if (searchLower.includes('bàn')) {
+        tableSearchTerm = searchLower.replace(/bàn\s*/gi, '').trim();
+      } else if (searchLower.includes('table')) {
+        tableSearchTerm = searchLower.replace(/table\s*/gi, '').trim();
+      }
+
+      const filteredOrders = allOrders.filter(order => {
+        // Search in order ID (partial match)
+        if (order.id && order.id.toLowerCase().includes(searchLower)) return true;
+
+        // Search in table number (exact or partial match)
+        if (order.tables && order.tables.table_number) {
+          const tableNum = order.tables.table_number.toString().toLowerCase();
+          // Try both original search and extracted table term
+          if (tableNum.includes(searchLower) || tableNum.includes(tableSearchTerm)) {
+            return true;
+          }
+        }
+
+        // Search in customer name (partial match)
+        if (order.users && order.users.full_name &&
+          order.users.full_name.toLowerCase().includes(searchLower)) return true;
+
+        return false;
+      });
+
+      console.log(`✅ Found ${filteredOrders.length} matching orders`);
+
+      // Apply pagination manually
+      count = filteredOrders.length;
+      data = filteredOrders.slice(offset, offset + limit);
+    } else {
+      // No search - use normal pagination
+      query = query.range(offset, offset + limit - 1);
+      const result = await query;
+
+      if (result.error) throw result.error;
+
+      data = result.data;
+      count = result.count;
+    }
 
     res.status(200).json({
       success: true,
@@ -283,13 +363,19 @@ exports.updateOrderServedStatus = async (req, res) => {
 };
 
 exports.createOrder = async (req, res) => {
-  const { table_id, items, customer_id, notes, coupon_code } = req.body;
+  const { table_id, items, customer_id, notes, coupon_code, qr_token } = req.body;
 
   if (!items || items.length === 0) {
     return res.status(400).json({ success: false, message: 'Giỏ hàng trống' });
   }
 
   try {
+    // --- CHECK QR TOKEN VALIDITY ---
+    const qrVerify = await verifyQRTokenInDatabase(table_id, qr_token);
+    if (!qrVerify.success) {
+      return res.status(401).json({ success: false, message: qrVerify.message });
+    }
+
     // --- CHECK IF TABLE HAS ACTIVE ORDER ---
     // --- CHECK IF TABLE HAS ACTIVE ORDER ---
     const { data: existingOrders, error: orderCheckError } = await supabase
@@ -351,8 +437,23 @@ exports.createOrder = async (req, res) => {
       }
 
       let itemUnitPrice = parseFloat(dbItem.price);
+      let modifiersTotal = 0;
+      let selectedModsInfo = [];
 
-      const itemTotalPrice = itemUnitPrice * item.quantity;
+      // Fetch modifiers info if present
+      if (item.modifiers && item.modifiers.length > 0) {
+        const { data: modsData, error: modsError } = await supabase
+          .from('modifiers')
+          .select('*')
+          .in('id', item.modifiers);
+
+        if (modsError) throw modsError;
+
+        selectedModsInfo = modsData || [];
+        modifiersTotal = selectedModsInfo.reduce((sum, m) => sum + parseFloat(m.price_modifier || 0), 0);
+      }
+
+      const itemTotalPrice = (itemUnitPrice + modifiersTotal) * item.quantity;
       subtotal += itemTotalPrice;
 
       orderItemsData.push({
@@ -360,7 +461,8 @@ exports.createOrder = async (req, res) => {
         quantity: item.quantity,
         unit_price: itemUnitPrice,
         total_price: itemTotalPrice,
-        notes: item.notes
+        notes: item.notes,
+        selected_modifiers: selectedModsInfo // Keep for step 4
       });
     }
 
@@ -442,7 +544,21 @@ exports.createOrder = async (req, res) => {
 
       if (itemInsertError) throw itemInsertError;
 
-      if (itemInsertError) throw itemInsertError;
+      // 4.1. Insert Modifiers for this item
+      if (itemData.selected_modifiers && itemData.selected_modifiers.length > 0) {
+        const modsToInsert = itemData.selected_modifiers.map(m => ({
+          order_item_id: newOrderItem.id,
+          modifier_id: m.id,
+          modifier_name: m.name,
+          price_modifier: m.price_modifier
+        }));
+
+        const { error: modInsertError } = await supabase
+          .from('order_item_modifiers')
+          .insert(modsToInsert);
+
+        if (modInsertError) throw modInsertError;
+      }
     }
 
     // 4.5. Record coupon usage for per-user limit tracking
@@ -517,8 +633,14 @@ exports.getOrder = async (req, res) => {
         *,
         table:tables(id, table_number, capacity),
         order_items(
-          *,
-          menu_item:menu_items(id, name, image_url)
+          id,
+          quantity,
+          unit_price,
+          total_price,
+          notes,
+          status,
+          menu_item:menu_items(id, name, image_url),
+          order_item_modifiers(id, modifier_name)
         )
       `)
       .eq('id', id)
@@ -552,6 +674,21 @@ exports.getOrder = async (req, res) => {
 // Helper function to add items to existing order
 const addItemsToExistingOrder = async (req, res, orderId, items) => {
   try {
+    // 0. Verify QR Token if provided (required for customer-facing flow)
+    const { qr_token } = req.body;
+    // We only enforce this if it's NOT a waiter request (waiter doesn't need QR)
+    // Simple check: Waiters usually have a token in header, but here we can check if qr_token is sent
+    // Actually, for consistency, if qr_token is sent, we verify it.
+    if (qr_token) {
+      const { data: orderData } = await supabase.from('orders').select('table_id').eq('id', orderId).single();
+      if (orderData) {
+        const qrVerify = await verifyQRTokenInDatabase(orderData.table_id, qr_token);
+        if (!qrVerify.success) {
+          return res.status(401).json({ success: false, message: qrVerify.message });
+        }
+      }
+    }
+
     // 1. Get menu items and modifiers pricing
 
 
@@ -584,8 +721,23 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       }
 
       let itemUnitPrice = parseFloat(dbItem.price);
+      let modifiersTotal = 0;
+      let selectedModsInfo = [];
 
-      const itemTotalPrice = itemUnitPrice * item.quantity;
+      // Fetch modifiers info if present
+      if (item.modifiers && item.modifiers.length > 0) {
+        const { data: modsData, error: modsError } = await supabase
+          .from('modifiers')
+          .select('*')
+          .in('id', item.modifiers);
+
+        if (modsError) throw modsError;
+
+        selectedModsInfo = modsData || [];
+        modifiersTotal = selectedModsInfo.reduce((sum, m) => sum + parseFloat(m.price_modifier || 0), 0);
+      }
+
+      const itemTotalPrice = (itemUnitPrice + modifiersTotal) * item.quantity;
       additionalSubtotal += itemTotalPrice;
 
       orderItemsData.push({
@@ -593,7 +745,8 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
         quantity: item.quantity,
         unit_price: itemUnitPrice,
         total_price: itemTotalPrice,
-        notes: item.notes
+        notes: item.notes,
+        selected_modifiers: selectedModsInfo
       });
     }
 
@@ -615,7 +768,21 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
 
       if (itemInsertError) throw itemInsertError;
 
-      if (itemInsertError) throw itemInsertError;
+      // 3.1. Insert Modifiers for this item
+      if (itemData.selected_modifiers && itemData.selected_modifiers.length > 0) {
+        const modsToInsert = itemData.selected_modifiers.map(m => ({
+          order_item_id: newOrderItem.id,
+          modifier_id: m.id,
+          modifier_name: m.name,
+          price_modifier: m.price_modifier
+        }));
+
+        const { error: modInsertError } = await supabase
+          .from('order_item_modifiers')
+          .insert(modsToInsert);
+
+        if (modInsertError) throw modInsertError;
+      }
     }
 
     // 4. Update order total amount with tax recalculation and voucher preservation

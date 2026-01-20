@@ -115,17 +115,29 @@ const OrderDetailModal = ({ order, onClose, onOrderUpdated }) => {
                                 {order.items?.map((item, idx) => (
                                     <tr key={idx}>
                                         <td className="py-2">
-                                            <div className="flex items-center gap-2">
-                                                <span>{item.menu_item?.name}</span>
-                                                {/* Status Badge */}
-                                                <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${item.status === 'pending' ? 'bg-red-100 text-red-600 animate-pulse' :
-                                                    item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
-                                                        item.status === 'ready' ? 'bg-green-100 text-green-700' :
-                                                            item.status === 'served' ? 'bg-gray-100 text-gray-500 line-through' :
-                                                                'bg-gray-100'
-                                                    }`}>
-                                                    {item.status === 'pending' ? t('waiter.new_badge') : item.status}
-                                                </span>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <span>{item.menu_item?.name}</span>
+                                                    {/* Status Badge */}
+                                                    <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${item.status === 'pending' ? 'bg-red-100 text-red-600 animate-pulse' :
+                                                        item.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' :
+                                                            item.status === 'ready' ? 'bg-green-100 text-green-700' :
+                                                                item.status === 'served' ? 'bg-gray-100 text-gray-500 line-through' :
+                                                                    'bg-gray-100'
+                                                        }`}>
+                                                        {item.status === 'pending' ? t('waiter.new_badge') : item.status}
+                                                    </span>
+                                                </div>
+                                                {/* Modifiers List in Detail Modal */}
+                                                {item.order_item_modifiers && item.order_item_modifiers.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {item.order_item_modifiers.map(mod => (
+                                                            <span key={mod.id} className="text-[10px] text-gray-500 italic">
+                                                                + {mod.modifier_name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
 
                                         </td>

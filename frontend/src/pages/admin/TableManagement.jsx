@@ -23,7 +23,14 @@ const TableManagement = () => {
         location: 'Indoor',
         description: ''
     });
-    const [editData, setEditData] = useState({ table_number: '', capacity: 4, status: 'available', location: '', description: '' });
+    const [editData, setEditData] = useState({
+        table_number: '',
+        capacity: 4,
+        status: 'available',
+        location: '',
+        description: '',
+        is_active: true
+    });
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
@@ -49,7 +56,7 @@ const TableManagement = () => {
             if (response.data.stats) setStats(response.data.stats); // [NEW] Set stats
         } catch (err) {
             console.error(err);
-            toast.error(err.response?.data?.message || 'Failed to fetch tables');
+            toast.error(err.response?.data?.message || t('table.toast_error_fetch'));
         } finally {
             setLoading(false);
         }
@@ -71,24 +78,33 @@ const TableManagement = () => {
         e.preventDefault();
         try {
             await axios.post(`${API_URL}/api/admin/tables`, newTable, getAuthHeader());
-            toast.success('Table created successfully');
+            toast.success(t('table.toast_created'));
             fetchTables();
             setIsAddModalOpen(false);
             setNewTable({ table_number: '', capacity: 2, location: 'Indoor', description: '' });
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to create table');
+            toast.error(err.response?.data?.message || t('table.toast_error_create'));
         }
     };
 
     const handleUpdateTable = async (e) => {
         e.preventDefault();
         try {
-            await axios.put(`${API_URL}/api/admin/tables/${selectedTable.id}`, editData, getAuthHeader());
-            toast.success('Table updated successfully');
+            const response = await axios.put(`${API_URL}/api/admin/tables/${selectedTable.id}`, editData, getAuthHeader());
+            toast.success(t('table.toast_updated'));
+
+            // Emit socket event to notify waiters of table changes
+            if (socket) {
+                socket.emit('table_updated', {
+                    id: selectedTable.id,
+                    ...response.data.data
+                });
+            }
+
             fetchTables();
             setIsEditModalOpen(false);
         } catch (err) {
-            toast.error('Failed to update table');
+            toast.error(t('table.toast_error_update'));
         }
     };
 
@@ -96,10 +112,10 @@ const TableManagement = () => {
         if (!window.confirm(t('table.confirm_delete'))) return;
         try {
             await axios.delete(`${API_URL}/api/admin/tables/${id}`, getAuthHeader());
-            toast.success('Table deleted');
+            toast.success(t('table.toast_deleted'));
             fetchTables();
         } catch (err) {
-            toast.error('Failed to delete table');
+            toast.error(t('table.toast_error_delete'));
         }
     };
 
@@ -399,10 +415,10 @@ const TableManagement = () => {
         if (!window.confirm(t('table.confirm_regenerate'))) return;
         try {
             await axios.post(`${API_URL}/api/admin/tables/${id}/qr/generate`, {}, getAuthHeader());
-            toast.success('QR Code refreshed');
+            toast.success(t('table.toast_qr_refreshed'));
             fetchTables();
         } catch (err) {
-            toast.error('Failed to regenerate QR');
+            toast.error(t('table.toast_error_regenerate'));
         }
     };
 
@@ -410,20 +426,20 @@ const TableManagement = () => {
         if (!window.confirm(t('table.regenerate_all_confirm'))) return;
         try {
             const response = await axios.post(`${API_URL}/api/admin/tables/qr/regenerate-all`, {}, getAuthHeader());
-            toast.success(response.data.message || 'All QR Codes refreshed successfully');
+            toast.success(response.data.message || t('table.toast_all_qr_refreshed'));
             fetchTables();
         } catch (err) {
-            toast.error('Failed to regenerate all QRs');
+            toast.error(t('table.toast_error_regenerate_all'));
         }
     };
 
     const handleUpdateStatus = async (id, status) => {
         try {
             await axios.patch(`${API_URL}/api/admin/tables/${id}/status`, { status }, getAuthHeader());
-            toast.success(`Table marked as ${status}`);
+            toast.success(t('table.toast_status_updated', { status }));
             fetchTables();
         } catch (err) {
-            toast.error('Failed to update status');
+            toast.error(t('table.toast_error_status'));
         }
     };
 
@@ -498,7 +514,7 @@ const TableManagement = () => {
                         <button
                             onClick={() => fetchTables(currentPage)}
                             className="px-3 bg-white text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100"
-                            title="Refresh Data"
+                            title={t('common.refresh') || 'Refresh Data'}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                         </button>
@@ -555,7 +571,7 @@ const TableManagement = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {filteredTables.map((table) => (
-                            <div key={table.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative">
+                            <div key={table.id} className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative ${!table.is_active ? 'opacity-60 grayscale-[0.3]' : ''}`}>
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="h-12 min-w-[3rem] px-2 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
@@ -629,6 +645,9 @@ const TableManagement = () => {
                                     <div className="pt-2 border-t border-gray-50 flex items-center justify-between">
                                         <span className={`text-[10px] font-black uppercase tracking-widest ${table.status === 'available' ? 'text-emerald-500' : 'text-orange-500'}`}>
                                             {t(`table.${table.status}`)}
+                                        </span>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${table.is_active ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
+                                            {table.is_active ? t('table.status_active') : t('table.status_inactive')}
                                         </span>
                                     </div>
                                 </div>
@@ -815,8 +834,20 @@ const TableManagement = () => {
                                     >
                                         <option value="available">{t('table.available')}</option>
                                         <option value="occupied">{t('table.occupied')}</option>
-
                                     </select>
+                                </div>
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-gray-700">{t('table.active_status')}</span>
+                                        <span className="text-xs text-gray-500">{editData.is_active ? t('table.status_active_desc') : t('table.status_inactive_desc')}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditData({ ...editData, is_active: !editData.is_active })}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${editData.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                    >
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${editData.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
                                 </div>
                                 <div className="flex gap-3 pt-4">
                                     <button
@@ -862,6 +893,12 @@ const TableManagement = () => {
                                             selectedTable.status === 'occupied' ? 'text-orange-600' : 'text-amber-600'
                                             }`}>
                                             {t(`table.${selectedTable.status}`)}
+                                        </p>
+                                    </div>
+                                    <div className="p-4 bg-gray-50 rounded-xl">
+                                        <p className="text-xs text-gray-400 font-bold uppercase mb-1">{t('table.active_status')}</p>
+                                        <p className={`text-sm font-bold capitalize ${selectedTable.is_active ? 'text-emerald-600' : 'text-gray-500'}`}>
+                                            {selectedTable.is_active ? t('table.status_active') : t('table.status_inactive')}
                                         </p>
                                     </div>
                                     <div className="p-4 bg-gray-50 rounded-xl">

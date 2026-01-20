@@ -22,7 +22,8 @@ exports.verifyMenuToken = async (req, res) => {
             console.warn(`[SECURITY] QR JWT Verification Failed for table ${table}:`, jwtErr.message);
             return res.status(401).json({
                 success: false,
-                error: 'Invalid or expired QR code. Please ask staff for assistance.'
+                error: 'customer.qr.invalid_desc',
+                params: { tableNumber: table }
             });
         }
 
@@ -41,7 +42,17 @@ exports.verifyMenuToken = async (req, res) => {
             console.warn(`[SECURITY] Invalid token attempt for table ${tableData.table_number}. Token does not match database.`);
             return res.status(401).json({
                 success: false,
-                error: 'This QR code is no longer valid. Please ask staff for assistance.'
+                error: 'customer.qr.invalid_desc',
+                params: { tableNumber: tableData.table_number }
+            });
+        }
+
+        // 2.1 Check if table is active
+        if (tableData.is_active === false) {
+            return res.status(403).json({
+                success: false,
+                error: 'customer.qr.deactivated',
+                params: { tableNumber: tableData.table_number }
             });
         }
 
@@ -106,9 +117,36 @@ exports.getMenuItems = async (req, res) => {
             query = query.eq('category_id', category_id);
         }
 
-        // Filter by availability
-        if (is_available !== undefined) {
+        // Filter by availability (Backward compatibility)
+        // Note: For customers, this is now handled by the 'status' logic below
+        if (is_available !== undefined && req.query.admin_view !== 'true') {
+            // If a customer tries to filter by is_available, we ignore it 
+            // and let the status logic handle it to avoid conflicts
+        } else if (is_available !== undefined) {
             query = query.eq('is_available', is_available === 'true');
+        }
+
+        // New Status Logic:
+        // By default, hide 'unavailable' items.
+        // Only show them if:
+        // 1. request has 'admin_view=true'
+        // 2. AND request has a valid token with role in ['admin', 'waiter', 'kitchen']
+
+        let showHidden = false;
+        if (req.query.admin_view === 'true' && req.headers.authorization) {
+            try {
+                const token = req.headers.authorization.split(' ')[1];
+                const decoded = jwt.verify(token, JWT_SECRET);
+                if (['admin', 'waiter', 'kitchen'].includes(decoded.role)) {
+                    showHidden = true;
+                }
+            } catch (err) {
+                console.warn('[BACKEND] Admin view requested but token invalid');
+            }
+        }
+
+        if (!showHidden) {
+            query = query.in('status', ['available', 'sold_out']);
         }
 
         // Filter by chef recommendation
@@ -128,6 +166,8 @@ exports.getMenuItems = async (req, res) => {
             query = query.order('price', { ascending: false });
         } else if (sort_by === 'popularity') {
             query = query.order('order_count', { ascending: false });
+        } else if (sort_by === 'newest') {
+            query = query.order('created_at', { ascending: false });
         } else {
             query = query.order('name', { ascending: true });
         }
@@ -188,6 +228,22 @@ exports.getMenuItem = async (req, res) => {
             });
         }
 
+        // Get linked modifier groups and their options
+        const { data: linkedGroups, error: modError } = await supabase
+            .from('menu_item_modifier_groups')
+            .select(`
+                modifier_groups (
+                    *,
+                    modifiers (*)
+                )
+            `)
+            .eq('menu_item_id', id);
+
+        if (modError) console.error('Error fetching modifiers:', modError);
+
+        // Flatten the data to item.modifier_groups
+        item.modifier_groups = (linkedGroups || []).map(lg => lg.modifier_groups);
+
         res.status(200).json({
             success: true,
             data: item
@@ -240,11 +296,21 @@ exports.getMenuItemReviews = async (req, res) => {
 // POST /api/admin/menu-items
 exports.createMenuItem = async (req, res) => {
     try {
-        const { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation } = req.body;
+        const { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation, status } = req.body;
 
         // Basic validation
         if (!name || !price) {
             return res.status(400).json({ success: false, error: 'Name and price are required' });
+        }
+
+        // Sync is_available with status for backward compatibility
+        let finalStatus = status || 'available';
+        let finalAvailability = is_available !== undefined ? is_available : (finalStatus === 'available');
+
+        if (status && is_available === undefined) {
+            finalAvailability = (status === 'available');
+        } else if (is_available !== undefined && !status) {
+            finalStatus = is_available ? 'available' : 'sold_out';
         }
 
         // Check for duplicates
@@ -261,7 +327,7 @@ exports.createMenuItem = async (req, res) => {
         const { data, error } = await supabase
             .from('menu_items')
             .insert([
-                { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation }
+                { name, description, price, category_id, image_url, images, is_available: finalAvailability, is_chef_recommendation, status: finalStatus }
             ])
             .select()
             .single();
@@ -286,11 +352,18 @@ exports.createMenuItem = async (req, res) => {
 exports.updateMenuItem = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation } = req.body;
+        const { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation, status } = req.body;
 
         const updates = {
-            name, description, price, category_id, image_url, images, is_available, is_chef_recommendation
+            name, description, price, category_id, image_url, images, is_available, is_chef_recommendation, status
         };
+
+        // Sync logic for updates
+        if (status !== undefined && is_available === undefined) {
+            updates.is_available = (status === 'available');
+        } else if (is_available !== undefined && status === undefined) {
+            updates.status = is_available ? 'available' : 'sold_out';
+        }
 
         // Check for duplicates if name is being updated
         if (updates.name) {

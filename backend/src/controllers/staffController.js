@@ -15,7 +15,7 @@ exports.getStaff = async (req, res) => {
         let query = supabase
             .from('users')
             .select('id, email, full_name, role, phone, avatar_url, created_at', { count: 'exact' })
-            .in('role', ['waiter', 'kitchen']);
+            .in('role', ['waiter', 'kitchen', 'admin']);
 
         if (search) {
             query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -29,7 +29,7 @@ exports.getStaff = async (req, res) => {
         const statsQuery = supabase
             .from('users')
             .select('role')
-            .in('role', ['waiter', 'kitchen']);
+            .in('role', ['waiter', 'kitchen', 'admin']);
 
         const { data: allStaff, error: statsError } = await statsQuery;
 
@@ -39,7 +39,8 @@ exports.getStaff = async (req, res) => {
         const stats = {
             total: allStaff.length,
             waiter: allStaff.filter(s => s.role === 'waiter').length,
-            kitchen: allStaff.filter(s => s.role === 'kitchen').length
+            kitchen: allStaff.filter(s => s.role === 'kitchen').length,
+            admin: allStaff.filter(s => s.role === 'admin').length
         };
 
         res.status(200).json({
@@ -83,7 +84,7 @@ exports.createStaff = async (req, res) => {
     try {
         const { email, password, full_name, role, phone } = req.body;
 
-        if (!['waiter', 'kitchen'].includes(role)) {
+        if (!['waiter', 'kitchen', 'admin'].includes(role)) {
             return res.status(400).json({ success: false, message: 'Invalid role' });
         }
 
@@ -162,7 +163,7 @@ exports.updateStaff = async (req, res) => {
         const updateData = {};
         if (full_name) updateData.full_name = full_name;
         if (role) {
-            if (!['waiter', 'kitchen'].includes(role)) {
+            if (!['waiter', 'kitchen', 'admin'].includes(role)) {
                 return res.status(400).json({ success: false, message: 'Invalid role' });
             }
             updateData.role = role;
@@ -196,7 +197,7 @@ exports.deleteStaff = async (req, res) => {
             .from('users')
             .delete()
             .eq('id', id)
-            .in('role', ['waiter', 'kitchen']);
+            .in('role', ['waiter', 'kitchen', 'admin']);
 
         if (error) throw error;
         res.status(200).json({ success: true, message: 'Staff deleted successfully' });

@@ -72,6 +72,11 @@ export default function WaiterBillPage() {
                         ${order.items.map(item => `
                             <div class="item">
                                 <span>${item.quantity}x ${item.menu_item?.name}</span>
+                                ${item.order_item_modifiers && item.order_item_modifiers.length > 0 ? `
+                                    <div style="font-size: 11px; color: #666; margin-left: 20px;">
+                                        ${item.order_item_modifiers.map(m => `+ ${m.modifier_name}`).join(', ')}
+                                    </div>
+                                ` : ''}
                                 <span>${(item.unit_price * item.quantity).toLocaleString()}</span>
                             </div>
                         `).join('')}
@@ -171,7 +176,15 @@ export default function WaiterBillPage() {
                                     </span>
                                     <div>
                                         <p className="text-sm font-semibold text-gray-900">{item.menu_item?.name}</p>
-                                        <p className="text-xs text-gray-400">Standard</p>
+                                        {item.order_item_modifiers && item.order_item_modifiers.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-0.5">
+                                                {item.order_item_modifiers.map(m => (
+                                                    <span key={m.id} className="text-[10px] text-gray-400 italic">
+                                                        + {m.modifier_name}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <span className="font-bold text-gray-900">
