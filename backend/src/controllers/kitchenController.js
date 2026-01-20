@@ -18,8 +18,7 @@ exports.getKitchenItems = async (req, res) => {
           notes, 
           status, 
           created_at,
-          menu_items (id, name, image_url),
-          order_item_modifiers (modifier_name, price)
+          menu_items (id, name, image_url)
         )
       `)
       .eq('status', 'processing')
@@ -28,14 +27,14 @@ exports.getKitchenItems = async (req, res) => {
     if (error) throw error;
 
     const filteredOrders = orders.map(order => {
-        const activeItems = order.order_items.filter(item => 
-            ['pending', 'preparing', 'ready'].includes(item.status)
-        );
-        
-        return {
-            ...order,
-            order_items: activeItems
-        };
+      const activeItems = order.order_items.filter(item =>
+        ['pending', 'preparing', 'ready'].includes(item.status)
+      );
+
+      return {
+        ...order,
+        order_items: activeItems
+      };
     }).filter(order => order.order_items.length > 0);
 
     res.status(200).json({ success: true, data: filteredOrders });
@@ -53,9 +52,9 @@ exports.updateItemStatus = async (req, res) => {
 
   const validStatuses = ['pending', 'preparing', 'ready', 'served', 'rejected'];
   if (!validStatuses.includes(status)) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Status không hợp lệ' 
+    return res.status(400).json({
+      success: false,
+      message: 'Status không hợp lệ'
     });
   }
 
@@ -100,12 +99,12 @@ exports.updateItemStatus = async (req, res) => {
 
     // 4. Bắn Socket cho KHÁCH HÀNG (Tracking Page)
     if (tableId) {
-        // console.log(`📢 Update item status for Customer at Table ${tableId}`);
-        io.to(`table_${tableId}`).emit('item_status_update', {
-            itemId: id,
-            status: status,
-            order_id: updatedItem.order_id
-        });
+      // console.log(`📢 Update item status for Customer at Table ${tableId}`);
+      io.to(`table_${tableId}`).emit('item_status_update', {
+        itemId: id,
+        status: status,
+        order_id: updatedItem.order_id
+      });
     }
 
     // 5. Kiểm tra nếu CẢ ĐƠN đã xong
@@ -114,7 +113,7 @@ exports.updateItemStatus = async (req, res) => {
         .from('order_items')
         .select('*', { count: 'exact', head: true })
         .eq('order_id', updatedItem.order_id)
-        .in('status', ['pending', 'preparing']); 
+        .in('status', ['pending', 'preparing']);
 
       if (count === 0) {
         // Tất cả món đã ready
@@ -125,8 +124,8 @@ exports.updateItemStatus = async (req, res) => {
       }
     }
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: updatedItem,
       message: `Đã cập nhật ${itemName} thành ${status}`
     });

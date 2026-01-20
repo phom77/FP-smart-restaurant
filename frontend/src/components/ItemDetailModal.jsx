@@ -8,7 +8,6 @@ export default function ItemDetailModal({ item, onClose }) {
     const { t } = useTranslation();
     const { addToCart } = useCart();
     const [quantity, setQuantity] = useState(1);
-    const [selectedModifiers, setSelectedModifiers] = useState({});
     const [notes, setNotes] = useState('');
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -22,51 +21,12 @@ export default function ItemDetailModal({ item, onClose }) {
     const hasMultipleImages = allImages.length > 1;
 
     useEffect(() => {
-        // Initialize selected modifiers with defaults
-        if (item.modifier_groups) {
-            const defaults = {};
-            item.modifier_groups.forEach(group => {
-                if (group.min_selection > 0 && group.modifiers?.length > 0) {
-                    defaults[group.id] = [group.modifiers[0].id];
-                }
-            });
-            setSelectedModifiers(defaults);
-        }
         // Reset image index when item changes
         setCurrentImageIndex(0);
     }, [item]);
 
-    const handleModifierChange = (groupId, modifierId, isMultiple) => {
-        setSelectedModifiers(prev => {
-            if (isMultiple) {
-                const current = prev[groupId] || [];
-                if (current.includes(modifierId)) {
-                    return { ...prev, [groupId]: current.filter(id => id !== modifierId) };
-                } else {
-                    return { ...prev, [groupId]: [...current, modifierId] };
-                }
-            } else {
-                return { ...prev, [groupId]: [modifierId] };
-            }
-        });
-    };
-
     const calculateTotal = () => {
-        let total = item.price;
-
-        if (item.modifier_groups) {
-            item.modifier_groups.forEach(group => {
-                const selected = selectedModifiers[group.id] || [];
-                selected.forEach(modId => {
-                    const modifier = group.modifiers?.find(m => m.id === modId);
-                    if (modifier) {
-                        total += modifier.price_adjustment || 0;
-                    }
-                });
-            });
-        }
-
-        return total * quantity;
+        return item.price * quantity;
     };
 
     const handleAddToCart = () => {
@@ -199,47 +159,7 @@ export default function ItemDetailModal({ item, onClose }) {
                     </p>
 
                     {/* Modifier Groups */}
-                    {item.modifier_groups?.map(group => (
-                        <div key={group.id} className="mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-gray-200 last:border-0">
-                            <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-900 flex items-center gap-2">
-                                <span>🎯</span>
-                                {group.name}
-                                {group.min_selection > 0 && (
-                                    <span className="text-red-600 text-sm">*</span>
-                                )}
-                            </h3>
-                            <div className="flex flex-col gap-2 sm:gap-3">
-                                {group.modifiers?.map(modifier => {
-                                    const isMultiple = group.max_selection > 1;
-                                    const isSelected = (selectedModifiers[group.id] || []).includes(modifier.id);
 
-                                    return (
-                                        <label
-                                            key={modifier.id}
-                                            className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border-2 rounded-lg sm:rounded-xl cursor-pointer transition-all ${isSelected
-                                                ? 'border-emerald-500 bg-emerald-50 shadow-md scale-[1.02]'
-                                                : 'border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
-                                                }`}
-                                        >
-                                            <input
-                                                type={isMultiple ? 'checkbox' : 'radio'}
-                                                name={group.id}
-                                                checked={isSelected}
-                                                onChange={() => handleModifierChange(group.id, modifier.id, isMultiple)}
-                                                className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer accent-emerald-500"
-                                            />
-                                            <span className="flex-1 font-medium text-gray-800 text-sm sm:text-base">{modifier.name}</span>
-                                            {modifier.price_adjustment > 0 && (
-                                                <span className="text-emerald-600 font-bold text-sm sm:text-base">
-                                                    +{formatPrice(modifier.price_adjustment)}
-                                                </span>
-                                            )}
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ))}
 
                     {/* Notes */}
                     <div className="mb-6 sm:mb-8">

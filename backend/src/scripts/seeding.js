@@ -28,7 +28,7 @@ async function fixData() {
     console.log('🗑️  BẮT ĐẦU DỌN DẸP DỮ LIỆU RÁC...');
 
     // 1. XÓA SẠCH DỮ LIỆU (Clean Slate)
-    await supabase.from('order_item_modifiers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
     await supabase.from('payments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('reviews').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 

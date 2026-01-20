@@ -43,8 +43,7 @@ exports.getOrders = async (req, res) => {
                     total_price, 
                     notes, 
                     status,
-                    menu_item:menu_items(id, name, image_url),
-                    modifiers:order_item_modifiers(id, modifier_name, price)
+                    menu_item:menu_items(id, name, image_url)
                 )
             `, { count: 'exact' })
       .order('created_at', { ascending: false })
@@ -182,8 +181,8 @@ exports.updateOrderStatus = async (req, res) => {
 
         const io = getIO();
         io.to('waiter').emit('table_status_update', {
-            table_id: updatedOrder.table_id,
-            status: newTableStatus
+          table_id: updatedOrder.table_id,
+          status: newTableStatus
         });
       }
     }
@@ -320,12 +319,9 @@ exports.createOrder = async (req, res) => {
     if (tableError) throw tableError;
 
     // 1. Lấy giá từ DB (Logic cũ - Giữ nguyên)
-    const menuItemIds = items.map(item => item.menu_item_id);
-    let modifierIds = [];
-    items.forEach(item => {
-      if (item.modifiers) modifierIds = [...modifierIds, ...item.modifiers];
-    });
 
+
+    const menuItemIds = items.map(item => item.menu_item_id);
     const { data: dbMenuItems, error: menuError } = await supabase
       .from('menu_items')
       .select('id, price, name, is_available')
@@ -342,15 +338,7 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    const { data: dbModifiers, error: modError } = await supabase
-      .from('modifiers')
-      .select('id, price_adjustment, name')
-      .in('id', modifierIds);
-
-    if (modError) throw modError;
-
     const menuMap = new Map(dbMenuItems.map(i => [i.id, i]));
-    const modMap = new Map(dbModifiers.map(m => [m.id, m]));
 
     // 2. Tính tiền với thuế VAT
     let subtotal = 0;
@@ -363,21 +351,6 @@ exports.createOrder = async (req, res) => {
       }
 
       let itemUnitPrice = parseFloat(dbItem.price);
-      let modifiersData = [];
-
-      if (item.modifiers && item.modifiers.length > 0) {
-        item.modifiers.forEach(modId => {
-          const dbMod = modMap.get(modId);
-          if (dbMod) {
-            itemUnitPrice += parseFloat(dbMod.price_adjustment);
-            modifiersData.push({
-              modifier_id: modId,
-              modifier_name: dbMod.name,
-              price: dbMod.price_adjustment
-            });
-          }
-        });
-      }
 
       const itemTotalPrice = itemUnitPrice * item.quantity;
       subtotal += itemTotalPrice;
@@ -387,8 +360,7 @@ exports.createOrder = async (req, res) => {
         quantity: item.quantity,
         unit_price: itemUnitPrice,
         total_price: itemTotalPrice,
-        notes: item.notes,
-        modifiers: modifiersData
+        notes: item.notes
       });
     }
 
@@ -470,20 +442,7 @@ exports.createOrder = async (req, res) => {
 
       if (itemInsertError) throw itemInsertError;
 
-      if (itemData.modifiers.length > 0) {
-        const modifierInserts = itemData.modifiers.map(mod => ({
-          order_item_id: newOrderItem.id,
-          modifier_id: mod.modifier_id,
-          modifier_name: mod.modifier_name,
-          price: mod.price
-        }));
-
-        const { error: modInsertError } = await supabase
-          .from('order_item_modifiers')
-          .insert(modifierInserts);
-
-        if (modInsertError) throw modInsertError;
-      }
+      if (itemInsertError) throw itemInsertError;
     }
 
     // 4.5. Record coupon usage for per-user limit tracking
@@ -521,10 +480,10 @@ exports.createOrder = async (req, res) => {
     });
 
     if (table_id) {
-        io.to('waiter').emit('table_status_update', {
-            table_id: table_id,
-            status: 'occupied'
-        });
+      io.to('waiter').emit('table_status_update', {
+        table_id: table_id,
+        status: 'occupied'
+      });
     }
 
     // Báo cho Khách hàng (để chuyển trang Tracking)
@@ -559,12 +518,7 @@ exports.getOrder = async (req, res) => {
         table:tables(id, table_number, capacity),
         order_items(
           *,
-          menu_item:menu_items(id, name, image_url),
-          order_item_modifiers(
-            modifier_id,
-            modifier_name,
-            price
-          )
+          menu_item:menu_items(id, name, image_url)
         )
       `)
       .eq('id', id)
@@ -599,12 +553,9 @@ exports.getOrder = async (req, res) => {
 const addItemsToExistingOrder = async (req, res, orderId, items) => {
   try {
     // 1. Get menu items and modifiers pricing
-    const menuItemIds = items.map(item => item.menu_item_id);
-    let modifierIds = [];
-    items.forEach(item => {
-      if (item.modifiers) modifierIds = [...modifierIds, ...item.modifiers];
-    });
 
+
+    const menuItemIds = items.map(item => item.menu_item_id);
     const { data: dbMenuItems, error: menuError } = await supabase
       .from('menu_items')
       .select('id, price, name, is_available')
@@ -620,15 +571,7 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       });
     }
 
-    const { data: dbModifiers, error: modError } = await supabase
-      .from('modifiers')
-      .select('id, price_adjustment, name')
-      .in('id', modifierIds);
-
-    if (modError) throw modError;
-
     const menuMap = new Map(dbMenuItems.map(i => [i.id, i]));
-    const modMap = new Map(dbModifiers.map(m => [m.id, m]));
 
     // 2. Calculate prices and prepare items
     let additionalSubtotal = 0;
@@ -641,21 +584,6 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       }
 
       let itemUnitPrice = parseFloat(dbItem.price);
-      let modifiersData = [];
-
-      if (item.modifiers && item.modifiers.length > 0) {
-        item.modifiers.forEach(modId => {
-          const dbMod = modMap.get(modId);
-          if (dbMod) {
-            itemUnitPrice += parseFloat(dbMod.price_adjustment);
-            modifiersData.push({
-              modifier_id: modId,
-              modifier_name: dbMod.name,
-              price: dbMod.price_adjustment
-            });
-          }
-        });
-      }
 
       const itemTotalPrice = itemUnitPrice * item.quantity;
       additionalSubtotal += itemTotalPrice;
@@ -665,8 +593,7 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
         quantity: item.quantity,
         unit_price: itemUnitPrice,
         total_price: itemTotalPrice,
-        notes: item.notes,
-        modifiers: modifiersData
+        notes: item.notes
       });
     }
 
@@ -688,20 +615,7 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
 
       if (itemInsertError) throw itemInsertError;
 
-      if (itemData.modifiers.length > 0) {
-        const modifierInserts = itemData.modifiers.map(mod => ({
-          order_item_id: newOrderItem.id,
-          modifier_id: mod.modifier_id,
-          modifier_name: mod.modifier_name,
-          price: mod.price
-        }));
-
-        const { error: modInsertError } = await supabase
-          .from('order_item_modifiers')
-          .insert(modifierInserts);
-
-        if (modInsertError) throw modInsertError;
-      }
+      if (itemInsertError) throw itemInsertError;
     }
 
     // 4. Update order total amount with tax recalculation and voucher preservation
@@ -992,7 +906,7 @@ exports.checkoutOrder = async (req, res) => {
 
       // 4. 🔥 BẮN SOCKET THÔNG BÁO BÀN TRỐNG 🔥
       const io = getIO();
-      
+
       // Bắn sự kiện này để Admin/Waiter cập nhật lại danh sách bàn
       io.to('waiter').emit('table_status_update', {
         table_id: order.table_id,
@@ -1004,7 +918,7 @@ exports.checkoutOrder = async (req, res) => {
         order_id: id,
         status: 'completed'
       });
-      
+
       // Bắn cho bếp (để xóa đơn khỏi màn hình bếp nếu cần)
       io.to('kitchen').emit('order_status_updated', {
         order_id: id,
