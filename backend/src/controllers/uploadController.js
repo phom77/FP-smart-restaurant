@@ -25,6 +25,7 @@ const upload = multer({
 // Export middleware
 exports.uploadMiddleware = upload.single('image');
 exports.uploadMiddlewareArray = upload.array('images'); // No limit
+exports.uploadAvatarMiddleware = upload.single('image'); // For avatar uploads
 
 // Helper function to upload a single file
 const uploadFileToSupabase = async (file) => {
@@ -45,6 +46,30 @@ const uploadFileToSupabase = async (file) => {
     const { data } = supabase
         .storage
         .from('menu_images')
+        .getPublicUrl(filePath);
+
+    return data.publicUrl;
+};
+
+// Helper function to upload avatar to Supabase
+const uploadAvatarToSupabase = async (file) => {
+    const fileExt = path.extname(file.originalname);
+    const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error } = await supabase
+        .storage
+        .from('avatars')
+        .upload(filePath, file.buffer, {
+            contentType: file.mimetype,
+            upsert: false
+        });
+
+    if (error) throw error;
+
+    const { data } = supabase
+        .storage
+        .from('avatars')
         .getPublicUrl(filePath);
 
     return data.publicUrl;
@@ -89,6 +114,28 @@ exports.uploadImages = async (req, res) => {
         });
     } catch (err) {
         console.error("Multiple Upload Error:", err);
+        res.status(500).json({ success: false, error: err.message || 'Upload failed' });
+    }
+};
+
+// Controller upload avatar
+exports.uploadAvatar = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No file uploaded' });
+        }
+
+        const publicUrl = await uploadAvatarToSupabase(req.file);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                url: publicUrl
+            }
+        });
+
+    } catch (err) {
+        console.error("Avatar Upload Error:", err);
         res.status(500).json({ success: false, error: err.message || 'Upload failed' });
     }
 };
