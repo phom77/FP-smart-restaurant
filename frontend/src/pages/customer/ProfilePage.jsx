@@ -11,6 +11,7 @@ const ProfilePage = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
     // Profile form state
     const [profileData, setProfileData] = useState({
@@ -127,12 +128,60 @@ const ProfilePage = () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // For now, we'll use a placeholder. In production, upload to storage service
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setProfileData({ ...profileData, avatar_url: reader.result });
-        };
-        reader.readAsDataURL(file);
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            setMessage({ type: 'error', text: 'Vui lòng chọn file ảnh hợp lệ' });
+            return;
+        }
+
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setMessage({ type: 'error', text: 'Kích thước file không được vượt quá 5MB' });
+            return;
+        }
+
+        setUploadingAvatar(true);
+        setMessage({ type: '', text: '' });
+
+        try {
+            const token = localStorage.getItem('token');
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const response = await axios.post(
+                `${API_URL}/api/users/avatar`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }
+            );
+
+            if (response.data.success) {
+                const avatarUrl = response.data.data.url;
+                setProfileData({ ...profileData, avatar_url: avatarUrl });
+
+                // Update profile with new avatar URL
+                await axios.put(
+                    `${API_URL}/api/users/profile`,
+                    { avatar_url: avatarUrl },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                setMessage({ type: 'success', text: 'Cập nhật ảnh đại diện thành công!' });
+                fetchUserProfile(); // Refresh user data
+            }
+        } catch (error) {
+            console.error('Avatar upload error:', error);
+            setMessage({
+                type: 'error',
+                text: error.response?.data?.error || 'Lỗi khi tải ảnh lên. Vui lòng thử lại.'
+            });
+        } finally {
+            setUploadingAvatar(false);
+        }
     };
 
     if (loading) {
@@ -177,28 +226,41 @@ const ProfilePage = () => {
                                 {/* Avatar */}
                                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-4 sm:mb-6">
                                     <div className="relative">
-                                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold shadow-lg">
-                                            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase()}
-                                        </div>
+                                        {profileData.avatar_url ? (
+                                            <img
+                                                src={profileData.avatar_url}
+                                                alt="Avatar"
+                                                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover shadow-lg border-2 border-blue-500"
+                                            />
+                                        ) : (
+                                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold shadow-lg">
+                                                {user?.full_name ? user.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
                                         <label
                                             htmlFor="avatar-upload"
-                                            className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 sm:p-2 rounded-full cursor-pointer hover:bg-blue-700 shadow-md"
+                                            className={`absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 sm:p-2 rounded-full cursor-pointer hover:bg-blue-700 shadow-md transition-all ${uploadingAvatar ? 'opacity-50 cursor-not-allowed' : ''
+                                                }`}
                                         >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                className="h-3 w-3 sm:h-4 sm:w-4"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                                                />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
+                                            {uploadingAvatar ? (
+                                                <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                            ) : (
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-3 w-3 sm:h-4 sm:w-4"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                                                    />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                            )}
                                         </label>
                                         <input
                                             id="avatar-upload"
@@ -206,6 +268,7 @@ const ProfilePage = () => {
                                             accept="image/*"
                                             onChange={handleAvatarUpload}
                                             className="hidden"
+                                            disabled={uploadingAvatar}
                                         />
                                     </div>
                                     <div className="text-center sm:text-left">
