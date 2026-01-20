@@ -263,12 +263,7 @@ export default function KitchenDisplayPage() {
                                                         </span>
                                                     </div>
 
-                                                    {/* Modifiers */}
-                                                    {item.order_item_modifiers?.length > 0 && (
-                                                        <p className="text-xs text-gray-500 mb-1 leading-relaxed">
-                                                            + {item.order_item_modifiers.map(m => m.modifier_name).join(', ')}
-                                                        </p>
-                                                    )}
+
 
                                                     {/* Notes */}
                                                     {item.notes && (

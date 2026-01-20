@@ -238,8 +238,7 @@ export default function CartPage() {
             const items = cart.map(item => ({
                 menu_item_id: item.id,
                 quantity: item.quantity,
-                notes: item.notes || '',
-                modifiers: item.modifiers?.map(m => m.id) || []
+                notes: item.notes || ''
             }));
 
             let response;
@@ -382,8 +381,7 @@ export default function CartPage() {
                 {/* Cart Items */}
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
                     {cart.map(item => {
-                        const modifiersTotal = item.modifiers?.reduce((sum, mod) => sum + (mod.price_adjustment || 0), 0) || 0;
-                        const itemTotal = (item.price + modifiersTotal) * item.quantity;
+                        const itemTotal = item.price * item.quantity;
 
                         return (
                             <div key={item.cartId} className="bg-white rounded-xl sm:rounded-2xl shadow-md p-3 sm:p-6 hover:shadow-lg transition-shadow">
@@ -418,17 +416,7 @@ export default function CartPage() {
                                             </div>
                                         </div>
 
-                                        {/* Modifiers */}
-                                        {item.modifiers && item.modifiers.length > 0 && (
-                                            <div className="mt-2">
-                                                <p className="text-xs sm:text-sm text-gray-600">{t('customer.cart.options')}:</p>
-                                                {item.modifiers.map((mod, idx) => (
-                                                    <p key={idx} className="text-xs sm:text-sm text-gray-700">
-                                                        • {mod.name} (+{mod.price_adjustment.toLocaleString('vi-VN')}đ)
-                                                    </p>
-                                                ))}
-                                            </div>
-                                        )}
+
 
                                         {/* Quantity Controls */}
                                         <div className="flex items-center gap-3 mt-3 sm:mt-4">

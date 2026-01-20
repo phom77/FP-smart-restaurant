@@ -289,7 +289,6 @@ export default function OrderTrackingPage() {
                     </h2>
                     <div className="space-y-6">
                         {order.order_items?.map((item) => {
-                            const modifiersTotal = item.order_item_modifiers?.reduce((sum, mod) => sum + (parseFloat(mod.price) || 0), 0) || 0;
                             const itemTotal = (parseFloat(item.unit_price) || 0) * (parseInt(item.quantity) || 0);
 
                             return (
@@ -318,16 +317,7 @@ export default function OrderTrackingPage() {
                                                     </span>
                                                 </div>
 
-                                                {/* Modifiers */}
-                                                {item.order_item_modifiers?.length > 0 && (
-                                                    <div className="mt-2 pl-4 border-l-2 border-gray-100 space-y-1">
-                                                        {item.order_item_modifiers.map((mod, idx) => (
-                                                            <p key={idx} className="text-sm text-gray-500 font-medium">
-                                                                + {mod.modifier_name}
-                                                            </p>
-                                                        ))}
-                                                    </div>
-                                                )}
+
 
                                                 {/* Notes */}
                                                 {item.notes && (

@@ -127,11 +127,7 @@ const OrderDetailModal = ({ order, onClose, onOrderUpdated }) => {
                                                     {item.status === 'pending' ? t('waiter.new_badge') : item.status}
                                                 </span>
                                             </div>
-                                            {item.modifiers?.length > 0 && (
-                                                <div className="text-xs text-gray-500 italic mt-0.5">
-                                                    + {item.modifiers.map(m => m.modifier_name).join(', ')}
-                                                </div>
-                                            )}
+
                                         </td>
                                         <td className="py-2 text-center align-top">{item.quantity}</td>
                                         <td className="py-2 text-right align-top">{parseInt(item.total_price).toLocaleString()}</td>

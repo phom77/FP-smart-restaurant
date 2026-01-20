@@ -52,33 +52,6 @@ CREATE TABLE menu_items (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. MODIFIERS GROUPS (Nhóm Topping: Size, Mức đường...)
-CREATE TABLE modifier_groups (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(100) NOT NULL, -- VD: "Size", "Toppings"
-    min_selection INT DEFAULT 0, -- 0 là không bắt buộc
-    max_selection INT DEFAULT 1, -- 1 là chọn 1 cái (Radio), >1 là Checkbox
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 8. LINK MENU ITEMS <-> MODIFIER GROUPS (Quan hệ nhiều-nhiều)
--- Một món có thể có nhiều nhóm topping (Trà sữa có Size và Topping)
-CREATE TABLE item_modifier_groups (
-    menu_item_id UUID REFERENCES menu_items(id) ON DELETE CASCADE,
-    modifier_group_id UUID REFERENCES modifier_groups(id) ON DELETE CASCADE,
-    PRIMARY KEY (menu_item_id, modifier_group_id)
-);
-
--- 9. MODIFIERS (Chi tiết Topping: Size L, Trân châu...)
-CREATE TABLE modifiers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    group_id UUID REFERENCES modifier_groups(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    price_adjustment DECIMAL(10, 2) DEFAULT 0, -- Giá cộng thêm (+5000)
-    is_available BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- 10. ORDERS (Đơn hàng tổng/Phiên ăn)
 CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -102,13 +75,4 @@ CREATE TABLE order_items (
     notes TEXT, -- Ghi chú: "Ít cay"
     status item_status DEFAULT 'pending', -- Trạng thái từng món (Bếp cần cái này)
     created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 12. ORDER ITEM MODIFIERS (Lưu topping khách đã chọn cho món đó)
-CREATE TABLE order_item_modifiers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    order_item_id UUID REFERENCES order_items(id) ON DELETE CASCADE,
-    modifier_id UUID REFERENCES modifiers(id),
-    modifier_name VARCHAR(100), -- Lưu tên tại thời điểm đặt
-    price DECIMAL(10, 2) -- Lưu giá tại thời điểm đặt
 );
