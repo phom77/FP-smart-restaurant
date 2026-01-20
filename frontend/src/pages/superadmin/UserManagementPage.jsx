@@ -108,6 +108,7 @@ export default function UserManagementPage() {
                         <option value="all">{t('superadmin.user.filter_all')}</option>
                         <option value="admin">{t('superadmin.user.filter_admin')}</option>
                         <option value="waiter">{t('superadmin.user.filter_waiter')}</option>
+                        <option value="kitchen">{t('superadmin.user.filter_kitchen') || 'Kitchen'}</option>
                         <option value="customer">{t('superadmin.user.filter_customer')}</option>
                     </select>
                 </div>

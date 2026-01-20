@@ -418,6 +418,16 @@ export default function CartPage() {
 
 
 
+                                        {/* Notes */}
+                                        {item.notes && (
+                                            <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-2">
+                                                <p className="text-xs sm:text-sm text-yellow-800 flex items-start gap-1">
+                                                    <span className="material-symbols-outlined text-sm">edit_note</span>
+                                                    <span className="flex-1">{item.notes}</span>
+                                                </p>
+                                            </div>
+                                        )}
+
                                         {/* Quantity Controls */}
                                         <div className="flex items-center gap-3 mt-3 sm:mt-4">
                                             <button

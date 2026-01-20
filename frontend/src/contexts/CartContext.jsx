@@ -22,7 +22,7 @@ export const CartProvider = ({ children }) => {
         localStorage.setItem('cart', JSON.stringify(cart));
     }, [cart]);
 
-    const addToCart = (item, quantity = 1) => {
+    const addToCart = (item, quantity = 1, modifiers = [], notes = '') => {
         setCart(prevCart => {
             // Check if item already exists
             const existingIndex = prevCart.findIndex(cartItem =>
@@ -39,6 +39,8 @@ export const CartProvider = ({ children }) => {
                 return [...prevCart, {
                     ...item,
                     quantity,
+                    modifiers,
+                    notes,  // ✅ Add notes to cart item
                     cartId: Date.now() // Unique ID for cart item
                 }];
             }

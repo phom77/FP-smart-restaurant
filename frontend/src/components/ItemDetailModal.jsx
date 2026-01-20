@@ -30,7 +30,20 @@ export default function ItemDetailModal({ item, onClose }) {
     };
 
     const handleAddToCart = () => {
-        addToCart(item, quantity);
+        const modifiers = [];
+        if (item.modifier_groups) {
+            item.modifier_groups.forEach(group => {
+                const selected = selectedModifiers[group.id] || [];
+                selected.forEach(modId => {
+                    const modifier = group.modifiers?.find(m => m.id === modId);
+                    if (modifier) {
+                        modifiers.push(modifier);
+                    }
+                });
+            });
+        }
+
+        addToCart(item, quantity, modifiers, notes);  // ✅ Pass notes to addToCart
         onClose();
     };
 
