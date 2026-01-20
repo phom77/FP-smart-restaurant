@@ -49,6 +49,7 @@ const verifyQRTokenInDatabase = async (tableId, token) => {
 exports.getOrders = async (req, res) => {
   try {
     const status = req.query.status;
+    const search = req.query.search;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
@@ -57,21 +58,20 @@ exports.getOrders = async (req, res) => {
       .from('orders')
       .select(`
                 *,
-                table:tables(id, table_number),
-                customer:users(id, full_name, phone),
-                items:order_items(
+                tables(id, table_number),
+                users(id, full_name, phone),
+                order_items(
                     id, 
                     quantity, 
                     unit_price, 
                     total_price, 
                     notes, 
                     status,
-                    menu_item:menu_items(id, name, image_url),
+                    menu_items(id, name, image_url),
                     order_item_modifiers(id, modifier_name)
                 )
             `, { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order('created_at', { ascending: false });
 
     if (status) {
       query = query.eq('status', status);
@@ -81,6 +81,12 @@ exports.getOrders = async (req, res) => {
       query = query.eq('is_served', req.query.is_served === 'true');
     }
 
+    // Handle search by order ID or table number
+    if (search) {
+      query = query.or(`id.ilike.%${search}%,table_id.eq.${search}`);
+    }
+
+    query = query.range(offset, offset + limit - 1);
     const { data, error, count } = await query;
 
     if (error) throw error;

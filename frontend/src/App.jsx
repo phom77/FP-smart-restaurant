@@ -15,6 +15,7 @@ import DashboardPage from './pages/admin/DashboardPage';
 import TableManagement from './pages/admin/TableManagement';
 import StaffManagement from './pages/admin/StaffManagement';
 import ModifierManagement from './pages/admin/ModifierManagement';
+import OrderManagement from './pages/admin/OrderManagement';
 import WaiterLayout from './layouts/WaiterLayout'; // Import WaiterLayout
 import OrderListPage from './pages/waiter/OrderListPage'; // Import OrderListPage
 import TableMapPage from './pages/waiter/TableMapPage'; // Import TableMapPage
@@ -61,6 +62,7 @@ function App() {
           <Route path="/admin" element={<AdminSidebar />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="orders" element={<OrderManagement />} />
             <Route path="menu" element={<MenuManagement />} />
             <Route path="categories" element={<CategoryManagement />} />
             <Route path="coupons/create" element={<CreateCouponPage />} />
