@@ -156,6 +156,8 @@ export default function MenuPage() {
                         params.sort_by = 'price_desc';
                     } else if (sortBy === 'popularity') {
                         params.sort_by = 'popularity';
+                    } else if (sortBy === 'newest') {
+                        params.sort_by = 'newest';
                     }
 
                     if (showChefRecommendation) {
@@ -316,6 +318,7 @@ export default function MenuPage() {
                             className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-gray-50 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium cursor-pointer focus:outline-none focus:border-emerald-500 transition-all w-full sm:w-auto"
                         >
                             <option value="name">{t('customer.menu.sort_name')}</option>
+                            <option value="newest">{t('customer.menu.sort_newest')}</option>
                             <option value="popularity">{t('customer.menu.sort_popularity')}</option>
                             <option value="price_asc">{t('customer.menu.sort_price_asc')}</option>
                             <option value="price_desc">{t('customer.menu.sort_price_desc')}</option>

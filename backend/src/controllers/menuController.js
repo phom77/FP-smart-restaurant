@@ -128,6 +128,8 @@ exports.getMenuItems = async (req, res) => {
             query = query.order('price', { ascending: false });
         } else if (sort_by === 'popularity') {
             query = query.order('order_count', { ascending: false });
+        } else if (sort_by === 'newest') {
+            query = query.order('created_at', { ascending: false });
         } else {
             query = query.order('name', { ascending: true });
         }

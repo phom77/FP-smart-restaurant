@@ -574,6 +574,7 @@ const MenuManagement = () => {
                             onChange={(e) => setSortBy(e.target.value)}
                         >
                             <option value="name">{t('menu.sort_name')}</option>
+                            <option value="newest">{t('menu.sort_newest')}</option>
                             <option value="price_asc">{t('menu.sort_price_asc')}</option>
                             <option value="price_desc">{t('menu.sort_price_desc')}</option>
                             <option value="popularity">{t('menu.sort_popularity')}</option>
