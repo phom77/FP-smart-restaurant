@@ -47,21 +47,13 @@ router.delete('/:id',
 );
 
 // 7. QR Operations
-// Generate/Regenerate QR code
-router.post('/:id/qr/generate',
-  verifyToken,
-  authorizeRoles('admin'),
-  tableController.regenerateQRToken
-);
+// IMPORTANT: Bulk operations must come BEFORE parameterized routes to avoid route conflicts
 
-// Download QR code (PNG/PDF)
-router.get('/:id/qr/download',
+// Bulk Regenerate All QR codes
+router.post('/qr/regenerate-all',
   verifyToken,
   authorizeRoles('admin'),
-  (req, res) => {
-    if (req.query.format === 'png') return tableController.downloadTablePNG(req, res);
-    return tableController.downloadTablePDF(req, res);
-  }
+  tableController.regenerateAllQR
 );
 
 // Download all QR codes (ZIP)
@@ -78,18 +70,28 @@ router.get('/qr/download-all-pdf',
   tableController.downloadBulkPDF
 );
 
-// Preview QR (Show in admin panel)
+// Generate/Regenerate single QR code
+router.post('/:id/qr/generate',
+  verifyToken,
+  authorizeRoles('admin'),
+  tableController.regenerateQRToken
+);
+
+// Download single QR code (PNG/PDF)
+router.get('/:id/qr/download',
+  verifyToken,
+  authorizeRoles('admin'),
+  (req, res) => {
+    if (req.query.format === 'png') return tableController.downloadTablePNG(req, res);
+    return tableController.downloadTablePDF(req, res);
+  }
+);
+
+// Preview single QR (Show in admin panel)
 router.get('/:id/qr',
   verifyToken,
   authorizeRoles('admin'),
   tableController.generateQRCode
-);
-
-// Bulk Regenerate (Extra, not strictly required but helpful)
-router.post('/qr/regenerate-all',
-  verifyToken,
-  authorizeRoles('admin'),
-  tableController.regenerateAllQR
 );
 
 module.exports = router;
