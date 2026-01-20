@@ -27,6 +27,7 @@ const TableManagement = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
+    const [stats, setStats] = useState({ total: 0, available: 0, occupied: 0 }); // [NEW] Global stats
     const itemsPerPage = 12;
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
@@ -45,6 +46,7 @@ const TableManagement = () => {
             setTables(response.data.data);
             setTotalPages(response.data.pagination?.totalPages || 1);
             setTotalItems(response.data.pagination?.total || 0);
+            if (response.data.stats) setStats(response.data.stats); // [NEW] Set stats
         } catch (err) {
             console.error(err);
             toast.error(err.response?.data?.message || 'Failed to fetch tables');
@@ -538,15 +540,15 @@ const TableManagement = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                             <p className="text-gray-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('table.total_tables')}</p>
-                            <p className="text-2xl font-black text-gray-800">{totalItems}</p>
+                            <p className="text-2xl font-black text-gray-800">{stats.total}</p> {/* [UPDATED] Use global stats */}
                         </div>
                         <div className="bg-emerald-50/30 p-4 rounded-2xl shadow-sm border border-emerald-50">
                             <p className="text-emerald-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('table.available')}</p>
-                            <p className="text-2xl font-black text-emerald-600">{tables.filter(t => t.status === 'available').length}</p>
+                            <p className="text-2xl font-black text-emerald-600">{stats.available}</p> {/* [UPDATED] Use global stats */}
                         </div>
                         <div className="bg-orange-50/30 p-4 rounded-2xl shadow-sm border border-orange-50">
                             <p className="text-orange-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('table.occupied')}</p>
-                            <p className="text-2xl font-black text-orange-600">{tables.filter(t => t.status === 'occupied').length}</p>
+                            <p className="text-2xl font-black text-orange-600">{stats.occupied}</p> {/* [UPDATED] Use global stats */}
                         </div>
 
                     </div>

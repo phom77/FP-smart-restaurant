@@ -7,13 +7,17 @@ const TableMapPage = () => {
     const { t } = useTranslation();
     const [tables, setTables] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const itemsPerPage = 20;
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
-    const fetchTables = async () => {
+    const fetchTables = async (page = currentPage) => {
         try {
-            const res = await api.get('/api/admin/tables');
+            const res = await api.get(`/api/admin/tables?page=${page}&limit=${itemsPerPage}`);
             setTables(res.data.data);
+            setTotalPages(res.data.pagination?.totalPages || 1);
             setLoading(false);
         } catch (err) {
             console.error(err);
@@ -22,7 +26,7 @@ const TableMapPage = () => {
     };
 
     useEffect(() => {
-        fetchTables();
+        fetchTables(currentPage);
 
         const newSocket = io(API_URL, {
             auth: {
@@ -34,17 +38,17 @@ const TableMapPage = () => {
             newSocket.emit('join_room', 'waiter');
         });
 
-        newSocket.on('new_order', fetchTables);
-        newSocket.on('order_status_updated', fetchTables);
-        newSocket.on('item_status_update', fetchTables);
+        newSocket.on('new_order', () => fetchTables(currentPage));
+        newSocket.on('order_status_updated', () => fetchTables(currentPage));
+        newSocket.on('item_status_update', () => fetchTables(currentPage));
 
-        const interval = setInterval(fetchTables, 30000);
+        const interval = setInterval(() => fetchTables(currentPage), 30000);
 
         return () => {
             newSocket.close();
             clearInterval(interval);
         };
-    }, []);
+    }, [currentPage]);
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -63,7 +67,7 @@ const TableMapPage = () => {
     );
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-lg h-full">
+        <div className="bg-white p-6 rounded-2xl shadow-lg min-h-[85vh]">
             <div className="flex justify-between items-center mb-10">
                 <div>
                     <h2 className="text-3xl font-extrabold text-gray-800 tracking-tight">{t('waiter.table_map')}</h2>
@@ -97,16 +101,38 @@ const TableMapPage = () => {
                 ))}
             </div>
 
-            <div className="mt-12 flex flex-wrap gap-6 text-sm justify-center border-t border-gray-50 pt-8">
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-emerald-50 border border-emerald-200 rounded shadow-sm"></div>
-                    <span className="font-medium text-gray-600">{t('waiter.status.available')}</span>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-4">
+                    <button
+                        onClick={() => {
+                            if (currentPage > 1) {
+                                setCurrentPage(prev => prev - 1);
+                            }
+                        }}
+                        disabled={currentPage === 1}
+                        className={`p-3 rounded-xl border-2 transition-all ${currentPage === 1 ? 'border-gray-100 text-gray-300' : 'border-gray-200 text-gray-600 hover:border-emerald-500 hover:text-emerald-500 active:scale-95'}`}
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+
+                    <span className="text-gray-500 font-medium">
+                        {t('common.page_of', { current: currentPage, total: totalPages })}
+                    </span>
+
+                    <button
+                        onClick={() => {
+                            if (currentPage < totalPages) {
+                                setCurrentPage(prev => prev + 1);
+                            }
+                        }}
+                        disabled={currentPage === totalPages}
+                        className={`p-3 rounded-xl border-2 transition-all ${currentPage === totalPages ? 'border-gray-100 text-gray-300' : 'border-gray-200 text-gray-600 hover:border-emerald-500 hover:text-emerald-500 active:scale-95'}`}
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-rose-50 border border-rose-200 rounded shadow-sm"></div>
-                    <span className="font-medium text-gray-600">{t('waiter.status.occupied')}</span>
-                </div>
-            </div>
+            )}
         </div>
     );
 };

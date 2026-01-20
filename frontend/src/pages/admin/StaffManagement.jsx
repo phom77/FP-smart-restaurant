@@ -15,6 +15,7 @@ const StaffManagement = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
+    const [stats, setStats] = useState({ total: 0, waiter: 0, kitchen: 0 }); // [NEW] Global stats
     const itemsPerPage = 10;
 
     const [formData, setFormData] = useState({
@@ -48,6 +49,7 @@ const StaffManagement = () => {
             setStaff(res.data.data);
             setTotalPages(res.data.pagination?.totalPages || 1);
             setTotalItems(res.data.pagination?.total || 0);
+            if (res.data.stats) setStats(res.data.stats); // [NEW] Set stats
         } catch (err) {
             console.error(err);
             toast.error(t('common.failed'));
@@ -177,15 +179,15 @@ const StaffManagement = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                             <p className="text-gray-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.total_staff')}</p>
-                            <p className="text-2xl font-black text-gray-800">{totalItems}</p>
+                            <p className="text-2xl font-black text-gray-800">{stats.total}</p> {/* [UPDATED] Use global stats */}
                         </div>
                         <div className="bg-blue-50/30 p-4 rounded-2xl shadow-sm border border-blue-50">
                             <p className="text-blue-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.waiters')}</p>
-                            <p className="text-2xl font-black text-blue-600">{staff.filter(s => s.role === 'waiter').length}</p>
+                            <p className="text-2xl font-black text-blue-600">{stats.waiter}</p> {/* [UPDATED] Use global stats */}
                         </div>
                         <div className="bg-orange-50/30 p-4 rounded-2xl shadow-sm border border-orange-50">
                             <p className="text-orange-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.kitchen_staff')}</p>
-                            <p className="text-2xl font-black text-orange-600">{staff.filter(s => s.role === 'kitchen').length}</p>
+                            <p className="text-2xl font-black text-orange-600">{stats.kitchen}</p> {/* [UPDATED] Use global stats */}
                         </div>
                     </div>
 

@@ -25,7 +25,22 @@ exports.getStaff = async (req, res) => {
             .order('created_at', { ascending: false })
             .range(offset, offset + limitNum - 1);
 
+        // 2. Get global stats ignoring pagination
+        const statsQuery = supabase
+            .from('users')
+            .select('role')
+            .in('role', ['waiter', 'kitchen']);
+
+        const { data: allStaff, error: statsError } = await statsQuery;
+
         if (error) throw error;
+        if (statsError) throw statsError;
+
+        const stats = {
+            total: allStaff.length,
+            waiter: allStaff.filter(s => s.role === 'waiter').length,
+            kitchen: allStaff.filter(s => s.role === 'kitchen').length
+        };
 
         res.status(200).json({
             success: true,
@@ -35,7 +50,8 @@ exports.getStaff = async (req, res) => {
                 limit: limitNum,
                 total: count,
                 totalPages: Math.ceil(count / limitNum)
-            }
+            },
+            stats // Return global stats
         });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
