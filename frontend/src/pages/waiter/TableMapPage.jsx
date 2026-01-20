@@ -41,6 +41,17 @@ const TableMapPage = () => {
         newSocket.on('new_order', () => fetchTables(currentPage));
         newSocket.on('order_status_updated', () => fetchTables(currentPage));
         newSocket.on('item_status_update', () => fetchTables(currentPage));
+        
+        // Listen for table updates (active/deactive)
+        newSocket.on('table_updated', (updatedTable) => {
+            setTables(prevTables =>
+                prevTables.map(table =>
+                    table.id === updatedTable.id
+                        ? { ...table, ...updatedTable }
+                        : table
+                )
+            );
+        });
 
         const interval = setInterval(() => fetchTables(currentPage), 30000);
 
@@ -50,7 +61,12 @@ const TableMapPage = () => {
         };
     }, [currentPage]);
 
-    const getStatusColor = (status) => {
+    const getStatusColor = (status, isActive) => {
+        // If table is inactive, show it as disabled
+        if (!isActive) {
+            return 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 cursor-not-allowed';
+        }
+        
         switch (status) {
             case 'available': return 'bg-emerald-50 border-emerald-200 text-emerald-700';
             case 'occupied': return 'bg-rose-50 border-rose-200 text-rose-700';
@@ -85,13 +101,17 @@ const TableMapPage = () => {
                         key={table.id}
                         className={`
                             h-32 rounded-2xl flex flex-col items-center justify-center border-2 shadow-sm transition-all relative overflow-hidden group
-                            ${getStatusColor(table.status)}
+                            ${getStatusColor(table.status, table.is_active)}
                         `}
                     >
                         <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
                         <span className="text-3xl font-bold">{table.table_number}</span>
                         <span className="text-sm font-medium uppercase mt-2 tracking-wider">
-                            {t(`waiter.status.${table.status}`)}
+                            {!table.is_active ? (
+                                <span className="text-red-500">• {t('table.status_inactive')}</span>
+                            ) : (
+                                t(`waiter.status.${table.status}`)
+                            )}
                         </span>
 
                         <div className="mt-2 text-[10px] opacity-70 font-bold uppercase">

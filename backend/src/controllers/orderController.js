@@ -66,7 +66,8 @@ exports.getOrders = async (req, res) => {
                     total_price, 
                     notes, 
                     status,
-                    menu_item:menu_items(id, name, image_url)
+                    menu_item:menu_items(id, name, image_url),
+                    order_item_modifiers(id, modifier_name)
                 )
             `, { count: 'exact' })
       .order('created_at', { ascending: false })
@@ -576,8 +577,14 @@ exports.getOrder = async (req, res) => {
         *,
         table:tables(id, table_number, capacity),
         order_items(
-          *,
-          menu_item:menu_items(id, name, image_url)
+          id,
+          quantity,
+          unit_price,
+          total_price,
+          notes,
+          status,
+          menu_item:menu_items(id, name, image_url),
+          order_item_modifiers(id, modifier_name)
         )
       `)
       .eq('id', id)

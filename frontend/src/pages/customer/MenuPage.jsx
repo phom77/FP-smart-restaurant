@@ -262,7 +262,7 @@ export default function MenuPage() {
         return (
             <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
                 <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-gray-500 font-medium animate-pulse">{t('common.processing') || 'Verifying your table...'}</p>
+                <p className="mt-4 text-lg text-gray-600 font-medium">{t('common.processing') || 'Verifying your table...'}</p>
             </div>
         );
     }
@@ -292,7 +292,7 @@ export default function MenuPage() {
                             <div className="relative">
                                 <span className="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform">shopping_cart</span>
                                 {getCartCount() > 0 && (
-                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm animate-pulse">
+                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
                                         {getCartCount()}
                                     </span>
                                 )}
@@ -303,7 +303,7 @@ export default function MenuPage() {
 
                     {/* Read-Only Mode Banner */}
                     {isReadOnly && (
-                        <div className="mb-6 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-4 sm:p-6 shadow-lg text-white animate-pulse">
+                        <div className="mb-6 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-4 sm:p-6 shadow-lg text-white">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-white/20 rounded-full">
                                     <span className="material-symbols-outlined text-white text-3xl">info</span>

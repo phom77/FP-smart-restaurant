@@ -47,6 +47,15 @@ exports.verifyMenuToken = async (req, res) => {
             });
         }
 
+        // 2.1 Check if table is active
+        if (tableData.is_active === false) {
+            return res.status(403).json({
+                success: false,
+                error: 'customer.qr.deactivated',
+                params: { tableNumber: tableData.table_number }
+            });
+        }
+
         // 3. Return Table Info (Menu items can be fetched separately or here)
         res.status(200).json({
             success: true,

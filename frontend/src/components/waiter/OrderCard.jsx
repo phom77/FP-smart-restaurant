@@ -83,6 +83,17 @@ const OrderCard = ({ order, onAccept, onReject, onComplete, onServed, onConfirmP
                                 <span className="font-bold text-gray-800 mr-1 sm:mr-2">{item.quantity}x</span>
                                 <span className="text-gray-700 font-medium">{item.menu_item?.name || 'Unknown'}</span>
 
+                                {/* Modifiers summary on Card */}
+                                {item.order_item_modifiers && item.order_item_modifiers.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {item.order_item_modifiers.map(mod => (
+                                            <span key={mod.id} className="text-[9px] text-gray-400 font-medium">
+                                                • {mod.modifier_name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
                                 {/* Hiển thị trạng thái từng món nhỏ */}
                                 <span className={`ml-1 sm:ml-2 text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded border font-bold uppercase tracking-tighter ${item.status === 'pending' ? 'bg-red-100 text-red-600 border-red-200 animate-pulse' :
                                     item.status === 'ready' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
