@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +8,9 @@ const MenuManagement = () => {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const itemsPerPage = 10;
 
     // Form State
     const [newItem, setNewItem] = useState({
@@ -22,6 +25,7 @@ const MenuManagement = () => {
     const [imageFiles, setImageFiles] = useState([]); // Array of new files
     const [previewImages, setPreviewImages] = useState([]); // Previews for new files
     const [editingId, setEditingId] = useState(null); // ID being edited
+    const formRef = useRef(null);
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -34,20 +38,29 @@ const MenuManagement = () => {
         fetchData();
     }, []);
 
-    const fetchData = async () => {
+    const fetchData = async (page = currentPage, showLoading = true) => {
         try {
+            if (showLoading) setLoading(true);
             const timestamp = Date.now();
             const [itemRes, catRes] = await Promise.all([
-                axios.get(`${API_URL}/api/menu/items?limit=100&t=${timestamp}`),
+                axios.get(`${API_URL}/api/menu/items?page=${page}&limit=${itemsPerPage}&t=${timestamp}`),
                 axios.get(`${API_URL}/api/categories?t=${timestamp}`)
             ]);
             console.log('Fetched items count:', itemRes.data.data.length);
             setItems(itemRes.data.data);
             setCategories(catRes.data);
-            setLoading(false);
+            setTotalPages(itemRes.data.pagination?.totalPages || 1);
         } catch (err) {
             console.error(err);
+        } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+            fetchData(newPage, false);
         }
     };
 
@@ -89,7 +102,9 @@ const MenuManagement = () => {
         setImageFiles([]); // Reset file input
         setPreviewImages([]);
         setError('');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (formRef.current) {
+            formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     };
 
     const resetForm = () => {
@@ -136,7 +151,8 @@ const MenuManagement = () => {
             }
 
             resetForm();
-            fetchData();
+            fetchData(editingId ? currentPage : 1);
+            if (!editingId) setCurrentPage(1);
         } catch (err) {
             setError(err.response?.data?.error || err.message || t('menu.failed_save'));
         }
@@ -148,7 +164,7 @@ const MenuManagement = () => {
         try {
             await axios.delete(`${API_URL}/api/admin/menu-items/${id}`, getAuthHeader());
             console.log('Delete successful');
-            fetchData();
+            fetchData(currentPage);
             if (editingId === id) resetForm();
         } catch (err) {
             console.error('Delete failed:', err);
@@ -166,7 +182,8 @@ const MenuManagement = () => {
         setViewItem(null);
     };
 
-    if (loading) return <div>{t('common.loading')}</div>;
+    if (loading && items.length === 0) return <div className="flex justify-center items-center h-screen">{t('common.loading')}</div>;
+
 
     return (
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-lg relative">
@@ -175,7 +192,11 @@ const MenuManagement = () => {
             {error && <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-xl text-sm">{error}</div>}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className={`mb-8 p-4 md:p-6 border-2 rounded-2xl transition-colors ${editingId ? 'border-amber-200 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30'}`}>
+            <form
+                ref={formRef}
+                onSubmit={handleSubmit}
+                className={`mb-8 p-4 md:p-6 border-2 rounded-2xl transition-colors ${editingId ? 'border-amber-200 bg-amber-50/30' : 'border-emerald-100 bg-emerald-50/30'}`}
+            >
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
                     <h3 className={`text-lg font-bold ${editingId ? 'text-amber-800' : 'text-emerald-800'}`}>
                         {editingId ? t('menu.edit_title') : t('menu.add_title')}
@@ -457,6 +478,61 @@ const MenuManagement = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <div className="text-sm text-gray-500 font-medium order-2 md:order-1">
+                        {t('common.page_of', { current: currentPage, total: totalPages })}
+                    </div>
+                    <div className="flex items-center gap-2 order-1 md:order-2">
+                        <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className={`p-2 rounded-xl border-2 transition-all ${currentPage === 1 ? 'border-gray-100 text-gray-300' : 'border-gray-200 text-gray-600 hover:border-emerald-500 hover:text-emerald-500 active:scale-95'}`}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                            {[...Array(totalPages)].map((_, idx) => {
+                                const pageNum = idx + 1;
+                                // Hiển thị giới hạn số trang nếu quá nhiều (tùy chọn)
+                                if (
+                                    totalPages > 7 &&
+                                    pageNum !== 1 &&
+                                    pageNum !== totalPages &&
+                                    Math.abs(pageNum - currentPage) > 1
+                                ) {
+                                    if (Math.abs(pageNum - currentPage) === 2) return <span key={pageNum} className="px-1 text-gray-400">...</span>;
+                                    return null;
+                                }
+
+                                return (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => handlePageChange(pageNum)}
+                                        className={`w-10 h-10 rounded-xl font-bold transition-all flex items-center justify-center ${currentPage === pageNum
+                                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 scale-110'
+                                            : 'text-gray-500 hover:bg-white hover:shadow-md border-2 border-transparent hover:border-emerald-100'
+                                            }`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className={`p-2 rounded-xl border-2 transition-all ${currentPage === totalPages ? 'border-gray-100 text-gray-300' : 'border-gray-200 text-gray-600 hover:border-emerald-500 hover:text-emerald-500 active:scale-95'}`}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* View Modal */}
             {viewItem && (

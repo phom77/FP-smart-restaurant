@@ -105,13 +105,28 @@ exports.getAvailableCoupons = async (req, res) => {
 // 1.1. Lấy TẤT CẢ Voucher (Cho Admin quản lý)
 exports.getAllCouponsForAdmin = async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const { page = 1, limit = 10 } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const offset = (pageNum - 1) * limitNum;
+
+        const { data, error, count } = await supabase
             .from('coupons')
-            .select('*')
-            .order('created_at', { ascending: false }); // Sắp xếp theo mới nhất
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limitNum - 1);
 
         if (error) throw error;
-        res.json({ success: true, data });
+        res.json({
+            success: true,
+            data,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total: count,
+                totalPages: Math.ceil(count / limitNum)
+            }
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
