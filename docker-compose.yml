@@ -19,8 +19,10 @@ services:
       - REDIS_URL=redis://redis:6379
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_CALLBACK_URL=http://localhost:5001/api/auth/google/callback
-      - FRONTEND_URL=http://localhost:5173
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - EMAIL_USER=${EMAIL_USER} 
+      - EMAIL_PASS=${EMAIL_PASS}
     depends_on:
       - redis
     volumes:
