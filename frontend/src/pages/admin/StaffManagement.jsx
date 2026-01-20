@@ -12,6 +12,10 @@ const StaffManagement = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedStaff, setSelectedStaff] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const itemsPerPage = 10;
 
     const [formData, setFormData] = useState({
         email: '',
@@ -34,11 +38,16 @@ const StaffManagement = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     });
 
-    const fetchStaff = async () => {
-        setLoading(true);
+    const fetchStaff = async (page = currentPage, showLoading = true) => {
+        if (showLoading) setLoading(true);
         try {
-            const res = await axios.get(`${API_URL}/api/admin/staff`, getAuthHeader());
+            const res = await axios.get(
+                `${API_URL}/api/admin/staff?page=${page}&limit=${itemsPerPage}&search=${searchQuery}`,
+                getAuthHeader()
+            );
             setStaff(res.data.data);
+            setTotalPages(res.data.pagination?.totalPages || 1);
+            setTotalItems(res.data.pagination?.total || 0);
         } catch (err) {
             console.error(err);
             toast.error(t('common.failed'));
@@ -47,9 +56,20 @@ const StaffManagement = () => {
         }
     };
 
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+            fetchStaff(newPage, false);
+        }
+    };
+
     useEffect(() => {
-        fetchStaff();
-    }, []);
+        const timer = setTimeout(() => {
+            setCurrentPage(1);
+            fetchStaff(1, true); // Show loading when searching
+        }, 300); // Simple debounce
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     const validateStaffForm = (data) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -113,7 +133,7 @@ const StaffManagement = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-800">{t('staff.title')}</h2>
-                    <p className="text-gray-500 text-sm">{t('staff.total_staff')}: {staff.length}</p>
+                    <p className="text-gray-500 text-sm">{t('staff.total_staff')}: {totalItems}</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                     <div className="flex bg-white p-1 rounded-xl border border-gray-200 w-full sm:w-auto">
@@ -131,7 +151,7 @@ const StaffManagement = () => {
                         </div>
                         <div className="w-[1px] bg-gray-200 my-1"></div>
                         <button
-                            onClick={fetchStaff}
+                            onClick={() => fetchStaff(currentPage)}
                             className="px-3 bg-white text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                             title="Refresh"
                         >
@@ -147,7 +167,7 @@ const StaffManagement = () => {
                 </div>
             </div>
 
-            {loading ? (
+            {loading && staff.length === 0 ? (
                 <div className="flex justify-center py-20">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
                 </div>
@@ -157,7 +177,7 @@ const StaffManagement = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                             <p className="text-gray-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.total_staff')}</p>
-                            <p className="text-2xl font-black text-gray-800">{staff.length}</p>
+                            <p className="text-2xl font-black text-gray-800">{totalItems}</p>
                         </div>
                         <div className="bg-blue-50/30 p-4 rounded-2xl shadow-sm border border-blue-50">
                             <p className="text-blue-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.waiters')}</p>
@@ -182,11 +202,7 @@ const StaffManagement = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
-                                    {staff.filter(s =>
-                                        s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                        s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                        (s.phone && s.phone.includes(searchQuery))
-                                    ).map((s) => (
+                                    {staff.map((s) => (
                                         <tr key={s.id} className="hover:bg-gray-50/30 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
@@ -236,6 +252,51 @@ const StaffManagement = () => {
                             </table>
                         </div>
                     </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <div className="text-sm text-gray-500 font-medium order-2 md:order-1">
+                                {t('common.page_of', { current: currentPage, total: totalPages })}
+                            </div>
+                            <div className="flex items-center gap-2 order-1 md:order-2">
+                                <button
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className={`p-2 rounded-xl border-2 transition-all ${currentPage === 1 ? 'border-gray-100 text-gray-300' : 'border-gray-200 text-gray-600 hover:border-emerald-500 hover:text-emerald-500 active:scale-95'}`}
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                                </button>
+
+                                <div className="flex items-center gap-1">
+                                    {[...Array(totalPages)].map((_, idx) => {
+                                        const pageNum = idx + 1;
+                                        if (totalPages > 7 && pageNum !== 1 && pageNum !== totalPages && Math.abs(pageNum - currentPage) > 1) {
+                                            if (Math.abs(pageNum - currentPage) === 2) return <span key={pageNum} className="px-1 text-gray-400">...</span>;
+                                            return null;
+                                        }
+                                        return (
+                                            <button
+                                                key={pageNum}
+                                                onClick={() => handlePageChange(pageNum)}
+                                                className={`w-10 h-10 rounded-xl font-bold transition-all flex items-center justify-center ${currentPage === pageNum ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 scale-110' : 'text-gray-500 hover:bg-white hover:shadow-md border-2 border-transparent hover:border-emerald-100'}`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <button
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className={`p-2 rounded-xl border-2 transition-all ${currentPage === totalPages ? 'border-gray-100 text-gray-300' : 'border-gray-200 text-gray-600 hover:border-emerald-500 hover:text-emerald-500 active:scale-95'}`}
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </>
             )}
 

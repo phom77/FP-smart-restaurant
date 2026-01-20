@@ -9,16 +9,32 @@ export default function CouponListPage() {
     const [coupons, setCoupons] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedCoupon, setSelectedCoupon] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const itemsPerPage = 10;
     const navigate = useNavigate();
 
-    const fetchCoupons = async () => {
+    const fetchCoupons = async (page = currentPage, showLoading = true) => {
         try {
-            const res = await api.get('/api/coupons/admin/all'); // Admin endpoint - lấy tất cả voucher
-            if (res.data.success) setCoupons(res.data.data);
+            if (showLoading) setLoading(true);
+            const res = await api.get(`/api/coupons/admin/all?page=${page}&limit=${itemsPerPage}`);
+            if (res.data.success) {
+                setCoupons(res.data.data);
+                setTotalPages(res.data.pagination?.totalPages || 1);
+                setTotalItems(res.data.pagination?.total || 0);
+            }
         } catch (err) {
             toast.error(t('common.failed'));
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+            fetchCoupons(newPage, false);
         }
     };
 
@@ -77,7 +93,7 @@ export default function CouponListPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm">
-                        {loading ? (
+                        {loading && coupons.length === 0 ? (
                             <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500">{t('common.loading')}</td></tr>
                         ) : coupons.length === 0 ? (
                             <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500 italic">{t('common.no_data')}</td></tr>
@@ -116,6 +132,52 @@ export default function CouponListPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="p-4 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50/50">
+                    <div className="text-sm text-gray-500 font-medium order-2 md:order-1">
+                        {t('common.page_of', { current: currentPage, total: totalPages })}
+                        <span className="ml-2">({t('common.total')}: {totalItems})</span>
+                    </div>
+                    <div className="flex items-center gap-2 order-1 md:order-2">
+                        <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className={`p-2 rounded-lg border transition-all ${currentPage === 1 ? 'bg-gray-50 text-gray-300 border-gray-100' : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-500 hover:text-emerald-500 active:scale-95'}`}
+                        >
+                            <span className="material-symbols-outlined text-sm">chevron_left</span>
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                            {[...Array(totalPages)].map((_, idx) => {
+                                const pageNum = idx + 1;
+                                if (totalPages > 7 && pageNum !== 1 && pageNum !== totalPages && Math.abs(pageNum - currentPage) > 1) {
+                                    if (Math.abs(pageNum - currentPage) === 2) return <span key={pageNum} className="px-1 text-gray-400">...</span>;
+                                    return null;
+                                }
+                                return (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => handlePageChange(pageNum)}
+                                        className={`w-8 h-8 rounded-lg font-bold transition-all text-sm flex items-center justify-center ${currentPage === pageNum ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-gray-500 hover:bg-emerald-50 hover:text-emerald-600 border border-transparent hover:border-emerald-100'}`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className={`p-2 rounded-lg border transition-all ${currentPage === totalPages ? 'bg-gray-50 text-gray-300 border-gray-100' : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-500 hover:text-emerald-500 active:scale-95'}`}
+                        >
+                            <span className="material-symbols-outlined text-sm">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* MODAL XEM CHI TIẾT */}
             {selectedCoupon && (
