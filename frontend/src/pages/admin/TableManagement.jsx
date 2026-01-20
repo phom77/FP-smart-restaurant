@@ -92,15 +92,15 @@ const TableManagement = () => {
         try {
             const response = await axios.put(`${API_URL}/api/admin/tables/${selectedTable.id}`, editData, getAuthHeader());
             toast.success(t('table.toast_updated'));
-            
+
             // Emit socket event to notify waiters of table changes
             if (socket) {
-                socket.emit('table_updated', { 
+                socket.emit('table_updated', {
                     id: selectedTable.id,
-                    ...response.data.data 
+                    ...response.data.data
                 });
             }
-            
+
             fetchTables();
             setIsEditModalOpen(false);
         } catch (err) {

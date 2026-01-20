@@ -41,7 +41,7 @@ const TableMapPage = () => {
         newSocket.on('new_order', () => fetchTables(currentPage));
         newSocket.on('order_status_updated', () => fetchTables(currentPage));
         newSocket.on('item_status_update', () => fetchTables(currentPage));
-        
+
         // Listen for table updates (active/deactive)
         newSocket.on('table_updated', (updatedTable) => {
             setTables(prevTables =>
@@ -66,7 +66,7 @@ const TableMapPage = () => {
         if (!isActive) {
             return 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 cursor-not-allowed';
         }
-        
+
         switch (status) {
             case 'available': return 'bg-emerald-50 border-emerald-200 text-emerald-700';
             case 'occupied': return 'bg-rose-50 border-rose-200 text-rose-700';

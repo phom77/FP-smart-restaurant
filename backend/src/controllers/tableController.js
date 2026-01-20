@@ -476,7 +476,7 @@ exports.updateTable = async (req, res) => {
       .single();
 
     if (error) throw error;
-    
+
     // Emit socket event to notify waiters of table changes (active/deactive)
     const io = getIO();
     if (io) {
@@ -485,7 +485,7 @@ exports.updateTable = async (req, res) => {
         ...data
       });
     }
-    
+
     res.status(200).json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
