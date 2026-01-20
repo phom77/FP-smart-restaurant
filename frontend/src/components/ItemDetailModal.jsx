@@ -83,7 +83,7 @@ export default function ItemDetailModal({ item, onClose }) {
             });
         }
 
-        addToCart(item, quantity, modifiers);
+        addToCart(item, quantity, modifiers, notes);  // ✅ Pass notes to addToCart
         onClose();
     };
 
