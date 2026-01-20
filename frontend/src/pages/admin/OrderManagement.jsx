@@ -13,6 +13,8 @@ const OrderManagement = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [totalOrders, setTotalOrders] = useState(0);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const itemsPerPage = 10;
     const fetchingRef = useRef(false);
     const debounceRef = useRef(null);
@@ -30,17 +32,19 @@ const OrderManagement = () => {
 
         try {
             if (showLoading) setLoading(true);
-            let url = `${API_URL}/api/orders?limit=10000`; // Fetch all orders
+            let url = `${API_URL}/api/orders?limit=${itemsPerPage}&page=${currentPage}`;
             if (statusFilter !== 'all') url += `&status=${statusFilter}`;
             if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
 
             const response = await axios.get(url, getAuthHeader());
             console.log('API Response:', response.data);
             setOrders(response.data.data || []);
-            // Get total count from pagination
+            // Get total count and pages from pagination
             const total = response.data.pagination?.total || response.data.data?.length || 0;
-            console.log('Total orders:', total, 'Pagination:', response.data.pagination);
+            const pages = response.data.pagination?.totalPages || 1;
+            console.log('Total orders:', total, 'Total pages:', pages, 'Pagination:', response.data.pagination);
             setTotalOrders(total);
+            setTotalPages(pages);
         } catch (err) {
             console.error(err);
             toast.error(t('admin.order_fetch_error'));
@@ -50,11 +54,17 @@ const OrderManagement = () => {
         }
     };
 
+    // Handle statusFilter changes - reset page and fetch immediately
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter]);
+
+    // Fetch when statusFilter or currentPage changes
     useEffect(() => {
         fetchOrders(true);
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
-    }, [statusFilter]);
+    }, [statusFilter, currentPage]);
 
     // Debounce search to avoid excessive API calls
     useEffect(() => {
@@ -63,6 +73,7 @@ const OrderManagement = () => {
         }
 
         debounceRef.current = setTimeout(() => {
+            setCurrentPage(1); // Reset to page 1 when searching
             fetchOrders(false); // Fetch silently, no loading spinner
         }, 500); // Wait 500ms after user stops typing
 
@@ -184,8 +195,8 @@ const OrderManagement = () => {
                     <button
                         onClick={() => setStatusFilter('all')}
                         className={`px-4 py-2 rounded-xl font-bold transition-all ${statusFilter === 'all'
-                                ? 'bg-gray-800 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? 'bg-gray-800 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                     >
                         {t('admin.filter_all')} ({orders.length})
@@ -193,8 +204,8 @@ const OrderManagement = () => {
                     <button
                         onClick={() => setStatusFilter('pending')}
                         className={`px-4 py-2 rounded-xl font-bold transition-all ${statusFilter === 'pending'
-                                ? 'bg-yellow-500 text-white'
-                                : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+                            ? 'bg-yellow-500 text-white'
+                            : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
                             }`}
                     >
                         {t('admin.status_pending')} ({orders.filter(o => o.status === 'pending').length})
@@ -202,8 +213,8 @@ const OrderManagement = () => {
                     <button
                         onClick={() => setStatusFilter('processing')}
                         className={`px-4 py-2 rounded-xl font-bold transition-all ${statusFilter === 'processing'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
                             }`}
                     >
                         {t('admin.status_processing')} ({orders.filter(o => o.status === 'processing').length})
@@ -211,8 +222,8 @@ const OrderManagement = () => {
                     <button
                         onClick={() => setStatusFilter('completed')}
                         className={`px-4 py-2 rounded-xl font-bold transition-all ${statusFilter === 'completed'
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                             }`}
                     >
                         {t('admin.status_completed')} ({orders.filter(o => o.status === 'completed').length})
@@ -300,6 +311,62 @@ const OrderManagement = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 p-4 border-t border-gray-100">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            ← {t('admin.pagination_prev')}
+                        </button>
+
+                        <div className="flex gap-1">
+                            {[...Array(totalPages)].map((_, i) => {
+                                const page = i + 1;
+                                // Hiển thị: trang đầu, trang cuối, trang hiện tại và 2 trang xung quanh
+                                if (
+                                    page === 1 ||
+                                    page === totalPages ||
+                                    (page >= currentPage - 1 && page <= currentPage + 1)
+                                ) {
+                                    return (
+                                        <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`px-3 py-2 rounded-lg font-bold transition-all ${currentPage === page
+                                                ? 'bg-emerald-600 text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                }`}
+                                        >
+                                            {page}
+                                        </button>
+                                    );
+                                } else if (
+                                    page === currentPage - 2 ||
+                                    page === currentPage + 2
+                                ) {
+                                    return <span key={page} className="px-2">...</span>;
+                                }
+                                return null;
+                            })}
+                        </div>
+
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            {t('admin.pagination_next')} →
+                        </button>
+
+                        <span className="text-sm text-gray-600 ml-2">
+                            {t('admin.pagination_page')} {currentPage} {t('admin.pagination_of')} {totalPages}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Detail Modal */}
@@ -357,8 +424,8 @@ const OrderManagement = () => {
                                                 key={status}
                                                 onClick={() => handleUpdateStatus(selectedOrder.id, status)}
                                                 className={`px-4 py-2 rounded-xl font-bold transition-all ${isCurrentStatus
-                                                        ? `${badge.bg} ${badge.text} ring-2`
-                                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                    ? `${badge.bg} ${badge.text} ring-2`
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                                     }`}
                                             >
                                                 {getStatusBadge(status).label}

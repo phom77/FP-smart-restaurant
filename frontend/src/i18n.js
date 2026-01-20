@@ -105,6 +105,10 @@ i18n
                         payment_waiting: 'Waiting for Payment',
                         payment_paid: 'Paid',
                         filter_all: 'All Orders',
+                        pagination_prev: 'Previous',
+                        pagination_next: 'Next',
+                        pagination_page: 'Page',
+                        pagination_of: 'of',
                     },
                     coupon: {
                         list_title: 'Voucher Management',
@@ -853,6 +857,10 @@ i18n
                         payment_waiting: 'Chờ thanh toán',
                         payment_paid: 'Đã thanh toán',
                         filter_all: 'Tất cả đơn',
+                        pagination_prev: 'Trước',
+                        pagination_next: 'Sau',
+                        pagination_page: 'Trang',
+                        pagination_of: 'trên',
                     },
                     coupon: {
                         list_title: 'Quản lý Voucher',
