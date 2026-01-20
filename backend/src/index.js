@@ -23,6 +23,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const path = require('path');
+const testEmailRouter = require('./routes/testEmail');
 
 initSocket(server);
 
@@ -68,6 +69,8 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/system', require('./routes/systemRoutes'));
 app.use('/api/super-admin', require('./routes/superAdminRoutes'));
 app.use('/api/coupons', require('./routes/couponRoutes'));
+
+app.use('/api', testEmailRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello from Smart Restaurant Backend (Running on Docker WSL)!');
