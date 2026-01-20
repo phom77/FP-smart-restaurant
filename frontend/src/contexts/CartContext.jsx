@@ -24,10 +24,9 @@ export const CartProvider = ({ children }) => {
 
     const addToCart = (item, quantity = 1, modifiers = [], notes = '') => {
         setCart(prevCart => {
-            // Check if item with same modifiers already exists
+            // Check if item already exists
             const existingIndex = prevCart.findIndex(cartItem =>
-                cartItem.id === item.id &&
-                JSON.stringify(cartItem.modifiers) === JSON.stringify(modifiers)
+                cartItem.id === item.id
             );
 
             if (existingIndex > -1) {
@@ -70,8 +69,7 @@ export const CartProvider = ({ children }) => {
 
     const getCartTotal = () => {
         return cart.reduce((total, item) => {
-            const modifiersTotal = item.modifiers?.reduce((sum, mod) => sum + (mod.price_adjustment || 0), 0) || 0;
-            return total + ((item.price + modifiersTotal) * item.quantity);
+            return total + (item.price * item.quantity);
         }, 0);
     };
 

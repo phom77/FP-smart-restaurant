@@ -176,10 +176,7 @@ exports.getMenuItem = async (req, res) => {
         // Get menu item
         const { data: item, error: itemError } = await supabase
             .from('menu_items')
-            .select(`
-        *,
-        category:categories(id, name)
-      `)
+            .select('*, category:categories(id, name)')
             .eq('id', id)
             .single();
 
@@ -191,31 +188,9 @@ exports.getMenuItem = async (req, res) => {
             });
         }
 
-        // Get modifier groups for this item
-        const { data: modifierGroups, error: mgError } = await supabase
-            .from('item_modifier_groups')
-            .select(`
-        modifier_group:modifier_groups(
-          id,
-          name,
-          min_selection,
-          max_selection,
-          modifiers(id, name, price_adjustment, is_available)
-        )
-      `)
-            .eq('menu_item_id', id);
-
-        if (mgError) throw mgError;
-
-        // Flatten the structure
-        const modifiers = modifierGroups?.map(mg => mg.modifier_group) || [];
-
         res.status(200).json({
             success: true,
-            data: {
-                ...item,
-                modifier_groups: modifiers
-            }
+            data: item
         });
     } catch (err) {
         res.status(500).json({
