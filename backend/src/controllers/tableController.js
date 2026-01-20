@@ -36,6 +36,7 @@ exports.getTables = async (req, res) => {
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
 
+    // 1. Get paginated data
     let query = supabase
       .from('tables')
       .select('*', { count: 'exact' })
@@ -56,9 +57,29 @@ exports.getTables = async (req, res) => {
     // Apply pagination
     query = query.range(offset, offset + limitNum - 1);
 
-    const { data, error, count } = await query;
+    // 2. Get global stats (Total, Available, Occupied) - ignoring pagination/filters
+    // Note: If you want stats to reflect filters (e.g. only Outdoor tables), move this block after filter variables are prepared
+    // but typically dashboard stats show *ALL* tables.
+    const statsQuery = supabase
+      .from('tables')
+      .select('status, id')
+      .is('deleted_at', null);
+
+    const [tableRes, statsRes] = await Promise.all([query, statsQuery]);
+
+    const { data, error, count } = tableRes;
+    const { data: allTables, error: statsError } = statsRes;
 
     if (error) throw error;
+    if (statsError) throw statsError;
+
+    // Calculate stats
+    const stats = {
+      total: allTables.length,
+      available: allTables.filter(t => t.status === 'available').length,
+      occupied: allTables.filter(t => t.status === 'occupied').length
+    };
+
     res.status(200).json({
       success: true,
       data,
@@ -67,7 +88,8 @@ exports.getTables = async (req, res) => {
         limit: limitNum,
         total: count,
         totalPages: Math.ceil(count / limitNum)
-      }
+      },
+      stats // Return global stats
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
