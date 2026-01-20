@@ -81,15 +81,65 @@ exports.getOrders = async (req, res) => {
       query = query.eq('is_served', req.query.is_served === 'true');
     }
 
-    // Handle search by order ID or table number
+    // Handle search - Supabase doesn't support OR filters on joined tables
+    // So we need to fetch and filter in JavaScript
+    let data, count;
+
     if (search) {
-      query = query.or(`id.ilike.%${search}%,table_id.eq.${search}`);
+      // Fetch all orders with status filter (without pagination first)
+      const { data: allOrders, error: fetchError } = await query;
+
+      if (fetchError) throw fetchError;
+
+      console.log(`🔍 Searching for: "${search}" in ${allOrders.length} orders`);
+
+      // Filter in JavaScript by order ID, table number, or customer name
+      const searchLower = search.toLowerCase().trim();
+
+      // Extract table number from search query if it contains "bàn" or "table"
+      // e.g., "bàn 1" -> "1", "bàn T01" -> "T01"
+      let tableSearchTerm = searchLower;
+      if (searchLower.includes('bàn')) {
+        tableSearchTerm = searchLower.replace(/bàn\s*/gi, '').trim();
+      } else if (searchLower.includes('table')) {
+        tableSearchTerm = searchLower.replace(/table\s*/gi, '').trim();
+      }
+
+      const filteredOrders = allOrders.filter(order => {
+        // Search in order ID (partial match)
+        if (order.id && order.id.toLowerCase().includes(searchLower)) return true;
+
+        // Search in table number (exact or partial match)
+        if (order.tables && order.tables.table_number) {
+          const tableNum = order.tables.table_number.toString().toLowerCase();
+          // Try both original search and extracted table term
+          if (tableNum.includes(searchLower) || tableNum.includes(tableSearchTerm)) {
+            return true;
+          }
+        }
+
+        // Search in customer name (partial match)
+        if (order.users && order.users.full_name &&
+          order.users.full_name.toLowerCase().includes(searchLower)) return true;
+
+        return false;
+      });
+
+      console.log(`✅ Found ${filteredOrders.length} matching orders`);
+
+      // Apply pagination manually
+      count = filteredOrders.length;
+      data = filteredOrders.slice(offset, offset + limit);
+    } else {
+      // No search - use normal pagination
+      query = query.range(offset, offset + limit - 1);
+      const result = await query;
+
+      if (result.error) throw result.error;
+
+      data = result.data;
+      count = result.count;
     }
-
-    query = query.range(offset, offset + limit - 1);
-    const { data, error, count } = await query;
-
-    if (error) throw error;
 
     res.status(200).json({
       success: true,
