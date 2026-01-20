@@ -255,30 +255,79 @@ exports.regenerateQRToken = async (req, res) => {
 // 4.1 Làm mới TOÀN BỘ QR Token (Admin)
 exports.regenerateAllQR = async (req, res) => {
   try {
-    // Để làm mới tất cả các token khác nhau, ta cần fetch ra rồi update từng dòng hoặc dùng RPC nếu database logic phức tạp.
-    // Ở đây ta đơn giản là lấy toàn bộ danh sách ID rồi update.
-    const { data: tables, error: fetchError } = await supabase.from('tables').select('id, table_number');
-    if (fetchError) throw fetchError;
+    console.log('[DEBUG] Regenerate All QR - Starting...');
 
-    const updates = tables.map(t => ({
-      id: t.id,
-      qr_code_token: generateTableJWT(t.id),
-      token_created_at: new Date().toISOString()
-    }));
-
-    // Sử dụng upsert để cập nhật hàng loạt dựa trên primary key 'id'
-    const { error: updateError } = await supabase
+    // Lấy toàn bộ danh sách bàn (chỉ lấy bàn chưa bị xóa)
+    const { data: tables, error: fetchError } = await supabase
       .from('tables')
-      .upsert(updates);
+      .select('id, table_number, status')
+      .is('deleted_at', null);
 
-    if (updateError) throw updateError;
+    if (fetchError) {
+      console.error('[ERROR] Failed to fetch tables:', fetchError);
+      throw fetchError;
+    }
+
+    if (!tables || tables.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No tables found to regenerate QR codes'
+      });
+    }
+
+    console.log(`[DEBUG] Found ${tables.length} tables to regenerate`);
+
+    // Update từng bàn một để tránh lỗi với upsert
+    let successCount = 0;
+    let failedTables = [];
+
+    for (const table of tables) {
+      try {
+        const newToken = generateTableJWT(table.id);
+
+        const { error: updateError } = await supabase
+          .from('tables')
+          .update({
+            qr_code_token: newToken,
+            token_created_at: new Date().toISOString()
+          })
+          .eq('id', table.id);
+
+        if (updateError) {
+          console.error(`[ERROR] Failed to update table ${table.table_number}:`, updateError);
+          failedTables.push(table.table_number);
+        } else {
+          successCount++;
+        }
+      } catch (err) {
+        console.error(`[ERROR] Exception updating table ${table.table_number}:`, err);
+        failedTables.push(table.table_number);
+      }
+    }
+
+    console.log(`[DEBUG] Regeneration complete: ${successCount}/${tables.length} successful`);
+
+    if (failedTables.length > 0) {
+      return res.status(207).json({
+        success: true,
+        message: `${successCount} table QR codes regenerated successfully. Failed: ${failedTables.join(', ')}`,
+        successCount,
+        failedCount: failedTables.length,
+        failedTables
+      });
+    }
 
     res.status(200).json({
       success: true,
-      message: `${updates.length} table QR codes regenerated successfully`
+      message: `${successCount} table QR codes regenerated successfully`,
+      count: successCount
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('[ERROR] Regenerate All QR - Exception:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to regenerate QR codes'
+    });
   }
 };
 
