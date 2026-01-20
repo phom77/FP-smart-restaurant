@@ -106,9 +106,36 @@ exports.getMenuItems = async (req, res) => {
             query = query.eq('category_id', category_id);
         }
 
-        // Filter by availability
-        if (is_available !== undefined) {
+        // Filter by availability (Backward compatibility)
+        // Note: For customers, this is now handled by the 'status' logic below
+        if (is_available !== undefined && req.query.admin_view !== 'true') {
+            // If a customer tries to filter by is_available, we ignore it 
+            // and let the status logic handle it to avoid conflicts
+        } else if (is_available !== undefined) {
             query = query.eq('is_available', is_available === 'true');
+        }
+
+        // New Status Logic:
+        // By default, hide 'unavailable' items.
+        // Only show them if:
+        // 1. request has 'admin_view=true'
+        // 2. AND request has a valid token with role in ['admin', 'waiter', 'kitchen']
+
+        let showHidden = false;
+        if (req.query.admin_view === 'true' && req.headers.authorization) {
+            try {
+                const token = req.headers.authorization.split(' ')[1];
+                const decoded = jwt.verify(token, JWT_SECRET);
+                if (['admin', 'waiter', 'kitchen'].includes(decoded.role)) {
+                    showHidden = true;
+                }
+            } catch (err) {
+                console.warn('[BACKEND] Admin view requested but token invalid');
+            }
+        }
+
+        if (!showHidden) {
+            query = query.in('status', ['available', 'sold_out']);
         }
 
         // Filter by chef recommendation
@@ -258,11 +285,21 @@ exports.getMenuItemReviews = async (req, res) => {
 // POST /api/admin/menu-items
 exports.createMenuItem = async (req, res) => {
     try {
-        const { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation } = req.body;
+        const { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation, status } = req.body;
 
         // Basic validation
         if (!name || !price) {
             return res.status(400).json({ success: false, error: 'Name and price are required' });
+        }
+
+        // Sync is_available with status for backward compatibility
+        let finalStatus = status || 'available';
+        let finalAvailability = is_available !== undefined ? is_available : (finalStatus === 'available');
+
+        if (status && is_available === undefined) {
+            finalAvailability = (status === 'available');
+        } else if (is_available !== undefined && !status) {
+            finalStatus = is_available ? 'available' : 'sold_out';
         }
 
         // Check for duplicates
@@ -279,7 +316,7 @@ exports.createMenuItem = async (req, res) => {
         const { data, error } = await supabase
             .from('menu_items')
             .insert([
-                { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation }
+                { name, description, price, category_id, image_url, images, is_available: finalAvailability, is_chef_recommendation, status: finalStatus }
             ])
             .select()
             .single();
@@ -304,11 +341,18 @@ exports.createMenuItem = async (req, res) => {
 exports.updateMenuItem = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation } = req.body;
+        const { name, description, price, category_id, image_url, images, is_available, is_chef_recommendation, status } = req.body;
 
         const updates = {
-            name, description, price, category_id, image_url, images, is_available, is_chef_recommendation
+            name, description, price, category_id, image_url, images, is_available, is_chef_recommendation, status
         };
+
+        // Sync logic for updates
+        if (status !== undefined && is_available === undefined) {
+            updates.is_available = (status === 'available');
+        } else if (is_available !== undefined && status === undefined) {
+            updates.status = is_available ? 'available' : 'sold_out';
+        }
 
         // Check for duplicates if name is being updated
         if (updates.name) {

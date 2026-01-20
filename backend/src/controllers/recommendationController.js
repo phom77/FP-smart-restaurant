@@ -34,9 +34,9 @@ exports.getRecommendations = async (req, res) => {
         // Strategy 2: Same category items with high ratings
         const { data: sameCategoryItems, error: categoryError } = await supabase
             .from('menu_items')
-            .select('id, name, price, image_url, avg_rating, review_count, category_id')
+            .select('id, name, price, image_url, avg_rating, review_count, category_id, status')
             .eq('category_id', currentItem.category_id)
-            .eq('is_available', true)
+            .in('status', ['available', 'sold_out'])
             .neq('id', id)
             .order('avg_rating', { ascending: false })
             .order('review_count', { ascending: false })

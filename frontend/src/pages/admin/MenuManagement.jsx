@@ -28,6 +28,7 @@ const MenuManagement = () => {
         image_url: '',
         is_available: true,
         is_chef_recommendation: false,
+        status: 'available',
         selected_modifier_groups: []
     });
     const [imageFiles, setImageFiles] = useState([]); // Array of new files
@@ -75,9 +76,10 @@ const MenuManagement = () => {
 
             if (debouncedSearch) params.append('search', debouncedSearch);
             if (filterCategory) params.append('category_id', filterCategory);
+            params.append('admin_view', 'true');
 
             const [itemRes, catRes, modRes] = await Promise.all([
-                axios.get(`${API_URL}/api/menu/items?${params.toString()}`),
+                axios.get(`${API_URL}/api/menu/items?${params.toString()}`, getAuthHeader()),
                 axios.get(`${API_URL}/api/categories?t=${timestamp}`),
                 axios.get(`${API_URL}/api/admin/modifiers/groups`, getAuthHeader())
             ]);
@@ -150,6 +152,7 @@ const MenuManagement = () => {
             images: Array.isArray(item.images) ? item.images : [], // Validate array
             is_available: item.is_available,
             is_chef_recommendation: item.is_chef_recommendation || false,
+            status: item.status || 'available',
             selected_modifier_groups: [] // Will be populated by fetchLinkedModifiers
         });
         fetchLinkedModifiers();
@@ -163,7 +166,7 @@ const MenuManagement = () => {
     };
 
     const resetForm = () => {
-        setNewItem({ name: '', description: '', price: '', category_id: '', image_url: '', images: [], is_available: true, is_chef_recommendation: false, selected_modifier_groups: [] });
+        setNewItem({ name: '', description: '', price: '', category_id: '', image_url: '', images: [], is_available: true, is_chef_recommendation: false, status: 'available', selected_modifier_groups: [] });
         setImageFiles([]);
         setPreviewImages([]);
         setEditingId(null);
@@ -351,21 +354,30 @@ const MenuManagement = () => {
                         </div>
                     </div>
 
-                    {/* Toggles Container */}
+                    {/* Status & Recommendation Container */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-1 md:col-span-2">
-                        {/* Availability Toggle */}
-                        <div
-                            className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${newItem.is_available ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white hover:border-emerald-200'}`}
-                            onClick={() => setNewItem({ ...newItem, is_available: !newItem.is_available })}
-                        >
-                            <label className="flex items-center gap-2 cursor-pointer pointer-events-none">
-                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${newItem.is_available ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 bg-white'}`}>
-                                    {newItem.is_available && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
-                                </div>
-                                <span className={`font-bold ${newItem.is_available ? 'text-emerald-700' : 'text-gray-600'}`}>{t('menu.available')}</span>
-                            </label>
-                            <div className={`w-12 h-6 rounded-full p-1 transition-colors ${newItem.is_available ? 'bg-emerald-500' : 'bg-gray-200'}`}>
-                                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${newItem.is_available ? 'translate-x-6' : ''}`} />
+                        {/* Status Selection */}
+                        <div className="bg-white p-4 rounded-xl border-2 border-gray-100">
+                            <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">{t('menu.table_status')}</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { id: 'available', icon: 'check_circle', activeClass: 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm', label: t('menu.status_available') },
+                                    { id: 'sold_out', icon: 'block', activeClass: 'border-red-500 bg-red-50 text-red-700 shadow-sm', label: t('menu.status_sold_out') },
+                                    { id: 'unavailable', icon: 'visibility_off', activeClass: 'border-gray-600 bg-gray-100 text-gray-800 shadow-sm', label: t('menu.status_unavailable') }
+                                ].map((s) => (
+                                    <button
+                                        key={s.id}
+                                        type="button"
+                                        onClick={() => setNewItem({ ...newItem, status: s.id, is_available: s.id === 'available' })}
+                                        className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${newItem.status === s.id
+                                            ? s.activeClass
+                                            : 'border-transparent bg-gray-50 text-gray-500 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        <span className="material-symbols-outlined text-xl">{s.icon}</span>
+                                        <span className="text-[10px] font-bold uppercase">{s.label}</span>
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -623,8 +635,13 @@ const MenuManagement = () => {
                                     {item.price.toLocaleString()}đ
                                 </td>
                                 <td className="p-4 border-b border-gray-100 text-center">
-                                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${item.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        {item.is_available ? t('menu.active') : t('menu.hidden')}
+                                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${item.status === 'available' ? 'bg-green-100 text-green-700' :
+                                        item.status === 'sold_out' ? 'bg-red-100 text-red-700' :
+                                            'bg-gray-100 text-gray-500'
+                                        }`}>
+                                        {item.status === 'available' ? t('menu.status_available') :
+                                            item.status === 'sold_out' ? t('menu.status_sold_out') :
+                                                t('menu.status_unavailable')}
                                     </span>
                                 </td>
                                 <td className="p-4 border-b border-gray-100 text-center">

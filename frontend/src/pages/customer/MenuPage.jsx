@@ -141,7 +141,6 @@ export default function MenuPage() {
                         setLoadingMore(true);
                     }
                     const params = {
-                        is_available: 'true',
                         page: page,
                         limit: 20
                     };

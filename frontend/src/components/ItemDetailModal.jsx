@@ -264,10 +264,14 @@ export default function ItemDetailModal({ item, onClose }) {
                             </button>
                         </div>
                         <button
-                            className="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl text-base sm:text-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
-                            onClick={handleAddToCart}
+                            className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl text-base sm:text-lg font-bold transition-all shadow-lg transform active:scale-95 ${item.status === 'sold_out'
+                                    ? 'bg-gray-400 cursor-not-allowed opacity-50'
+                                    : 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white hover:shadow-xl hover:scale-105'
+                                }`}
+                            onClick={item.status === 'available' ? handleAddToCart : undefined}
+                            disabled={item.status !== 'available'}
                         >
-                            🛒 {t('menu.add_to_cart')} - {formatPrice(calculateTotal())}
+                            {item.status === 'sold_out' ? t('menu.status_sold_out') : `🛒 ${t('menu.add_to_cart')} - ${formatPrice(calculateTotal())}`}
                         </button>
                     </div>
 
