@@ -90,6 +90,9 @@ const AdminSidebar = () => {
                     <Link to="/admin/menu" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium text-sm ${location.pathname === '/admin/menu' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
                         <span className="material-symbols-outlined mr-3 text-[22px]">restaurant_menu</span> {t('admin.menu')}
                     </Link>
+                    <Link to="/admin/modifiers" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium text-sm ${location.pathname === '/admin/modifiers' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
+                        <span className="material-symbols-outlined mr-3 text-[22px]">settings_input_component</span> {t('admin.modifiers')}
+                    </Link>
 
                     <Link to="/admin/tables" className={`flex items-center px-4 py-3 rounded-xl transition-all font-medium text-sm ${location.pathname === '/admin/tables' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'}`}>
                         <span className="material-symbols-outlined mr-3 text-[22px]">table_restaurant</span> {t('admin.tables')}

@@ -10,6 +10,36 @@ export default function ItemDetailModal({ item, onClose }) {
     const [quantity, setQuantity] = useState(1);
     const [notes, setNotes] = useState('');
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [selectedModifiers, setSelectedModifiers] = useState({}); // { groupId: [modId1, modId2] }
+
+    const handleModifierChange = (groupId, modId, isSingle) => {
+        setSelectedModifiers(prev => {
+            const current = prev[groupId] || [];
+            if (isSingle) {
+                return { ...prev, [groupId]: [modId] };
+            } else {
+                if (current.includes(modId)) {
+                    return { ...prev, [groupId]: current.filter(id => id !== modId) };
+                } else {
+                    return { ...prev, [groupId]: [...current, modId] };
+                }
+            }
+        });
+    };
+
+    const calculateTotal = () => {
+        let total = item.price;
+        if (item.modifier_groups) {
+            item.modifier_groups.forEach(group => {
+                const selected = selectedModifiers[group.id] || [];
+                selected.forEach(modId => {
+                    const mod = group.modifiers?.find(m => m.id === modId);
+                    if (mod) total += Number(mod.price_modifier || 0);
+                });
+            });
+        }
+        return total * quantity;
+    };
 
     // Get all available images (prioritize images array, fallback to image_url)
     const allImages = item.images && item.images.length > 0
@@ -24,10 +54,6 @@ export default function ItemDetailModal({ item, onClose }) {
         // Reset image index when item changes
         setCurrentImageIndex(0);
     }, [item]);
-
-    const calculateTotal = () => {
-        return item.price * quantity;
-    };
 
     const handleAddToCart = () => {
         const modifiers = [];
@@ -159,7 +185,49 @@ export default function ItemDetailModal({ item, onClose }) {
                     </p>
 
                     {/* Modifier Groups */}
-
+                    {item.modifier_groups && item.modifier_groups.length > 0 && (
+                        <div className="space-y-6 mb-8">
+                            {item.modifier_groups.map(group => {
+                                const isSingle = group.max_selection === 1;
+                                return (
+                                    <div key={group.id} className="bg-gray-50 rounded-2xl p-4 sm:p-5 border border-gray-100">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="font-bold text-gray-900 text-sm sm:text-base flex items-center gap-2">
+                                                <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
+                                                {group.name}
+                                            </h3>
+                                            <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest bg-white px-2 py-1 rounded shadow-sm">
+                                                {isSingle ? t('menu.select_one') : t('menu.select_multiple')}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 sm:gap-3">
+                                            {group.modifiers?.map(mod => {
+                                                const isSelected = (selectedModifiers[group.id] || []).includes(mod.id);
+                                                return (
+                                                    <button
+                                                        key={mod.id}
+                                                        onClick={() => handleModifierChange(group.id, mod.id, isSingle)}
+                                                        className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all border-2 active:scale-95 ${isSelected
+                                                            ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-500/20 translate-y-[-2px]'
+                                                            : 'bg-white border-gray-100 text-gray-600 hover:border-emerald-200'
+                                                            }`}
+                                                    >
+                                                        {mod.name}
+                                                        {mod.price_modifier > 0 && (
+                                                            <span className={`px-1.5 py-0.5 rounded-md text-[10px] sm:text-xs ${isSelected ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                                +{formatPrice(mod.price_modifier)}
+                                                            </span>
+                                                        )}
+                                                        {isSelected && <span className="text-[10px] sm:text-xs">✓</span>}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     {/* Notes */}
                     <div className="mb-6 sm:mb-8">

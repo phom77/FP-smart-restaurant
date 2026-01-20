@@ -238,7 +238,8 @@ export default function CartPage() {
             const items = cart.map(item => ({
                 menu_item_id: item.id,
                 quantity: item.quantity,
-                notes: item.notes || ''
+                notes: item.notes || '',
+                modifiers: (item.modifiers || []).map(m => m.id)
             }));
 
             let response;
@@ -400,12 +401,22 @@ export default function CartPage() {
                                         <div className="flex justify-between items-start gap-2">
                                             <div className="flex-1">
                                                 <h3 className="text-base sm:text-lg font-bold text-gray-800 leading-tight">{item.name}</h3>
+                                                {/* Modifiers List */}
+                                                {item.modifiers && item.modifiers.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {item.modifiers.map(mod => (
+                                                            <span key={mod.id} className="text-[10px] sm:text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-medium">
+                                                                +{mod.name} ({mod.price_modifier.toLocaleString()}đ)
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                                 <p className="text-sm sm:text-base text-emerald-600 font-semibold mt-1">{item.price.toLocaleString('vi-VN')}đ</p>
                                             </div>
                                             {/* Mobile: Item Total & Remove */}
                                             <div className="text-right sm:hidden">
                                                 <p className="text-lg font-bold text-gray-800">
-                                                    {itemTotal.toLocaleString('vi-VN')}đ
+                                                    {((Number(item.price) + (item.modifiers || []).reduce((sum, m) => sum + Number(m.price_modifier || 0), 0)) * item.quantity).toLocaleString('vi-VN')}đ
                                                 </p>
                                                 <button
                                                     onClick={() => removeFromCart(item.cartId)}
@@ -450,7 +461,7 @@ export default function CartPage() {
                                     {/* Desktop: Item Total & Remove */}
                                     <div className="hidden sm:block text-right">
                                         <p className="text-xl font-bold text-gray-800">
-                                            {itemTotal.toLocaleString('vi-VN')}đ
+                                            {((Number(item.price) + (item.modifiers || []).reduce((sum, m) => sum + Number(m.price_modifier || 0), 0)) * item.quantity).toLocaleString('vi-VN')}đ
                                         </p>
                                         <button
                                             onClick={() => removeFromCart(item.cartId)}

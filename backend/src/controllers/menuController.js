@@ -188,6 +188,22 @@ exports.getMenuItem = async (req, res) => {
             });
         }
 
+        // Get linked modifier groups and their options
+        const { data: linkedGroups, error: modError } = await supabase
+            .from('menu_item_modifier_groups')
+            .select(`
+                modifier_groups (
+                    *,
+                    modifiers (*)
+                )
+            `)
+            .eq('menu_item_id', id);
+
+        if (modError) console.error('Error fetching modifiers:', modError);
+
+        // Flatten the data to item.modifier_groups
+        item.modifier_groups = (linkedGroups || []).map(lg => lg.modifier_groups);
+
         res.status(200).json({
             success: true,
             data: item

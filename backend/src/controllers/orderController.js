@@ -351,8 +351,23 @@ exports.createOrder = async (req, res) => {
       }
 
       let itemUnitPrice = parseFloat(dbItem.price);
+      let modifiersTotal = 0;
+      let selectedModsInfo = [];
 
-      const itemTotalPrice = itemUnitPrice * item.quantity;
+      // Fetch modifiers info if present
+      if (item.modifiers && item.modifiers.length > 0) {
+        const { data: modsData, error: modsError } = await supabase
+          .from('modifiers')
+          .select('*')
+          .in('id', item.modifiers);
+
+        if (modsError) throw modsError;
+
+        selectedModsInfo = modsData || [];
+        modifiersTotal = selectedModsInfo.reduce((sum, m) => sum + parseFloat(m.price_modifier || 0), 0);
+      }
+
+      const itemTotalPrice = (itemUnitPrice + modifiersTotal) * item.quantity;
       subtotal += itemTotalPrice;
 
       orderItemsData.push({
@@ -360,7 +375,8 @@ exports.createOrder = async (req, res) => {
         quantity: item.quantity,
         unit_price: itemUnitPrice,
         total_price: itemTotalPrice,
-        notes: item.notes
+        notes: item.notes,
+        selected_modifiers: selectedModsInfo // Keep for step 4
       });
     }
 
@@ -442,7 +458,21 @@ exports.createOrder = async (req, res) => {
 
       if (itemInsertError) throw itemInsertError;
 
-      if (itemInsertError) throw itemInsertError;
+      // 4.1. Insert Modifiers for this item
+      if (itemData.selected_modifiers && itemData.selected_modifiers.length > 0) {
+        const modsToInsert = itemData.selected_modifiers.map(m => ({
+          order_item_id: newOrderItem.id,
+          modifier_id: m.id,
+          modifier_name: m.name,
+          price_modifier: m.price_modifier
+        }));
+
+        const { error: modInsertError } = await supabase
+          .from('order_item_modifiers')
+          .insert(modsToInsert);
+
+        if (modInsertError) throw modInsertError;
+      }
     }
 
     // 4.5. Record coupon usage for per-user limit tracking
@@ -584,8 +614,23 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
       }
 
       let itemUnitPrice = parseFloat(dbItem.price);
+      let modifiersTotal = 0;
+      let selectedModsInfo = [];
 
-      const itemTotalPrice = itemUnitPrice * item.quantity;
+      // Fetch modifiers info if present
+      if (item.modifiers && item.modifiers.length > 0) {
+        const { data: modsData, error: modsError } = await supabase
+          .from('modifiers')
+          .select('*')
+          .in('id', item.modifiers);
+
+        if (modsError) throw modsError;
+
+        selectedModsInfo = modsData || [];
+        modifiersTotal = selectedModsInfo.reduce((sum, m) => sum + parseFloat(m.price_modifier || 0), 0);
+      }
+
+      const itemTotalPrice = (itemUnitPrice + modifiersTotal) * item.quantity;
       additionalSubtotal += itemTotalPrice;
 
       orderItemsData.push({
@@ -593,7 +638,8 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
         quantity: item.quantity,
         unit_price: itemUnitPrice,
         total_price: itemTotalPrice,
-        notes: item.notes
+        notes: item.notes,
+        selected_modifiers: selectedModsInfo
       });
     }
 
@@ -615,7 +661,21 @@ const addItemsToExistingOrder = async (req, res, orderId, items) => {
 
       if (itemInsertError) throw itemInsertError;
 
-      if (itemInsertError) throw itemInsertError;
+      // 3.1. Insert Modifiers for this item
+      if (itemData.selected_modifiers && itemData.selected_modifiers.length > 0) {
+        const modsToInsert = itemData.selected_modifiers.map(m => ({
+          order_item_id: newOrderItem.id,
+          modifier_id: m.id,
+          modifier_name: m.name,
+          price_modifier: m.price_modifier
+        }));
+
+        const { error: modInsertError } = await supabase
+          .from('order_item_modifiers')
+          .insert(modsToInsert);
+
+        if (modInsertError) throw modInsertError;
+      }
     }
 
     // 4. Update order total amount with tax recalculation and voucher preservation
