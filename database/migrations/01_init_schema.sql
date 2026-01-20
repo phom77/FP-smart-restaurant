@@ -52,7 +52,7 @@ CREATE TABLE menu_items (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. ORDERS (Đơn hàng tổng/Phiên ăn)
+-- 7. ORDERS (Đơn hàng tổng/Phiên ăn)
 CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     table_id UUID REFERENCES tables(id) ON DELETE SET NULL,
@@ -64,7 +64,7 @@ CREATE TABLE orders (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 11. ORDER ITEMS (Chi tiết từng món trong đơn)
+-- 8. ORDER ITEMS (Chi tiết từng món trong đơn)
 CREATE TABLE order_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
