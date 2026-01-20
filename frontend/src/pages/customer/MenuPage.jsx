@@ -28,18 +28,62 @@ export default function MenuPage() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [showChefRecommendation, setShowChefRecommendation] = useState(false);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
+    const [qrError, setQrError] = useState(null); // { title: string, desc: string, params: object } or null
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [isReadOnly, setIsReadOnly] = useState(false);
     const observer = useRef();
     const { getCartCount } = useCart();
 
-    // Store table ID from QR code scan
+    // Verify QR Code and Store Table ID
     useEffect(() => {
-        const tableFromUrl = searchParams.get('table');
-        const tableNumberFromUrl = searchParams.get('table_number');
-        if (tableFromUrl) {
-            localStorage.setItem('qr_table_id', tableFromUrl);
-            // Store table_number if provided in URL
-            if (tableNumberFromUrl) {
-                localStorage.setItem('qr_table_number', tableNumberFromUrl);
+        const tableId = searchParams.get('table');
+        const token = searchParams.get('token');
+
+        const verifyQRCode = async () => {
+            try {
+                setIsVerifying(true);
+                const response = await api.get('/api/menu', {
+                    params: { table: tableId, token: token }
+                });
+
+                if (response.data.success) {
+                    localStorage.setItem('qr_table_id', tableId);
+                    localStorage.setItem('qr_token', token);
+                    localStorage.setItem('qr_table_number', response.data.table.number);
+                    setQrError(null);
+                    setIsReadOnly(false);
+                }
+            } catch (error) {
+                console.error('QR Verification Failed:', error);
+                const errorData = error.response?.data;
+                setQrError({
+                    title: 'customer.qr.invalid_title',
+                    desc: errorData?.error || 'customer.qr.invalid_desc',
+                    params: errorData?.params || { tableNumber: tableId }
+                });
+                setIsReadOnly(true);
+                localStorage.removeItem('qr_table_id');
+                localStorage.removeItem('qr_token');
+            } finally {
+                setIsVerifying(false);
+            }
+        };
+
+        if (tableId && token) {
+            verifyQRCode();
+        } else {
+            // No QR code in URL, check storage
+            const storedTable = localStorage.getItem('qr_table_id');
+            const storedToken = localStorage.getItem('qr_token');
+            if (!storedTable || !storedToken) {
+                setIsReadOnly(true);
+                setQrError({
+                    title: 'customer.qr.missing_title',
+                    desc: 'customer.qr.missing_desc'
+                });
+            } else {
+                setIsReadOnly(false);
+                setQrError(null);
             }
         }
     }, [searchParams]);
@@ -214,6 +258,15 @@ export default function MenuPage() {
 
     // State for sidebar is now handled in CustomerSidebar component
 
+    if (isVerifying) {
+        return (
+            <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
+                <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-gray-500 font-medium animate-pulse">{t('common.processing') || 'Verifying your table...'}</p>
+            </div>
+        );
+    }
+
     return (
         <div className="flex min-h-screen bg-gray-50">
             {/* Sidebar */}
@@ -248,8 +301,27 @@ export default function MenuPage() {
                         </button>
                     </div>
 
-                    {/* QR Code Reminder - Show if no table selected AND not adding to existing order */}
-                    {!searchParams.get('table') && !localStorage.getItem('qr_table_id') && !localStorage.getItem('addToOrderId') && (
+                    {/* Read-Only Mode Banner */}
+                    {isReadOnly && (
+                        <div className="mb-6 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-4 sm:p-6 shadow-lg text-white animate-pulse">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white/20 rounded-full">
+                                    <span className="material-symbols-outlined text-white text-3xl">info</span>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg">
+                                        {qrError ? t(qrError.title) : t('customer.qr.missing_title')}
+                                    </h3>
+                                    <p className="opacity-90 text-sm">
+                                        {qrError ? t(qrError.desc, qrError.params) : t('customer.qr.readonly_banner')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* QR Code Reminder - Show if no table selected AND not adding to existing order (Old UI, hidden if ReadOnly banner shown) */}
+                    {!isReadOnly && !searchParams.get('table') && !localStorage.getItem('qr_table_id') && !localStorage.getItem('addToOrderId') && (
                         <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 sm:p-6 shadow-sm">
                             <div className="flex items-start gap-4">
                                 <div className="p-3 bg-amber-100 rounded-full text-amber-600">
@@ -362,6 +434,7 @@ export default function MenuPage() {
                                                 <MenuCard
                                                     item={item}
                                                     onClick={handleItemClick}
+                                                    isReadOnly={isReadOnly}
                                                 />
                                             </div>
                                         );
@@ -371,6 +444,7 @@ export default function MenuPage() {
                                                 key={item.id}
                                                 item={item}
                                                 onClick={handleItemClick}
+                                                isReadOnly={isReadOnly}
                                             />
                                         );
                                     }
@@ -400,6 +474,7 @@ export default function MenuPage() {
                         <ItemDetailModal
                             item={selectedItem}
                             onClose={() => setSelectedItem(null)}
+                            isReadOnly={isReadOnly}
                         />
                     )}
 

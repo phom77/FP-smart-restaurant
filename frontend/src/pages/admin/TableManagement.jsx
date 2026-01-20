@@ -49,7 +49,7 @@ const TableManagement = () => {
             if (response.data.stats) setStats(response.data.stats); // [NEW] Set stats
         } catch (err) {
             console.error(err);
-            toast.error(err.response?.data?.message || 'Failed to fetch tables');
+            toast.error(err.response?.data?.message || t('table.toast_error_fetch'));
         } finally {
             setLoading(false);
         }
@@ -71,12 +71,12 @@ const TableManagement = () => {
         e.preventDefault();
         try {
             await axios.post(`${API_URL}/api/admin/tables`, newTable, getAuthHeader());
-            toast.success('Table created successfully');
+            toast.success(t('table.toast_created'));
             fetchTables();
             setIsAddModalOpen(false);
             setNewTable({ table_number: '', capacity: 2, location: 'Indoor', description: '' });
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to create table');
+            toast.error(err.response?.data?.message || t('table.toast_error_create'));
         }
     };
 
@@ -84,11 +84,11 @@ const TableManagement = () => {
         e.preventDefault();
         try {
             await axios.put(`${API_URL}/api/admin/tables/${selectedTable.id}`, editData, getAuthHeader());
-            toast.success('Table updated successfully');
+            toast.success(t('table.toast_updated'));
             fetchTables();
             setIsEditModalOpen(false);
         } catch (err) {
-            toast.error('Failed to update table');
+            toast.error(t('table.toast_error_update'));
         }
     };
 
@@ -96,10 +96,10 @@ const TableManagement = () => {
         if (!window.confirm(t('table.confirm_delete'))) return;
         try {
             await axios.delete(`${API_URL}/api/admin/tables/${id}`, getAuthHeader());
-            toast.success('Table deleted');
+            toast.success(t('table.toast_deleted'));
             fetchTables();
         } catch (err) {
-            toast.error('Failed to delete table');
+            toast.error(t('table.toast_error_delete'));
         }
     };
 
@@ -399,10 +399,10 @@ const TableManagement = () => {
         if (!window.confirm(t('table.confirm_regenerate'))) return;
         try {
             await axios.post(`${API_URL}/api/admin/tables/${id}/qr/generate`, {}, getAuthHeader());
-            toast.success('QR Code refreshed');
+            toast.success(t('table.toast_qr_refreshed'));
             fetchTables();
         } catch (err) {
-            toast.error('Failed to regenerate QR');
+            toast.error(t('table.toast_error_regenerate'));
         }
     };
 
@@ -410,20 +410,20 @@ const TableManagement = () => {
         if (!window.confirm(t('table.regenerate_all_confirm'))) return;
         try {
             const response = await axios.post(`${API_URL}/api/admin/tables/qr/regenerate-all`, {}, getAuthHeader());
-            toast.success(response.data.message || 'All QR Codes refreshed successfully');
+            toast.success(response.data.message || t('table.toast_all_qr_refreshed'));
             fetchTables();
         } catch (err) {
-            toast.error('Failed to regenerate all QRs');
+            toast.error(t('table.toast_error_regenerate_all'));
         }
     };
 
     const handleUpdateStatus = async (id, status) => {
         try {
             await axios.patch(`${API_URL}/api/admin/tables/${id}/status`, { status }, getAuthHeader());
-            toast.success(`Table marked as ${status}`);
+            toast.success(t('table.toast_status_updated', { status }));
             fetchTables();
         } catch (err) {
-            toast.error('Failed to update status');
+            toast.error(t('table.toast_error_status'));
         }
     };
 
@@ -498,7 +498,7 @@ const TableManagement = () => {
                         <button
                             onClick={() => fetchTables(currentPage)}
                             className="px-3 bg-white text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100"
-                            title="Refresh Data"
+                            title={t('common.refresh') || 'Refresh Data'}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                         </button>

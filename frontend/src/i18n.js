@@ -429,6 +429,16 @@ i18n
                         reset_password: 'Reset Password (Optional)',
                         leave_blank_password: 'Leave blank to keep current',
                         staff_details: 'Staff Details',
+                        toast_qr_refreshed: 'QR Code refreshed',
+                        toast_all_qr_refreshed: 'All QR Codes refreshed successfully',
+                        toast_status_updated: 'Table status updated to {{status}}',
+                        toast_error_fetch: 'Failed to fetch tables',
+                        toast_error_create: 'Failed to create table',
+                        toast_error_update: 'Failed to update table',
+                        toast_error_delete: 'Failed to delete table',
+                        toast_error_regenerate: 'Failed to regenerate QR',
+                        toast_error_regenerate_all: 'Failed to regenerate all QRs',
+                        toast_error_status: 'Failed to update status',
                         close: 'Close',
                     },
                     customer: {
@@ -522,6 +532,11 @@ i18n
                             confirm_logout: 'Are you sure you want to logout?',
                             try_search_again: 'Try searching with different keywords',
                             login_later_hint: 'You can login later to view order history',
+                            qr_missing_title: 'Welcome to Our Restaurant',
+                            qr_missing_desc: 'Please scan the QR code on your table to view our menu and start ordering.',
+                            qr_invalid_title: 'Invalid QR Code',
+                            qr_invalid_desc: 'This QR code has expired or is no longer valid. Please scan the latest QR code on your table.',
+                            qr_help_hint: 'If you are having trouble, please ask our staff for assistance.',
                         },
                         orders: {
                             title: 'My Orders',
@@ -578,10 +593,16 @@ i18n
                             password_success: 'Password changed successfully!',
                             role: 'Role',
                             fullname: 'Full Name',
-                            update_error: 'Failed to update information',
-                            password_error: 'Failed to change password',
                             password_length: 'Password must be at least 6 characters',
                             min_length: 'Min 6 characters',
+                        },
+                        qr: {
+                            invalid_title: 'Invalid or Expired QR Code',
+                            invalid_desc: 'The QR code for Table {{tableNumber}} is invalid or has expired. Please scan the latest QR code at your table to order.',
+                            missing_title: 'Welcome to Our Restaurant',
+                            missing_desc: 'Please scan the QR code on your table to view our menu and start ordering.',
+                            readonly_banner: 'You are in View-Only mode. Please scan the QR code at your table to start ordering!',
+                            help_hint: 'If you are having trouble, please ask our staff for assistance.'
                         }
                     },
                     kitchen: {
@@ -886,6 +907,13 @@ i18n
                         location_outdoor: 'Ngoài trời',
                         location_patio: 'Sân thượng',
                         location_vip: 'Phòng VIP',
+                        toast_error_fetch: 'Lỗi lấy danh sách bàn',
+                        toast_error_create: 'Lỗi tạo bàn mới',
+                        toast_error_update: 'Lỗi cập nhật bàn',
+                        toast_error_delete: 'Lỗi xóa bàn',
+                        toast_error_regenerate: 'Lỗi làm mới mã QR',
+                        toast_error_regenerate_all: 'Lỗi làm mới tất cả mã QR',
+                        toast_error_status: 'Lỗi cập nhật trạng thái',
                     },
                     staff: {
                         title: 'Quản lý nhân viên',
@@ -1206,6 +1234,11 @@ i18n
                             confirm_logout: 'Bạn có chắc chắn muốn đăng xuất?',
                             try_search_again: 'Thử tìm kiếm với từ khóa khác',
                             login_later_hint: 'Bạn có thể đăng nhập sau để xem lịch sử đơn hàng',
+                            qr_missing_title: 'Chào mừng bạn đến với nhà hàng',
+                            qr_missing_desc: 'Vui lòng quét mã QR tại bàn để xem thực đơn và bắt đầu gọi món.',
+                            qr_invalid_title: 'Mã QR không hợp lệ',
+                            qr_invalid_desc: 'Mã QR này đã hết hạn hoặc không còn hiệu lực. Vui lòng quét mã QR mới nhất tại bàn của bạn.',
+                            qr_help_hint: 'Nếu bạn cần hỗ trợ, vui lòng gọi nhân viên phục vụ.',
                             modal_uncategorized: 'Chưa phân loại',
                             modal_available: 'Đang phục vụ',
                             modal_unavailable: 'Tạm ngưng phục vụ',
@@ -1310,6 +1343,14 @@ i18n
                             password_error: 'Đổi mật khẩu thất bại',
                             password_length: 'Mật khẩu phải có ít nhất 6 ký tự',
                             min_length: 'Tối thiểu 6 ký tự',
+                        },
+                        qr: {
+                            invalid_title: 'Mã QR không hợp lệ hoặc hết hạn',
+                            invalid_desc: 'Mã QR cho Bàn {{tableNumber}} không hợp lệ hoặc đã hết hạn. Vui lòng quét mã QR mới nhất tại bàn để đặt món.',
+                            missing_title: 'Chào mừng bạn đến với nhà hàng',
+                            missing_desc: 'Vui lòng quét mã QR tại bàn để xem thực đơn và bắt đầu đặt món.',
+                            readonly_banner: 'Bạn đang ở chế độ xem thực đơn. Vui lòng quét mã QR tại bàn để có thể gọi món!',
+                            help_hint: 'Nếu bạn gặp khó khăn, vui lòng liên hệ nhân viên để được hỗ trợ.'
                         }
                     },
                     kitchen: {

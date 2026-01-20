@@ -22,6 +22,29 @@ const getVATRate = async () => {
   }
 };
 
+// Helper: Verify QR Token
+const verifyQRTokenInDatabase = async (tableId, token) => {
+  if (!tableId || !token) return { success: false, message: 'Missing table ID or QR token' };
+
+  const { data: tableData, error: tableError } = await supabase
+    .from('tables')
+    .select('qr_code_token, table_number')
+    .eq('id', tableId)
+    .single();
+
+  if (tableError || !tableData) return { success: false, message: 'Table not found' };
+
+  if (tableData.qr_code_token !== token) {
+    return {
+      success: false,
+      message: 'customer.qr.invalid_desc',
+      params: { tableNumber: tableData.table_number }
+    };
+  }
+
+  return { success: true };
+};
+
 // GET /api/waiter/orders
 exports.getOrders = async (req, res) => {
   try {
@@ -283,13 +306,19 @@ exports.updateOrderServedStatus = async (req, res) => {
 };
 
 exports.createOrder = async (req, res) => {
-  const { table_id, items, customer_id, notes, coupon_code } = req.body;
+  const { table_id, items, customer_id, notes, coupon_code, qr_token } = req.body;
 
   if (!items || items.length === 0) {
     return res.status(400).json({ success: false, message: 'Giỏ hàng trống' });
   }
 
   try {
+    // --- CHECK QR TOKEN VALIDITY ---
+    const qrVerify = await verifyQRTokenInDatabase(table_id, qr_token);
+    if (!qrVerify.success) {
+      return res.status(401).json({ success: false, message: qrVerify.message });
+    }
+
     // --- CHECK IF TABLE HAS ACTIVE ORDER ---
     // --- CHECK IF TABLE HAS ACTIVE ORDER ---
     const { data: existingOrders, error: orderCheckError } = await supabase
@@ -582,6 +611,21 @@ exports.getOrder = async (req, res) => {
 // Helper function to add items to existing order
 const addItemsToExistingOrder = async (req, res, orderId, items) => {
   try {
+    // 0. Verify QR Token if provided (required for customer-facing flow)
+    const { qr_token } = req.body;
+    // We only enforce this if it's NOT a waiter request (waiter doesn't need QR)
+    // Simple check: Waiters usually have a token in header, but here we can check if qr_token is sent
+    // Actually, for consistency, if qr_token is sent, we verify it.
+    if (qr_token) {
+      const { data: orderData } = await supabase.from('orders').select('table_id').eq('id', orderId).single();
+      if (orderData) {
+        const qrVerify = await verifyQRTokenInDatabase(orderData.table_id, qr_token);
+        if (!qrVerify.success) {
+          return res.status(401).json({ success: false, message: qrVerify.message });
+        }
+      }
+    }
+
     // 1. Get menu items and modifiers pricing
 
 

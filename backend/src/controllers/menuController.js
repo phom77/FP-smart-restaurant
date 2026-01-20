@@ -22,7 +22,8 @@ exports.verifyMenuToken = async (req, res) => {
             console.warn(`[SECURITY] QR JWT Verification Failed for table ${table}:`, jwtErr.message);
             return res.status(401).json({
                 success: false,
-                error: 'Invalid or expired QR code. Please ask staff for assistance.'
+                error: 'customer.qr.invalid_desc',
+                params: { tableNumber: table }
             });
         }
 
@@ -41,7 +42,8 @@ exports.verifyMenuToken = async (req, res) => {
             console.warn(`[SECURITY] Invalid token attempt for table ${tableData.table_number}. Token does not match database.`);
             return res.status(401).json({
                 success: false,
-                error: 'This QR code is no longer valid. Please ask staff for assistance.'
+                error: 'customer.qr.invalid_desc',
+                params: { tableNumber: tableData.table_number }
             });
         }
 

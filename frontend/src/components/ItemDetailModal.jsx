@@ -4,7 +4,7 @@ import { useCart } from '../contexts/CartContext';
 import ReviewSection from './ReviewSection';
 import RecommendedItems from './RecommendedItems';
 
-export default function ItemDetailModal({ item, onClose }) {
+export default function ItemDetailModal({ item, onClose, isReadOnly }) {
     const { t } = useTranslation();
     const { addToCart } = useCart();
     const [quantity, setQuantity] = useState(1);
@@ -185,7 +185,7 @@ export default function ItemDetailModal({ item, onClose }) {
                     </p>
 
                     {/* Modifier Groups */}
-                    {item.modifier_groups && item.modifier_groups.length > 0 && (
+                    {item.modifier_groups && item.modifier_groups.length > 0 && !isReadOnly && (
                         <div className="space-y-6 mb-8">
                             {item.modifier_groups.map(group => {
                                 const isSingle = group.max_selection === 1;
@@ -230,50 +230,54 @@ export default function ItemDetailModal({ item, onClose }) {
                     )}
 
                     {/* Notes */}
-                    <div className="mb-6 sm:mb-8">
-                        <label htmlFor="notes" className="block font-bold mb-2 sm:mb-3 text-gray-900 flex items-center gap-2 text-sm sm:text-base">
-                            <span className="material-symbols-outlined text-gray-500">edit_note</span> {t('menu.notes')}
-                        </label>
-                        <textarea
-                            id="notes"
-                            value={notes}
-                            onChange={e => setNotes(e.target.value)}
-                            placeholder={t('menu.example_notes')}
-                            rows="3"
-                            className="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-lg sm:rounded-xl resize-vertical focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all text-sm sm:text-base"
-                        />
-                    </div>
+                    {!isReadOnly && (
+                        <div className="mb-6 sm:mb-8">
+                            <label htmlFor="notes" className="block font-bold mb-2 sm:mb-3 text-gray-900 flex items-center gap-2 text-sm sm:text-base">
+                                <span className="material-symbols-outlined text-gray-500">edit_note</span> {t('menu.notes')}
+                            </label>
+                            <textarea
+                                id="notes"
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                                placeholder={t('menu.example_notes')}
+                                rows="3"
+                                className="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-lg sm:rounded-xl resize-vertical focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all text-sm sm:text-base"
+                            />
+                        </div>
+                    )}
 
                     {/* Quantity and Add to Cart */}
-                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
-                        <div className="flex items-center justify-center gap-4 border-2 border-gray-200 rounded-lg sm:rounded-xl px-4 sm:px-6 py-3 bg-gray-50">
+                    {!isReadOnly && (
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
+                            <div className="flex items-center justify-center gap-4 border-2 border-gray-200 rounded-lg sm:rounded-xl px-4 sm:px-6 py-3 bg-gray-50">
+                                <button
+                                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                    className="text-xl sm:text-2xl text-emerald-600 w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold active:scale-95"
+                                >
+                                    −
+                                </button>
+                                <span className="text-lg sm:text-xl font-bold min-w-8 text-center text-gray-900">
+                                    {quantity}
+                                </span>
+                                <button
+                                    onClick={() => setQuantity(quantity + 1)}
+                                    className="text-xl sm:text-2xl text-emerald-600 w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold active:scale-95"
+                                >
+                                    +
+                                </button>
+                            </div>
                             <button
-                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                className="text-xl sm:text-2xl text-emerald-600 w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold active:scale-95"
-                            >
-                                −
-                            </button>
-                            <span className="text-lg sm:text-xl font-bold min-w-8 text-center text-gray-900">
-                                {quantity}
-                            </span>
-                            <button
-                                onClick={() => setQuantity(quantity + 1)}
-                                className="text-xl sm:text-2xl text-emerald-600 w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold active:scale-95"
-                            >
-                                +
-                            </button>
-                        </div>
-                        <button
-                            className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl text-base sm:text-lg font-bold transition-all shadow-lg transform active:scale-95 ${item.status === 'sold_out'
+                                className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl text-base sm:text-lg font-bold transition-all shadow-lg transform active:scale-95 ${item.status === 'sold_out'
                                     ? 'bg-gray-400 cursor-not-allowed opacity-50'
                                     : 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white hover:shadow-xl hover:scale-105'
-                                }`}
-                            onClick={item.status === 'available' ? handleAddToCart : undefined}
-                            disabled={item.status !== 'available'}
-                        >
-                            {item.status === 'sold_out' ? t('menu.status_sold_out') : `🛒 ${t('menu.add_to_cart')} - ${formatPrice(calculateTotal())}`}
-                        </button>
-                    </div>
+                                    }`}
+                                onClick={item.status === 'available' ? handleAddToCart : undefined}
+                                disabled={item.status !== 'available'}
+                            >
+                                {item.status === 'sold_out' ? t('menu.status_sold_out') : `🛒 ${t('menu.add_to_cart')} - ${formatPrice(calculateTotal())}`}
+                            </button>
+                        </div>
+                    )}
 
                     {/* Recommended Items */}
                     <div className="mt-8 pt-8 border-t border-gray-200">
