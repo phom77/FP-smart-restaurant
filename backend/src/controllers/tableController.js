@@ -4,6 +4,7 @@ const PDFDocument = require('pdfkit');
 const jwt = require('jsonwebtoken');
 const archiver = require('archiver');
 const crypto = require('crypto');
+const { getIO } = require('../config/socket');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-default-secret';
 
@@ -475,6 +476,16 @@ exports.updateTable = async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    // Emit socket event to notify waiters of table changes (active/deactive)
+    const io = getIO();
+    if (io) {
+      io.to('waiter').emit('table_updated', {
+        id: data.id,
+        ...data
+      });
+    }
+
     res.status(200).json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

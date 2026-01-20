@@ -150,10 +150,15 @@ export default function KitchenDisplayPage() {
                 if (item.status === 'ready' || item.status === 'served') return;
                 const key = item.menu_items?.name || 'Unknown';
                 if (!summary[key]) {
-                    summary[key] = { count: 0, notes: [], preparing: 0, pending: 0 };
+                    summary[key] = { count: 0, notes: [], modifiers: [], preparing: 0, pending: 0 };
                 }
                 summary[key].count += item.quantity;
                 if (item.notes) summary[key].notes.push(item.notes);
+                if (item.order_item_modifiers && item.order_item_modifiers.length > 0) {
+                    item.order_item_modifiers.forEach(m => {
+                        summary[key].modifiers.push(m.modifier_name);
+                    });
+                }
                 if (item.status === 'preparing') summary[key].preparing += item.quantity;
                 if (item.status === 'pending') summary[key].pending += item.quantity;
             });
@@ -262,6 +267,17 @@ export default function KitchenDisplayPage() {
                                                             {item.menu_items?.name}
                                                         </span>
                                                     </div>
+
+                                                    {/* Modifiers */}
+                                                    {item.order_item_modifiers && item.order_item_modifiers.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mb-2">
+                                                            {item.order_item_modifiers.map(m => (
+                                                                <span key={m.id} className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-medium">
+                                                                    + {m.modifier_name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
 
 
 
@@ -373,6 +389,15 @@ export default function KitchenDisplayPage() {
                                                     {data.notes.length > 0 && (
                                                         <div className="text-xs text-red-500 font-medium mt-1.5 ml-4.5 bg-red-50 inline-block px-2 py-0.5 rounded border border-red-100">
                                                             Note: {data.notes.length}
+                                                        </div>
+                                                    )}
+                                                    {data.modifiers.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mt-2 ml-4.5">
+                                                            {[...new Set(data.modifiers)].map((m, idx) => (
+                                                                <span key={idx} className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100">
+                                                                    {m}
+                                                                </span>
+                                                            ))}
                                                         </div>
                                                     )}
                                                 </td>

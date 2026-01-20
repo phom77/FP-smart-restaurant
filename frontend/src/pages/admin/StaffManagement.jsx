@@ -15,7 +15,7 @@ const StaffManagement = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const [stats, setStats] = useState({ total: 0, waiter: 0, kitchen: 0 }); // [NEW] Global stats
+    const [stats, setStats] = useState({ total: 0, waiter: 0, kitchen: 0, admin: 0 }); // [NEW] Global stats
     const itemsPerPage = 10;
 
     const [formData, setFormData] = useState({
@@ -176,18 +176,22 @@ const StaffManagement = () => {
             ) : (
                 <>
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                             <p className="text-gray-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.total_staff')}</p>
-                            <p className="text-2xl font-black text-gray-800">{stats.total}</p> {/* [UPDATED] Use global stats */}
+                            <p className="text-2xl font-black text-gray-800">{stats.total}</p>
+                        </div>
+                        <div className="bg-emerald-50/30 p-4 rounded-2xl shadow-sm border border-emerald-50">
+                            <p className="text-emerald-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.admins')}</p>
+                            <p className="text-2xl font-black text-emerald-600">{stats.admin}</p>
                         </div>
                         <div className="bg-blue-50/30 p-4 rounded-2xl shadow-sm border border-blue-50">
                             <p className="text-blue-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.waiters')}</p>
-                            <p className="text-2xl font-black text-blue-600">{stats.waiter}</p> {/* [UPDATED] Use global stats */}
+                            <p className="text-2xl font-black text-blue-600">{stats.waiter}</p>
                         </div>
                         <div className="bg-orange-50/30 p-4 rounded-2xl shadow-sm border border-orange-50">
                             <p className="text-orange-400 text-[10px] font-black uppercase tracking-wider mb-1">{t('staff.kitchen_staff')}</p>
-                            <p className="text-2xl font-black text-orange-600">{stats.kitchen}</p> {/* [UPDATED] Use global stats */}
+                            <p className="text-2xl font-black text-orange-600">{stats.kitchen}</p>
                         </div>
                     </div>
 
@@ -340,10 +344,11 @@ const StaffManagement = () => {
                                 <select
                                     value={formData.role}
                                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border-2 border-transparent focus:border-emerald-500 rounded-xl transition-all focus:bg-white outline-none"
                                 >
                                     <option value="waiter">{t('staff.role_waiter')}</option>
                                     <option value="kitchen">{t('staff.role_kitchen')}</option>
+                                    <option value="admin">{t('staff.role_admin')}</option>
                                 </select>
                             </div>
                             <div>
@@ -395,10 +400,11 @@ const StaffManagement = () => {
                                 <select
                                     value={editData.role}
                                     onChange={(e) => setEditData({ ...editData, role: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border-2 border-transparent focus:border-emerald-500 rounded-xl transition-all focus:bg-white outline-none"
                                 >
                                     <option value="waiter">{t('staff.role_waiter')}</option>
                                     <option value="kitchen">{t('staff.role_kitchen')}</option>
+                                    <option value="admin">{t('staff.role_admin')}</option>
                                 </select>
                             </div>
                             <div>

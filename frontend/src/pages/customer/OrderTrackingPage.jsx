@@ -304,6 +304,17 @@ export default function OrderTrackingPage() {
                                                     <p className="font-bold text-emerald-600 ml-4">{itemTotal.toLocaleString('vi-VN')}đ</p>
                                                 </div>
 
+                                                {/* Modifiers List */}
+                                                {item.order_item_modifiers && item.order_item_modifiers.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2 mt-1 mb-2">
+                                                        {item.order_item_modifiers.map(mod => (
+                                                            <span key={mod.id} className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium border border-blue-100">
+                                                                + {mod.modifier_name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
                                                 {/* Item Status Badge */}
                                                 <div className="mt-2">
                                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wide ${item.status === 'ready' ? 'bg-green-50 text-green-700 border border-green-100' :

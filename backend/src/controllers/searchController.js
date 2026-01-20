@@ -24,9 +24,15 @@ exports.fuzzySearch = async (req, res) => {
 
         if (error) throw error;
 
+        // Extra safety check: filter out hidden items if they somehow leaked through the RPC
+        const filteredData = (data || []).filter(item =>
+            item.status === 'available' || item.status === 'sold_out' ||
+            (item.status === undefined && item.is_available) // fallback for old data/RPC
+        );
+
         res.status(200).json({
             success: true,
-            data: data || [],
+            data: filteredData,
             query: searchTerm
         });
 

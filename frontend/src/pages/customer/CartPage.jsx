@@ -71,14 +71,11 @@ export default function CartPage() {
         if (existingTableId) {
             setSelectedTable(existingTableId);
         } else if (tableFromUrl) {
+            // Priority: URL params exist but we don't store them blindly here.
+            // MenuPage handles the primary verification.
+            // But we can set the selected table for the UI.
             setSelectedTable(tableFromUrl);
             setQrTableId(tableFromUrl);
-            // Store in localStorage so it persists when navigating from menu to cart
-            localStorage.setItem('qr_table_id', tableFromUrl);
-            // Store table_number if provided in URL
-            if (tableNumberFromUrl) {
-                localStorage.setItem('qr_table_number', tableNumberFromUrl);
-            }
         } else if (tableFromStorage) {
             setSelectedTable(tableFromStorage);
             setQrTableId(tableFromStorage);
@@ -238,17 +235,21 @@ export default function CartPage() {
             const items = cart.map(item => ({
                 menu_item_id: item.id,
                 quantity: item.quantity,
-                notes: item.notes || ''
+                notes: item.notes || '',
+                modifiers: (item.modifiers || []).map(m => m.id)
             }));
 
             let response;
             let orderId;
 
+            const qrToken = localStorage.getItem('qr_token');
+
             // Check if adding to existing order or creating new one
             if (existingOrderId) {
                 // Add items to existing order
                 response = await api.post(`/api/orders/${existingOrderId}/items`, {
-                    items: items
+                    items: items,
+                    qr_token: qrToken
                 });
                 orderId = existingOrderId;
             } else {
@@ -257,7 +258,8 @@ export default function CartPage() {
                     table_id: selectedTable,
                     customer_id: user?.id || null,
                     items: items,
-                    coupon_code: appliedVoucher?.code || null
+                    coupon_code: appliedVoucher?.code || null,
+                    qr_token: qrToken
                 };
 
                 response = await api.post('/api/orders', orderData);
@@ -284,8 +286,8 @@ export default function CartPage() {
             }
         } catch (err) {
             console.error('Checkout error:', err);
-            setError(err.response?.data?.message
-                ? { message: err.response.data.message }
+            setError(err.response?.data?.error
+                ? { key: err.response.data.error, params: err.response.data.params }
                 : { key: 'customer.cart.toast_checkout_failed' }
             );
         } finally {
@@ -343,7 +345,7 @@ export default function CartPage() {
                 {/* Error Message */}
                 {error && (
                     <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl">
-                        {error.key ? t(error.key) : error.message}
+                        {error.key ? t(error.key, error.params) : error.message}
                     </div>
                 )}
 
@@ -400,12 +402,22 @@ export default function CartPage() {
                                         <div className="flex justify-between items-start gap-2">
                                             <div className="flex-1">
                                                 <h3 className="text-base sm:text-lg font-bold text-gray-800 leading-tight">{item.name}</h3>
+                                                {/* Modifiers List */}
+                                                {item.modifiers && item.modifiers.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {item.modifiers.map(mod => (
+                                                            <span key={mod.id} className="text-[10px] sm:text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-medium">
+                                                                +{mod.name} ({mod.price_modifier.toLocaleString()}đ)
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                                 <p className="text-sm sm:text-base text-emerald-600 font-semibold mt-1">{item.price.toLocaleString('vi-VN')}đ</p>
                                             </div>
                                             {/* Mobile: Item Total & Remove */}
                                             <div className="text-right sm:hidden">
                                                 <p className="text-lg font-bold text-gray-800">
-                                                    {itemTotal.toLocaleString('vi-VN')}đ
+                                                    {((Number(item.price) + (item.modifiers || []).reduce((sum, m) => sum + Number(m.price_modifier || 0), 0)) * item.quantity).toLocaleString('vi-VN')}đ
                                                 </p>
                                                 <button
                                                     onClick={() => removeFromCart(item.cartId)}
@@ -450,7 +462,7 @@ export default function CartPage() {
                                     {/* Desktop: Item Total & Remove */}
                                     <div className="hidden sm:block text-right">
                                         <p className="text-xl font-bold text-gray-800">
-                                            {itemTotal.toLocaleString('vi-VN')}đ
+                                            {((Number(item.price) + (item.modifiers || []).reduce((sum, m) => sum + Number(m.price_modifier || 0), 0)) * item.quantity).toLocaleString('vi-VN')}đ
                                         </p>
                                         <button
                                             onClick={() => removeFromCart(item.cartId)}

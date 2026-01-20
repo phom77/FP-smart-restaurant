@@ -4,12 +4,42 @@ import { useCart } from '../contexts/CartContext';
 import ReviewSection from './ReviewSection';
 import RecommendedItems from './RecommendedItems';
 
-export default function ItemDetailModal({ item, onClose }) {
+export default function ItemDetailModal({ item, onClose, isReadOnly }) {
     const { t } = useTranslation();
     const { addToCart } = useCart();
     const [quantity, setQuantity] = useState(1);
     const [notes, setNotes] = useState('');
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [selectedModifiers, setSelectedModifiers] = useState({}); // { groupId: [modId1, modId2] }
+
+    const handleModifierChange = (groupId, modId, isSingle) => {
+        setSelectedModifiers(prev => {
+            const current = prev[groupId] || [];
+            if (isSingle) {
+                return { ...prev, [groupId]: [modId] };
+            } else {
+                if (current.includes(modId)) {
+                    return { ...prev, [groupId]: current.filter(id => id !== modId) };
+                } else {
+                    return { ...prev, [groupId]: [...current, modId] };
+                }
+            }
+        });
+    };
+
+    const calculateTotal = () => {
+        let total = item.price;
+        if (item.modifier_groups) {
+            item.modifier_groups.forEach(group => {
+                const selected = selectedModifiers[group.id] || [];
+                selected.forEach(modId => {
+                    const mod = group.modifiers?.find(m => m.id === modId);
+                    if (mod) total += Number(mod.price_modifier || 0);
+                });
+            });
+        }
+        return total * quantity;
+    };
 
     // Get all available images (prioritize images array, fallback to image_url)
     const allImages = item.images && item.images.length > 0
@@ -24,10 +54,6 @@ export default function ItemDetailModal({ item, onClose }) {
         // Reset image index when item changes
         setCurrentImageIndex(0);
     }, [item]);
-
-    const calculateTotal = () => {
-        return item.price * quantity;
-    };
 
     const handleAddToCart = () => {
         const modifiers = [];
@@ -159,49 +185,99 @@ export default function ItemDetailModal({ item, onClose }) {
                     </p>
 
                     {/* Modifier Groups */}
-
+                    {item.modifier_groups && item.modifier_groups.length > 0 && !isReadOnly && (
+                        <div className="space-y-6 mb-8">
+                            {item.modifier_groups.map(group => {
+                                const isSingle = group.max_selection === 1;
+                                return (
+                                    <div key={group.id} className="bg-gray-50 rounded-2xl p-4 sm:p-5 border border-gray-100">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="font-bold text-gray-900 text-sm sm:text-base flex items-center gap-2">
+                                                <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
+                                                {group.name}
+                                            </h3>
+                                            <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest bg-white px-2 py-1 rounded shadow-sm">
+                                                {isSingle ? t('menu.select_one') : t('menu.select_multiple')}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 sm:gap-3">
+                                            {group.modifiers?.map(mod => {
+                                                const isSelected = (selectedModifiers[group.id] || []).includes(mod.id);
+                                                return (
+                                                    <button
+                                                        key={mod.id}
+                                                        onClick={() => handleModifierChange(group.id, mod.id, isSingle)}
+                                                        className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all border-2 active:scale-95 ${isSelected
+                                                            ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-500/20 translate-y-[-2px]'
+                                                            : 'bg-white border-gray-100 text-gray-600 hover:border-emerald-200'
+                                                            }`}
+                                                    >
+                                                        {mod.name}
+                                                        {mod.price_modifier > 0 && (
+                                                            <span className={`px-1.5 py-0.5 rounded-md text-[10px] sm:text-xs ${isSelected ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                                +{formatPrice(mod.price_modifier)}
+                                                            </span>
+                                                        )}
+                                                        {isSelected && <span className="text-[10px] sm:text-xs">✓</span>}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     {/* Notes */}
-                    <div className="mb-6 sm:mb-8">
-                        <label htmlFor="notes" className="block font-bold mb-2 sm:mb-3 text-gray-900 flex items-center gap-2 text-sm sm:text-base">
-                            <span className="material-symbols-outlined text-gray-500">edit_note</span> {t('menu.notes')}
-                        </label>
-                        <textarea
-                            id="notes"
-                            value={notes}
-                            onChange={e => setNotes(e.target.value)}
-                            placeholder={t('menu.example_notes')}
-                            rows="3"
-                            className="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-lg sm:rounded-xl resize-vertical focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all text-sm sm:text-base"
-                        />
-                    </div>
+                    {!isReadOnly && (
+                        <div className="mb-6 sm:mb-8">
+                            <label htmlFor="notes" className="block font-bold mb-2 sm:mb-3 text-gray-900 flex items-center gap-2 text-sm sm:text-base">
+                                <span className="material-symbols-outlined text-gray-500">edit_note</span> {t('menu.notes')}
+                            </label>
+                            <textarea
+                                id="notes"
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                                placeholder={t('menu.example_notes')}
+                                rows="3"
+                                className="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-lg sm:rounded-xl resize-vertical focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all text-sm sm:text-base"
+                            />
+                        </div>
+                    )}
 
                     {/* Quantity and Add to Cart */}
-                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
-                        <div className="flex items-center justify-center gap-4 border-2 border-gray-200 rounded-lg sm:rounded-xl px-4 sm:px-6 py-3 bg-gray-50">
+                    {!isReadOnly && (
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
+                            <div className="flex items-center justify-center gap-4 border-2 border-gray-200 rounded-lg sm:rounded-xl px-4 sm:px-6 py-3 bg-gray-50">
+                                <button
+                                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                    className="text-xl sm:text-2xl text-emerald-600 w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold active:scale-95"
+                                >
+                                    −
+                                </button>
+                                <span className="text-lg sm:text-xl font-bold min-w-8 text-center text-gray-900">
+                                    {quantity}
+                                </span>
+                                <button
+                                    onClick={() => setQuantity(quantity + 1)}
+                                    className="text-xl sm:text-2xl text-emerald-600 w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold active:scale-95"
+                                >
+                                    +
+                                </button>
+                            </div>
                             <button
-                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                className="text-xl sm:text-2xl text-emerald-600 w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold active:scale-95"
+                                className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl text-base sm:text-lg font-bold transition-all shadow-lg transform active:scale-95 ${item.status === 'sold_out'
+                                    ? 'bg-gray-400 cursor-not-allowed opacity-50'
+                                    : 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white hover:shadow-xl hover:scale-105'
+                                    }`}
+                                onClick={item.status === 'available' ? handleAddToCart : undefined}
+                                disabled={item.status !== 'available'}
                             >
-                                −
-                            </button>
-                            <span className="text-lg sm:text-xl font-bold min-w-8 text-center text-gray-900">
-                                {quantity}
-                            </span>
-                            <button
-                                onClick={() => setQuantity(quantity + 1)}
-                                className="text-xl sm:text-2xl text-emerald-600 w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold active:scale-95"
-                            >
-                                +
+                                {item.status === 'sold_out' ? t('menu.status_sold_out') : `🛒 ${t('menu.add_to_cart')} - ${formatPrice(calculateTotal())}`}
                             </button>
                         </div>
-                        <button
-                            className="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl text-base sm:text-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
-                            onClick={handleAddToCart}
-                        >
-                            🛒 {t('menu.add_to_cart')} - {formatPrice(calculateTotal())}
-                        </button>
-                    </div>
+                    )}
 
                     {/* Recommended Items */}
                     <div className="mt-8 pt-8 border-t border-gray-200">

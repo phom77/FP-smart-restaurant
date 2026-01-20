@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export default function MenuCard({ item, onClick }) {
+export default function MenuCard({ item, onClick, isReadOnly }) {
     const { t } = useTranslation();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -85,9 +85,9 @@ export default function MenuCard({ item, onClick }) {
                         <span className="sm:hidden">Chef</span>
                     </div>
                 )}
-                {!item.is_available && (
-                    <div className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-red-600 text-white px-2 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shadow-lg z-10">
-                        {t('menu.out_of_stock')}
+                {item.status === 'sold_out' && (
+                    <div className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-red-600 text-white px-2 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shadow-lg z-10 transition-transform animate-pulse">
+                        {t('menu.status_sold_out')}
                     </div>
                 )}
             </div>
@@ -104,7 +104,7 @@ export default function MenuCard({ item, onClick }) {
                     <span className="text-base sm:text-lg lg:text-xl font-bold bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent">
                         {formatPrice(item.price)}
                     </span>
-                    {item.is_available && (
+                    {item.status === 'available' && !isReadOnly && (
                         <button className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 text-white flex items-center justify-center text-xl sm:text-2xl hover:from-emerald-600 hover:to-green-600 transition-all shadow-md hover:shadow-lg transform hover:scale-110 active:scale-95">
                             <span className="material-symbols-outlined text-sm sm:text-base">add</span>
                         </button>
