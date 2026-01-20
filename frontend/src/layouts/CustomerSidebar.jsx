@@ -42,7 +42,7 @@ const CustomerSidebar = () => {
                     </button>
                     <span className="font-bold text-[22px] tracking-wide bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">{t('common.appName')}</span>
                 </div>
-                
+
                 {/* Cart Button for Mobile */}
                 <Link
                     to="/cart"
@@ -77,6 +77,13 @@ const CustomerSidebar = () => {
                     <div className="flex items-center gap-3">
                         <span className="font-bold text-[22px] tracking-wide bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">{t('common.appName')}</span>
                     </div>
+                    {/* Close Button (Mobile Only) - Admin Style */}
+                    <button
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="ml-auto md:hidden text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
                 </div>
 
                 {/* Navigation Links */}
