@@ -12,6 +12,12 @@ const MenuManagement = () => {
     const [totalPages, setTotalPages] = useState(1);
     const itemsPerPage = 10;
 
+    // Filter State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
+    const [sortBy, setSortBy] = useState('name');
+
     // Form State
     const [newItem, setNewItem] = useState({
         name: '',
@@ -38,12 +44,38 @@ const MenuManagement = () => {
         fetchData();
     }, []);
 
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Refetch when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+        fetchData(1, true);
+    }, [debouncedSearch, filterCategory, sortBy]);
+
     const fetchData = async (page = currentPage, showLoading = true) => {
         try {
             if (showLoading) setLoading(true);
             const timestamp = Date.now();
+
+            // Build query params
+            const params = new URLSearchParams({
+                page: page,
+                limit: itemsPerPage,
+                t: timestamp,
+                sort_by: sortBy
+            });
+
+            if (debouncedSearch) params.append('search', debouncedSearch);
+            if (filterCategory) params.append('category_id', filterCategory);
+
             const [itemRes, catRes] = await Promise.all([
-                axios.get(`${API_URL}/api/menu/items?page=${page}&limit=${itemsPerPage}&t=${timestamp}`),
+                axios.get(`${API_URL}/api/menu/items?${params.toString()}`),
                 axios.get(`${API_URL}/api/categories?t=${timestamp}`)
             ]);
             console.log('Fetched items count:', itemRes.data.data.length);
@@ -190,6 +222,7 @@ const MenuManagement = () => {
             <h2 className="text-xl md:text-2xl font-bold mb-6 text-gray-800">{t('menu.title')}</h2>
 
             {error && <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-xl text-sm">{error}</div>}
+
 
             {/* Form */}
             <form
@@ -398,6 +431,71 @@ const MenuManagement = () => {
                     {editingId ? t('menu.update') : t('menu.save')}
                 </button>
             </form>
+
+            {/* Filters (Moved down) */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <div className="flex-1">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">{t('menu.search_by_name')}</label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder={t('menu.search_placeholder')}
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-emerald-500 transition-colors"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">close</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="w-full md:w-64">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">{t('menu.filter_category')}</label>
+                    <div className="relative">
+                        <select
+                            className="w-full appearance-none pl-10 pr-8 py-2.5 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-emerald-500 transition-colors bg-white cursor-pointer"
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                        >
+                            <option value="">{t('menu.all_categories')}</option>
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">category</span>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="w-full md:w-48">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">{t('menu.sort_by')}</label>
+                    <div className="relative">
+                        <select
+                            className="w-full appearance-none pl-10 pr-8 py-2.5 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-emerald-500 transition-colors bg-white cursor-pointer"
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                        >
+                            <option value="name">{t('menu.sort_name')}</option>
+                            <option value="price_asc">{t('menu.sort_price_asc')}</option>
+                            <option value="price_desc">{t('menu.sort_price_desc')}</option>
+                            <option value="popularity">{t('menu.sort_popularity')}</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">sort</span>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Table */}
             <div className="overflow-x-auto rounded-xl border border-gray-200">
